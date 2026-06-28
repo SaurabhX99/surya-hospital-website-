@@ -11,23 +11,31 @@ from datetime import datetime, timezone
 from typing import Optional
 
 import certifi
+import httpx
 from bson import ObjectId
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from pymongo import MongoClient, DESCENDING
 
 load_dotenv()
 
+# ── Tenant & upload config ──────────────────────────────────────────
+TENANT_NAME = os.getenv("TENANT_NAME", "vedansh_medicare").strip()
+
+def _tq(extra: dict | None = None) -> dict:
+    """Return a base query scoped to the current tenant."""
+    return {"tenant_name": TENANT_NAME, **(extra or {})}
+
 # ── App ────────────────────────────────────────────────────────────
 app = FastAPI(title="Vedansh Medicare API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000"],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -39,8 +47,10 @@ _client = MongoClient(
     tlsAllowInvalidCertificates=True,
 )
 _mdb    = _client[os.getenv("DATABASE_NAME", "NIMMS_HOSPITAL").strip()]
-_col    = _mdb["appointments"]
-_dcol   = _mdb["doctors"]
+_col     = _mdb["appointments"]
+_dcol    = _mdb["doctors"]
+_deptcol = _mdb["departments"]
+_bcol    = _mdb["blogs"]
 
 
 _STATUS_MAP = {
@@ -94,6 +104,24 @@ class DoctorIn(BaseModel):
     featured: bool = False
     active: bool = True
 
+class DepartmentIn(BaseModel):
+    name: str
+    description: Optional[str] = None
+    icon: Optional[str] = None
+    head_doctor: Optional[str] = None
+    order: int = 0
+    active: bool = True
+
+
+class DepartmentUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    icon: Optional[str] = None
+    head_doctor: Optional[str] = None
+    order: Optional[int] = None
+    active: Optional[bool] = None
+
+
 class DoctorUpdate(BaseModel):
     name: Optional[str] = None
     qualification: Optional[str] = None
@@ -104,6 +132,28 @@ class DoctorUpdate(BaseModel):
     photo: Optional[str] = None
     featured: Optional[bool] = None
     active: Optional[bool] = None
+
+
+class BlogIn(BaseModel):
+    title: str
+    author: str
+    category: str
+    drive_link: str
+    excerpt: Optional[str] = None
+    thumbnail: Optional[str] = None
+    tags: Optional[str] = None
+    published: bool = True
+
+
+class BlogUpdate(BaseModel):
+    title: Optional[str] = None
+    author: Optional[str] = None
+    category: Optional[str] = None
+    excerpt: Optional[str] = None
+    thumbnail: Optional[str] = None
+    tags: Optional[str] = None
+    published: Optional[bool] = None
+    drive_link: Optional[str] = None
 
 
 # ── Notifications ──────────────────────────────────────────────────
@@ -175,6 +225,7 @@ def root():
 @app.post("/api/appointments", status_code=201)
 def create_appointment(body: AppointmentIn):
     doc = {
+        "tenant_name":    TENANT_NAME,
         "name":           body.name,
         "mobile":         body.mobile,
         "department":     body.department,
@@ -191,18 +242,18 @@ def create_appointment(body: AppointmentIn):
 # NOTE: /stats must come before /{appt_id} to avoid route conflict
 @app.get("/api/appointments/stats")
 def get_stats():
-    total     = _col.count_documents({})
-    pending   = _col.count_documents({"status": {"$in": ["pending", "PENDING"]}})
-    confirmed = _col.count_documents({"status": {"$in": ["confirmed", "BOOKED"]}})
+    total     = _col.count_documents(_tq())
+    pending   = _col.count_documents(_tq({"status": {"$in": ["pending", "PENDING"]}}))
+    confirmed = _col.count_documents(_tq({"status": {"$in": ["confirmed", "BOOKED"]}}))
     start_of_today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
     today_oid = ObjectId.from_datetime(start_of_today)
-    today     = _col.count_documents({"_id": {"$gte": today_oid}})
+    today     = _col.count_documents(_tq({"_id": {"$gte": today_oid}}))
     return {"total": total, "pending": pending, "confirmed": confirmed, "today": today}
 
 
 @app.get("/api/appointments")
 def list_appointments(status: Optional[str] = None):
-    query = {"status": status} if status else {}
+    query = _tq({"status": status} if status else {})
     docs  = list(_col.find(query).sort("createdAt", DESCENDING))
     return [_fmt(d) for d in docs]
 
@@ -210,7 +261,7 @@ def list_appointments(status: Optional[str] = None):
 @app.get("/api/appointments/{appt_id}")
 def get_appointment(appt_id: str):
     try:
-        doc = _col.find_one({"_id": ObjectId(appt_id)})
+        doc = _col.find_one(_tq({"_id": ObjectId(appt_id)}))
     except Exception:
         raise HTTPException(400, "Invalid id")
     if not doc:
@@ -224,10 +275,10 @@ def _gdrive_direct(url: Optional[str]) -> Optional[str]:
         return url
     m = re.search(r'drive\.google\.com/file/d/([^/?]+)', url)
     if m:
-        return f"https://drive.google.com/uc?export=view&id={m.group(1)}"
+        return f"https://drive.google.com/thumbnail?id={m.group(1)}&sz=w800"
     m = re.search(r'drive\.google\.com/open\?id=([^&\s]+)', url)
     if m:
-        return f"https://drive.google.com/uc?export=view&id={m.group(1)}"
+        return f"https://drive.google.com/thumbnail?id={m.group(1)}&sz=w800"
     return url
 
 
@@ -253,7 +304,7 @@ def update_status(appt_id: str, body: StatusIn):
         oid = ObjectId(appt_id)
     except Exception:
         raise HTTPException(400, "Invalid id")
-    result = _col.update_one({"_id": oid}, {"$set": {"status": body.status}})
+    result = _col.update_one(_tq({"_id": oid}), {"$set": {"status": body.status}})
     if result.matched_count == 0:
         raise HTTPException(404, "Not found")
     return {"success": True}
@@ -263,8 +314,7 @@ def update_status(appt_id: str, body: StatusIn):
 @app.get("/api/doctors")
 def list_doctors(featured: Optional[bool] = None, show_all: bool = False):
     try:
-        # show_all=true is for admin panel — returns all doctors including inactive
-        query: dict = {} if show_all else {"active": True}
+        query = _tq() if show_all else _tq({"active": True})
         if featured is not None:
             query["featured"] = featured
         docs = list(_dcol.find(query).sort("created_at", DESCENDING))
@@ -278,7 +328,8 @@ def list_doctors(featured: Optional[bool] = None, show_all: bool = False):
 def create_doctor(body: DoctorIn):
     try:
         doc = body.model_dump()
-        doc["created_at"] = datetime.now(timezone.utc)
+        doc["tenant_name"] = TENANT_NAME
+        doc["created_at"]  = datetime.now(timezone.utc)
         result = _dcol.insert_one(doc)
         return {"success": True, "id": str(result.inserted_id)}
     except Exception as e:
@@ -296,7 +347,7 @@ def update_doctor(doctor_id: str, body: DoctorUpdate):
         updates = {k: v for k, v in body.model_dump().items() if v is not None}
         if not updates:
             raise HTTPException(400, "No fields to update")
-        result = _dcol.update_one({"_id": oid}, {"$set": updates})
+        result = _dcol.update_one(_tq({"_id": oid}), {"$set": updates})
         if result.matched_count == 0:
             raise HTTPException(404, "Not found")
         return {"success": True}
@@ -314,7 +365,7 @@ def delete_doctor(doctor_id: str):
     except Exception:
         raise HTTPException(400, "Invalid id")
     try:
-        result = _dcol.delete_one({"_id": oid})
+        result = _dcol.delete_one(_tq({"_id": oid}))
         if result.deleted_count == 0:
             raise HTTPException(404, "Not found")
         return {"success": True}
@@ -322,4 +373,220 @@ def delete_doctor(doctor_id: str):
         raise
     except Exception as e:
         print(f"[ERROR] delete_doctor: {e}")
+        raise HTTPException(503, "Database temporarily unavailable")
+
+
+# ── Department Routes ────────────────────────────────────────────────
+def _fmt_department(doc: dict) -> dict:
+    doc["id"] = str(doc.pop("_id"))
+    ca = doc.get("created_at")
+    if isinstance(ca, datetime):
+        doc["created_at"] = ca.isoformat()
+    doc.setdefault("description", None)
+    doc.setdefault("icon", None)
+    doc.setdefault("head_doctor", None)
+    doc.setdefault("order", 0)
+    doc.setdefault("active", True)
+    return doc
+
+
+@app.get("/api/departments")
+def list_departments(show_all: bool = False):
+    try:
+        query = _tq() if show_all else _tq({"active": True})
+        docs = list(_deptcol.find(query).sort("order", 1))
+        return [_fmt_department(d) for d in docs]
+    except Exception as e:
+        print(f"[ERROR] list_departments: {e}")
+        raise HTTPException(503, "Database temporarily unavailable")
+
+
+@app.post("/api/departments", status_code=201)
+def create_department(body: DepartmentIn):
+    try:
+        doc = body.model_dump()
+        doc["tenant_name"] = TENANT_NAME
+        doc["created_at"]  = datetime.now(timezone.utc)
+        result = _deptcol.insert_one(doc)
+        return {"success": True, "id": str(result.inserted_id)}
+    except Exception as e:
+        print(f"[ERROR] create_department: {e}")
+        raise HTTPException(503, "Database temporarily unavailable")
+
+
+@app.patch("/api/departments/{dept_id}")
+def update_department(dept_id: str, body: DepartmentUpdate):
+    try:
+        oid = ObjectId(dept_id)
+    except Exception:
+        raise HTTPException(400, "Invalid id")
+    try:
+        updates = {k: v for k, v in body.model_dump().items() if v is not None}
+        if not updates:
+            raise HTTPException(400, "No fields to update")
+        result = _deptcol.update_one(_tq({"_id": oid}), {"$set": updates})
+        if result.matched_count == 0:
+            raise HTTPException(404, "Not found")
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[ERROR] update_department: {e}")
+        raise HTTPException(503, "Database temporarily unavailable")
+
+
+@app.delete("/api/departments/{dept_id}")
+def delete_department(dept_id: str):
+    try:
+        oid = ObjectId(dept_id)
+    except Exception:
+        raise HTTPException(400, "Invalid id")
+    try:
+        result = _deptcol.delete_one(_tq({"_id": oid}))
+        if result.deleted_count == 0:
+            raise HTTPException(404, "Not found")
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[ERROR] delete_department: {e}")
+        raise HTTPException(503, "Database temporarily unavailable")
+
+
+# ── Blog Routes ──────────────────────────────────────────────────────
+
+def _drive_content_url(link: str) -> str:
+    """Convert a Google Drive / Docs share link to a direct content URL."""
+    # Google Docs → export as HTML
+    m = re.search(r'docs\.google\.com/document/d/([^/?]+)', link)
+    if m:
+        return f"https://docs.google.com/document/d/{m.group(1)}/export?format=html"
+    # Drive file (file/d/ID or open?id=ID) → direct download
+    m = re.search(r'drive\.google\.com/file/d/([^/?]+)', link)
+    if m:
+        return f"https://drive.google.com/uc?export=download&id={m.group(1)}"
+    m = re.search(r'drive\.google\.com/open\?id=([^&\s]+)', link)
+    if m:
+        return f"https://drive.google.com/uc?export=download&id={m.group(1)}"
+    return link
+
+
+def _fmt_blog(doc: dict) -> dict:
+    doc["id"] = str(doc.pop("_id"))
+    ca = doc.get("created_at")
+    if isinstance(ca, datetime):
+        doc["created_at"] = ca.isoformat()
+    doc.setdefault("excerpt",    None)
+    doc.setdefault("thumbnail",  None)
+    doc.setdefault("tags",       None)
+    doc.setdefault("published",  True)
+    doc.setdefault("drive_link", None)
+    return doc
+
+
+@app.get("/api/blogs")
+def list_blogs(show_all: bool = False):
+    try:
+        query = _tq() if show_all else _tq({"published": True})
+        docs = list(_bcol.find(query).sort("created_at", DESCENDING))
+        return [_fmt_blog(d) for d in docs]
+    except Exception as e:
+        print(f"[ERROR] list_blogs: {e}")
+        raise HTTPException(503, "Database temporarily unavailable")
+
+
+@app.get("/api/blogs/{blog_id}")
+def get_blog(blog_id: str):
+    try:
+        doc = _bcol.find_one(_tq({"_id": ObjectId(blog_id)}))
+    except Exception:
+        raise HTTPException(400, "Invalid id")
+    if not doc:
+        raise HTTPException(404, "Not found")
+    return _fmt_blog(doc)
+
+
+@app.post("/api/blogs", status_code=201)
+def create_blog(body: BlogIn):
+    doc = {
+        "tenant_name": TENANT_NAME,
+        "title":       body.title,
+        "author":      body.author,
+        "category":    body.category,
+        "drive_link":  body.drive_link,
+        "excerpt":     body.excerpt,
+        "thumbnail":   body.thumbnail,
+        "tags":        body.tags,
+        "published":   body.published,
+        "created_at":  datetime.now(timezone.utc),
+    }
+    try:
+        result = _bcol.insert_one(doc)
+        return {"success": True, "id": str(result.inserted_id)}
+    except Exception as e:
+        print(f"[ERROR] create_blog: {e}")
+        raise HTTPException(503, "Database temporarily unavailable")
+
+
+@app.patch("/api/blogs/{blog_id}")
+def update_blog(blog_id: str, body: BlogUpdate):
+    try:
+        oid = ObjectId(blog_id)
+    except Exception:
+        raise HTTPException(400, "Invalid id")
+    try:
+        updates = {k: v for k, v in body.model_dump().items() if v is not None}
+        if not updates:
+            raise HTTPException(400, "No fields to update")
+        result = _bcol.update_one(_tq({"_id": oid}), {"$set": updates})
+        if result.matched_count == 0:
+            raise HTTPException(404, "Not found")
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[ERROR] update_blog: {e}")
+        raise HTTPException(503, "Database temporarily unavailable")
+
+
+@app.get("/api/blogs/{blog_id}/content")
+async def get_blog_content(blog_id: str):
+    """Proxy the blog article content from Google Drive."""
+    try:
+        oid = ObjectId(blog_id)
+    except Exception:
+        raise HTTPException(400, "Invalid id")
+    doc = _bcol.find_one(_tq({"_id": oid}), {"drive_link": 1})
+    if not doc or not doc.get("drive_link"):
+        raise HTTPException(404, "No content available for this blog post")
+    content_url = _drive_content_url(doc["drive_link"])
+    try:
+        async with httpx.AsyncClient(follow_redirects=True, timeout=20) as client:
+            r = await client.get(content_url)
+        if r.status_code != 200:
+            raise HTTPException(502, "Could not fetch content from Drive")
+        media_type = r.headers.get("content-type", "text/html").split(";")[0]
+        return Response(content=r.content, media_type=media_type)
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[ERROR] get_blog_content: {e}")
+        raise HTTPException(502, "Could not fetch content from Drive")
+
+
+@app.delete("/api/blogs/{blog_id}")
+def delete_blog(blog_id: str):
+    try:
+        oid = ObjectId(blog_id)
+    except Exception:
+        raise HTTPException(400, "Invalid id")
+    try:
+        result = _bcol.delete_one(_tq({"_id": oid}))
+        if result.deleted_count == 0:
+            raise HTTPException(404, "Not found")
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[ERROR] delete_blog: {e}")
         raise HTTPException(503, "Database temporarily unavailable")

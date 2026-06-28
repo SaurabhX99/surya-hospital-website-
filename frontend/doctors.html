@@ -110,18 +110,6 @@
       </div>
       <select class="dept-select" id="dept-filter">
         <option value="all">All Departments</option>
-        <option>General Medicine</option>
-        <option>Cardiology</option>
-        <option>Obstetrics & Gynaecology</option>
-        <option>Pediatrics</option>
-        <option>Orthopaedics</option>
-        <option>Nephrology</option>
-        <option>Neuroscience</option>
-        <option>Dermatology</option>
-        <option>Urology</option>
-        <option>Eye Care</option>
-        <option>ENT</option>
-        <option>Gastroenterology</option>
       </select>
     </div>
 
@@ -212,8 +200,19 @@ async function init() {
   const grid = document.getElementById('doc-grid');
   grid.innerHTML = '<p style="text-align:center;color:var(--color-text-muted);padding:40px 0;grid-column:1/-1;">Loading doctors…</p>';
   try {
-    const res = await fetch(API + '/api/doctors');
-    ALL_DOCTORS = await res.json();
+    const [docRes, deptRes] = await Promise.all([
+      fetch(API + '/api/doctors'),
+      fetch(API + '/api/departments'),
+    ]);
+    ALL_DOCTORS = await docRes.json();
+    const depts = await deptRes.json();
+    const sel = document.getElementById('dept-filter');
+    depts.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d.name;
+      opt.textContent = d.name;
+      sel.appendChild(opt);
+    });
   } catch(e) {
     grid.innerHTML = '<p style="text-align:center;color:#E53935;padding:40px 0;grid-column:1/-1;">Could not load doctors. Please try again later.</p>';
     return;

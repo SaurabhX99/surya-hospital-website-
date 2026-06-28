@@ -5,3 +5,4 @@ twilio>=8.0.0
 pymongo>=4.0.0
 dnspython>=2.0.0
 certifi
+httpx>=0.27.0

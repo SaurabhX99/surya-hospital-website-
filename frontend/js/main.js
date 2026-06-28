@@ -428,15 +428,21 @@
   }
 
   /* ── Render: Blogs ────────────────────────────────────── */
-  function renderBlogs() {
+  async function renderBlogs() {
     const grid = $('#blogs-grid');
-    if (!grid || !data) return;
+    if (!grid) return;
     const categoryColors = {
       'Cardiology': '#E53935',
       'Nephrology': '#0A4D8C',
       'Maternity':  '#E91E8C',
     };
-    grid.innerHTML = data.blogs.map((b, i) => `
+    let blogs = [];
+    try {
+      const res = await fetch(API_BASE + '/api/blogs');
+      blogs = await res.json();
+    } catch(e) { return; }
+    if (!blogs.length) return;
+    grid.innerHTML = blogs.slice(0, 3).map((b, i) => `
       <div class="blog-card" data-animate="fade-up" data-delay="${i * 100}">
         <div class="blog-image-wrap">
           <div style="width:100%;height:100%;background:linear-gradient(135deg,${categoryColors[b.category] || 'var(--color-primary)'}22,${categoryColors[b.category] || 'var(--color-primary)'}44);display:flex;align-items:center;justify-content:center;">
@@ -448,15 +454,11 @@
           <div class="blog-meta">
             <span class="blog-meta-item">
               ${svgIcon('<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>', 12)}
-              ${b.date}
-            </span>
-            <span class="blog-meta-item">
-              ${svgIcon('<circle cx="12" cy="12" r="10"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/>', 12)}
-              ${b.readTime}
+              ${b.created_at ? new Date(b.created_at).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) : ''}
             </span>
           </div>
           <h3 class="blog-title">${b.title}</h3>
-          <p class="blog-excerpt">${b.excerpt}</p>
+          <p class="blog-excerpt">${b.excerpt || ''}</p>
           <div class="blog-footer">
             <div class="blog-author">
               <div class="blog-author-avatar" style="background:var(--color-bg-section);display:flex;align-items:center;justify-content:center;">
@@ -469,6 +471,22 @@
         </div>
       </div>
     `).join('');
+  }
+
+  /* ── Populate Department Dropdown ─────────────────────── */
+  async function populateDeptSelect() {
+    const sel = $('#appt-dept');
+    if (!sel) return;
+    try {
+      const res = await fetch(API_BASE + '/api/departments');
+      const depts = await res.json();
+      depts.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d.name;
+        opt.textContent = d.name;
+        sel.appendChild(opt);
+      });
+    } catch(e) { /* keep placeholder only */ }
   }
 
   /* ── Appointment Form ─────────────────────────────────── */
@@ -687,6 +705,7 @@
     renderPartners();
     renderBlogs();
 
+    populateDeptSelect();
     initAppointmentForm();
     initActiveNav();
 

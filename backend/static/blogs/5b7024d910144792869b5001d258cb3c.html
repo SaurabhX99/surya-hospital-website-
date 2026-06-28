@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FreshCharge — Brochure</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --leaf: #2B6B3F;
+    --leaf-light: #4A9B62;
+    --leaf-pale: #E8F5ED;
+    --citrus: #E8A020;
+    --citrus-light: #F5C355;
+    --cream: #FAF8F3;
+    --bark: #3A2E1E;
+    --bark-mid: #6B5A3E;
+    --mist: #F0EDE6;
+    --white: #ffffff;
+    --font-display: 'Playfair Display', Georgia, serif;
+    --font-body: 'DM Sans', sans-serif;
+  }
+
+  body {
+    font-family: var(--font-body);
+    background: #E9E4DA;
+    color: var(--bark);
+    line-height: 1.6;
+  }
+
+  .page {
+    width: 794px;
+    min-height: 1123px;
+    background: var(--cream);
+    margin: 32px auto;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 48px rgba(0,0,0,0.18);
+  }
+
+  /* ── PAGE 1 — COVER ── */
+  .cover {
+    background: var(--leaf);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 1123px;
+  }
+
+  .cover-left {
+    padding: 72px 48px 72px 56px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    z-index: 2;
+  }
+
+  .cover-right {
+    background: var(--cream);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .brand-mark {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .brand-icon {
+    width: 44px;
+    height: 44px;
+    background: var(--citrus);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .brand-name {
+    font-family: var(--font-display);
+    font-size: 22px;
+    color: var(--white);
+    letter-spacing: 0.05em;
+    font-weight: 700;
+  }
+
+  .cover-headline {
+    font-family: var(--font-display);
+    font-size: 64px;
+    line-height: 1.05;
+    color: var(--white);
+    font-style: italic;
+  }
+
+  .cover-headline span {
+    color: var(--citrus-light);
+    font-style: normal;
+  }
+
+  .cover-tagline {
+    font-size: 14px;
+    color: rgba(255,255,255,0.7);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border-top: 1px solid rgba(255,255,255,0.25);
+    padding-top: 20px;
+    max-width: 280px;
+    line-height: 1.8;
+  }
+
+  .cover-circles {
+    position: absolute;
+    top: -80px; right: -80px;
+    width: 320px; height: 320px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+  }
+  .cover-circles::after {
+    content: '';
+    position: absolute;
+    top: 60px; left: 60px;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+  }
+
+  .machine-illustration {
+    width: 260px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .cover-right-label {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: var(--leaf);
+    padding: 28px 32px;
+    text-align: center;
+  }
+
+  .cover-right-label p {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.8);
+  }
+
+  .cover-right-label strong {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 20px;
+    color: var(--citrus-light);
+    font-weight: 400;
+    margin-top: 4px;
+  }
+
+  .leaf-deco {
+    position: absolute;
+    opacity: 0.08;
+  }
+
+  /* ── PAGE 2 — WHY / DRINKS ── */
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--leaf);
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+
+  .page-inner {
+    padding: 64px 56px;
+  }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: start;
+  }
+
+  .h1 {
+    font-family: var(--font-display);
+    font-size: 48px;
+    line-height: 1.1;
+    color: var(--bark);
+    margin-bottom: 20px;
+  }
+
+  .h1 em {
+    color: var(--leaf);
+  }
+
+  .h2 {
+    font-family: var(--font-display);
+    font-size: 32px;
+    line-height: 1.2;
+    color: var(--bark);
+    margin-bottom: 16px;
+  }
+
+  .body-text {
+    font-size: 14px;
+    color: var(--bark-mid);
+    line-height: 1.8;
+    margin-bottom: 20px;
+  }
+
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin: 36px 0;
+  }
+
+  .stat-box {
+    background: var(--leaf-pale);
+    border-radius: 12px;
+    padding: 20px 16px;
+    text-align: center;
+    border: 1px solid #C5DFC8;
+  }
+
+  .stat-number {
+    font-family: var(--font-display);
+    font-size: 36px;
+    color: var(--leaf);
+    display: block;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--bark-mid);
+    margin-top: 4px;
+  }
+
+  /* Drink Cards */
+  .drink-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 28px;
+  }
+
+  .drink-card {
+    border-radius: 16px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .drink-card.green { background: #D4EDDA; }
+  .drink-card.amber { background: #FDE9C0; }
+  .drink-card.blue  { background: #D6EAF8; }
+  .drink-card.pink  { background: #FADADD; }
+
+  .drink-emoji {
+    font-size: 32px;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .drink-name {
+    font-family: var(--font-display);
+    font-size: 16px;
+    color: var(--bark);
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .drink-desc {
+    font-size: 12px;
+    color: var(--bark-mid);
+    line-height: 1.6;
+  }
+
+  .drink-badge {
+    position: absolute;
+    top: 14px; right: 14px;
+    background: var(--white);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--leaf);
+    letter-spacing: 0.05em;
+  }
+
+  /* ── PAGE 3 — HOW IT WORKS ── */
+  .page3 {
+    background: var(--bark);
+    color: var(--white);
+    min-height: 1123px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .page3-inner {
+    padding: 64px 56px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .section-label-light {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--citrus-light);
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+
+  .h1-light {
+    font-family: var(--font-display);
+    font-size: 48px;
+    line-height: 1.1;
+    color: var(--white);
+    margin-bottom: 16px;
+  }
+
+  .h1-light em { color: var(--citrus-light); }
+
+  .body-light {
+    font-size: 14px;
+    color: rgba(255,255,255,0.65);
+    line-height: 1.8;
+    max-width: 500px;
+    margin-bottom: 48px;
+  }
+
+  .steps {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 48px;
+  }
+
+  .step {
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 16px;
+    padding: 24px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .step-num {
+    font-family: var(--font-display);
+    font-size: 36px;
+    color: var(--citrus-light);
+    line-height: 1;
+    flex-shrink: 0;
+    width: 44px;
+    font-style: italic;
+  }
+
+  .step-title {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--white);
+    margin-bottom: 6px;
+  }
+
+  .step-text {
+    font-size: 13px;
+    color: rgba(255,255,255,0.55);
+    line-height: 1.7;
+  }
+
+  .features-strip {
+    border-top: 1px solid rgba(255,255,255,0.12);
+    padding-top: 36px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+  }
+
+  .feature {
+    text-align: center;
+  }
+
+  .feature-icon {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 12px;
+    font-size: 22px;
+  }
+
+  .feature-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--white);
+    margin-bottom: 4px;
+  }
+
+  .feature-text {
+    font-size: 11px;
+    color: rgba(255,255,255,0.45);
+    line-height: 1.6;
+  }
+
+  .deco-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  /* ── PAGE 4 — BACK COVER ── */
+  .back {
+    background: var(--cream);
+    min-height: 1123px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .back-top {
+    background: var(--leaf-pale);
+    padding: 56px 56px 48px;
+    border-bottom: 2px solid #C5DFC8;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+  }
+
+  .testimonial-block {
+    padding-bottom: 32px;
+  }
+
+  .quote-mark {
+    font-family: var(--font-display);
+    font-size: 72px;
+    line-height: 0.5;
+    color: var(--leaf);
+    opacity: 0.3;
+    display: block;
+    margin-bottom: 16px;
+  }
+
+  .quote-text {
+    font-family: var(--font-display);
+    font-size: 18px;
+    line-height: 1.6;
+    color: var(--bark);
+    font-style: italic;
+    margin-bottom: 16px;
+  }
+
+  .quote-author {
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--leaf);
+    font-weight: 500;
+  }
+
+  .wellness-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 8px;
+  }
+
+  .wellness-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 14px;
+    color: var(--bark-mid);
+    line-height: 1.5;
+  }
+
+  .check-dot {
+    width: 20px; height: 20px;
+    background: var(--leaf);
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+  }
+
+  .check-dot svg { display: block; }
+
+  .back-bottom {
+    padding: 48px 56px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: center;
+  }
+
+  .placement-card {
+    background: var(--white);
+    border: 1px solid #D8D0C4;
+    border-radius: 16px;
+    padding: 28px;
+  }
+
+  .placement-title {
+    font-family: var(--font-display);
+    font-size: 22px;
+    color: var(--bark);
+    margin-bottom: 16px;
+  }
+
+  .placement-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .placement-list li {
+    font-size: 13px;
+    color: var(--bark-mid);
+    padding-left: 16px;
+    position: relative;
+  }
+
+  .placement-list li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--leaf);
+    font-weight: 500;
+  }
+
+  .contact-panel {
+    background: var(--leaf);
+    border-radius: 20px;
+    padding: 36px 32px;
+    text-align: center;
+  }
+
+  .contact-panel .brand-name {
+    font-size: 28px;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  .contact-panel p {
+    font-size: 13px;
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 24px;
+    line-height: 1.7;
+  }
+
+  .contact-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .contact-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 10px 14px;
+    text-align: left;
+  }
+
+  .contact-row span {
+    font-size: 12px;
+    color: rgba(255,255,255,0.9);
+    line-height: 1.4;
+  }
+
+  .contact-row small {
+    display: block;
+    font-size: 10px;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .footer-strip {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: var(--bark);
+    padding: 20px 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .footer-strip span {
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.08em;
+  }
+
+  .footer-cert {
+    display: flex;
+    gap: 16px;
+  }
+
+  .cert-badge {
+    font-size: 10px;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 20px;
+    padding: 4px 10px;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* Print */
+  @media print {
+    body { background: none; }
+    .page { margin: 0; box-shadow: none; page-break-after: always; }
+  }
+
+  @media screen and (max-width: 840px) {
+    .page { width: 100%; margin: 0; border-radius: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════ PAGE 1 — COVER ═══════════════════════════════ -->
+<div class="page cover">
+
+  <div class="cover-left">
+    <div class="cover-circles"></div>
+
+    <div class="brand-mark">
+      <div class="brand-icon">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <path d="M11 3C11 3 7 6.5 7 11C7 13.76 9.24 16 12 16C14.76 16 17 13.76 17 11C17 9 15.5 7.5 15.5 7.5" stroke="#2B6B3F" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M6 8L10.5 13" stroke="#2B6B3F" stroke-width="1.8" stroke-linecap="round"/>
+          <circle cx="11" cy="18.5" r="1.5" fill="#2B6B3F"/>
+        </svg>
+      </div>
+      <span class="brand-name">FreshCharge</span>
+    </div>
+
+    <div>
+      <div class="cover-headline">
+        Nature's<br>best,<br><span>always<br>on tap.</span>
+      </div>
+    </div>
+
+    <div class="cover-tagline">
+      A smart vending solution delivering cold-pressed juices, botanical blends &amp; functional wellness drinks — fresh, every time.
+    </div>
+  </div>
+
+  <div class="cover-right">
+    <!-- Machine SVG Illustration -->
+    <svg width="240" height="480" viewBox="0 0 240 480" fill="none" xmlns="http://www.w3.org/2000/svg" class="machine-illustration">
+      <!-- Machine body -->
+      <rect x="20" y="40" width="200" height="380" rx="20" fill="#2B6B3F"/>
+      <rect x="28" y="48" width="184" height="364" rx="16" fill="#245E35"/>
+      <!-- Screen/display area -->
+      <rect x="36" y="60" width="168" height="100" rx="10" fill="#1A4727"/>
+      <rect x="40" y="64" width="160" height="92" rx="8" fill="#0D2E17"/>
+      <!-- Screen glow -->
+      <rect x="44" y="68" width="152" height="84" rx="6" fill="#1A5C30"/>
+      <!-- Logo on screen -->
+      <text x="120" y="108" text-anchor="middle" font-family="Georgia, serif" font-size="14" fill="#E8A020" font-style="italic">FreshCharge</text>
+      <text x="120" y="126" text-anchor="middle" font-family="sans-serif" font-size="9" fill="rgba(255,255,255,0.5)" letter-spacing="2">HEALTHY DRINKS</text>
+      <!-- Display shelf rows -->
+      <rect x="36" y="176" width="168" height="5" rx="2" fill="#1A4727"/>
+      <rect x="36" y="224" width="168" height="5" rx="2" fill="#1A4727"/>
+      <rect x="36" y="272" width="168" height="5" rx="2" fill="#1A4727"/>
+      <!-- Drink bottles row 1 -->
+      <rect x="52" y="140" width="22" height="34" rx="6" fill="#4CAF78"/>
+      <rect x="82" y="140" width="22" height="34" rx="6" fill="#E8A020"/>
+      <rect x="112" y="140" width="22" height="34" rx="6" fill="#5BBCD4"/>
+      <rect x="142" y="140" width="22" height="34" rx="6" fill="#E87040"/>
+      <rect x="172" y="140" width="22" height="34" rx="6" fill="#8BC34A"/>
+      <!-- Row 2 -->
+      <rect x="52" y="188" width="22" height="34" rx="6" fill="#E87040"/>
+      <rect x="82" y="188" width="22" height="34" rx="6" fill="#5BBCD4"/>
+      <rect x="112" y="188" width="22" height="34" rx="6" fill="#8BC34A"/>
+      <rect x="142" y="188" width="22" height="34" rx="6" fill="#4CAF78"/>
+      <rect x="172" y="188" width="22" height="34" rx="6" fill="#E8A020"/>
+      <!-- Row 3 -->
+      <rect x="52" y="236" width="22" height="34" rx="6" fill="#5BBCD4"/>
+      <rect x="82" y="236" width="22" height="34" rx="6" fill="#8BC34A"/>
+      <rect x="112" y="236" width="22" height="34" rx="6" fill="#E8A020"/>
+      <rect x="142" y="236" width="22" height="34" rx="6" fill="#4CAF78"/>
+      <rect x="172" y="236" width="22" height="34" rx="6" fill="#E87040"/>
+      <!-- Payment panel -->
+      <rect x="60" y="290" width="120" height="70" rx="10" fill="#1A4727"/>
+      <rect x="68" y="298" width="50" height="30" rx="6" fill="#0D2E17"/>
+      <rect x="124" y="298" width="48" height="14" rx="4" fill="#2B6B3F"/>
+      <rect x="124" y="316" width="48" height="14" rx="4" fill="#2B6B3F"/>
+      <rect x="68" y="332" width="104" height="20" rx="4" fill="#2B6B3F"/>
+      <!-- Collection slot -->
+      <rect x="60" y="374" width="120" height="30" rx="8" fill="#1A4727"/>
+      <rect x="68" y="380" width="104" height="18" rx="4" fill="#0D2E17"/>
+      <!-- Base -->
+      <rect x="10" y="418" width="220" height="24" rx="6" fill="#1A4727"/>
+      <rect x="0" y="440" width="240" height="12" rx="4" fill="#3A2E1E"/>
+      <!-- Shine -->
+      <rect x="30" y="52" width="6" height="340" rx="3" fill="rgba(255,255,255,0.04)"/>
+    </svg>
+
+    <div class="cover-right-label">
+      <p>Intelligent Wellness Vending</p>
+      <strong>Drink Better. Live Brighter.</strong>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════ PAGE 2 — WHY + DRINKS ═══════════════════════════════ -->
+<div class="page">
+  <div class="page-inner">
+
+    <div class="two-col" style="margin-bottom: 48px;">
+      <div>
+        <div class="section-label">Why FreshCharge</div>
+        <div class="h1">Your health,<br><em>unchained.</em></div>
+        <p class="body-text">
+          Most vending machines are packed with sugar-laden, ultra-processed drinks. FreshCharge flips the script — every slot holds a genuinely nutritious option, carefully curated by dietitians and crafted with real ingredients.
+        </p>
+        <p class="body-text">
+          Whether you're powering through a morning workout, a mid-afternoon slump, or a stressful deadline, FreshCharge has the right drink for the right moment — naturally.
+        </p>
+      </div>
+
+      <div>
+        <div class="stat-row">
+          <div class="stat-box">
+            <span class="stat-number">0g</span>
+            <div class="stat-label">Added Sugar Options</div>
+          </div>
+          <div class="stat-box">
+            <span class="stat-number">30+</span>
+            <div class="stat-label">Drink Varieties</div>
+          </div>
+          <div class="stat-box">
+            <span class="stat-number">4°C</span>
+            <div class="stat-label">Always Fresh</div>
+          </div>
+        </div>
+
+        <p class="body-text">
+          Our IoT-enabled machines monitor temperature, stock, and freshness in real-time. Operators receive alerts before anything goes stale — guaranteed freshness, every pour.
+        </p>
+      </div>
+    </div>
+
+    <div class="section-label" style="margin-bottom:16px;">What's Inside</div>
+    <div class="h2">Handpicked for wellness.</div>
+
+    <div class="drink-grid">
+      <div class="drink-card green">
+        <div class="drink-badge">Bestseller</div>
+        <span class="drink-emoji">🥬</span>
+        <div class="drink-name">Green Surge</div>
+        <div class="drink-desc">Spinach, cucumber, green apple &amp; ginger. Cold-pressed for maximum nutrients. Immune-boosting &amp; energising.</div>
+      </div>
+
+      <div class="drink-card amber">
+        <span class="drink-emoji">🍋</span>
+        <div class="drink-name">Citrus Revive</div>
+        <div class="drink-desc">Orange, lemon, turmeric &amp; black pepper. Rich in vitamin C and anti-inflammatory compounds. A zesty daily ritual.</div>
+      </div>
+
+      <div class="drink-card blue">
+        <div class="drink-badge">Hydration+</div>
+        <span class="drink-emoji">💧</span>
+        <div class="drink-name">Coconut Reset</div>
+        <div class="drink-desc">Pure coconut water with added electrolytes and a hint of mint. Nature's sports drink — no artificial anything.</div>
+      </div>
+
+      <div class="drink-card pink">
+        <span class="drink-emoji">🌸</span>
+        <div class="drink-name">Berry Bloom</div>
+        <div class="drink-desc">Blueberry, raspberry &amp; hibiscus with adaptogens. Antioxidant-rich, stress-calming, beautifully purple.</div>
+      </div>
+    </div>
+
+    <div style="margin-top: 24px; padding: 20px 24px; background: var(--leaf-pale); border-radius: 12px; border-left: 4px solid var(--leaf); display: flex; align-items: center; gap: 16px;">
+      <div style="font-size: 28px;">🍃</div>
+      <div>
+        <div style="font-size: 13px; font-weight: 500; color: var(--bark); margin-bottom: 4px;">Also available: Protein Shakes · Kombucha · Cold Brew Coffee · Herbal Infusions · Alkaline Water</div>
+        <div style="font-size: 12px; color: var(--bark-mid);">Menu customisable per location. All drinks are free from artificial preservatives, colours and sweeteners.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ PAGE 3 — HOW IT WORKS ═══════════════════════════════ -->
+<div class="page page3">
+  <div class="deco-ring" style="width:500px;height:500px;top:-200px;right:-200px;"></div>
+  <div class="deco-ring" style="width:300px;height:300px;bottom:-100px;left:-100px;"></div>
+
+  <div class="page3-inner">
+    <div class="section-label-light">How It Works</div>
+    <div class="h1-light">Simple as<br><em>sip & go.</em></div>
+    <p class="body-light">
+      FreshCharge machines are designed for frictionless, joyful interactions. From selection to sip, the entire experience takes under 30 seconds.
+    </p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div>
+          <div class="step-title">Browse & Discover</div>
+          <div class="step-text">The touchscreen display shows full ingredient lists, nutritional info, allergen warnings, and even calorie counts — complete transparency, always.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">02</div>
+        <div>
+          <div class="step-title">Tap to Select</div>
+          <div class="step-text">Choose your drink and customise your experience — warm, chilled, or ice-cold. The machine remembers your past picks for faster future orders.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">03</div>
+        <div>
+          <div class="step-title">Pay Your Way</div>
+          <div class="step-text">Accept card, UPI, NFC, QR code, or the FreshCharge app. No cash required. Every transaction is encrypted and instant.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">04</div>
+        <div>
+          <div class="step-title">Collect & Enjoy</div>
+          <div class="step-text">Your drink is dispensed chilled and ready. Eco-packaging, 100% recyclable. Earn loyalty points on every purchase via the app.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="features-strip">
+      <div class="feature">
+        <div class="feature-icon">🌡️</div>
+        <div class="feature-title">Real-Time Temp</div>
+        <div class="feature-text">IoT sensors monitor cooling 24/7 and alert operators instantly.</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🔒</div>
+        <div class="feature-title">Secure Payments</div>
+        <div class="feature-text">PCI-DSS compliant. UPI, NFC, card &amp; QR — all accepted.</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">📱</div>
+        <div class="feature-title">App &amp; Loyalty</div>
+        <div class="feature-text">Order ahead, earn points, track nutrition in one simple app.</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">♻️</div>
+        <div class="feature-title">Eco Packaging</div>
+        <div class="feature-text">100% recyclable bottles. Carbon offset delivery. Zero waste goal.</div>
+      </div>
+    </div>
+
+    <!-- Nutritional commitment strip -->
+    <div style="margin-top: 48px; border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 28px 32px; display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: center;">
+      <div>
+        <div class="section-label-light" style="margin-bottom:8px;">Our Nutritional Promise</div>
+        <p style="font-size:14px; color:rgba(255,255,255,0.65); line-height:1.7; margin:0;">
+          Every drink in our range is approved by certified nutritionists. We publish full ingredient sourcing, and partner only with farms holding sustainable certifications. No compromises — ever.
+        </p>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-family: 'Playfair Display', serif; font-size: 48px; color: var(--citrus-light); font-style: italic; line-height:1;">100%</div>
+        <div style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.4); margin-top:4px;">Dietitian Approved</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ PAGE 4 — BACK COVER ═══════════════════════════════ -->
+<div class="page back">
+
+  <div class="back-top">
+    <div class="testimonial-block">
+      <div class="section-label">What People Say</div>
+      <span class="quote-mark">"</span>
+      <p class="quote-text">
+        FreshCharge changed our office wellness culture overnight. Our team actually looks forward to their afternoon break now — and the productivity boost has been real.
+      </p>
+      <div class="quote-author">— Priya K., HR Director, TechPark Pune</div>
+
+      <div style="margin-top: 28px; padding-top: 24px; border-top: 1px solid #C5DFC8;">
+        <span class="quote-mark" style="font-size:52px;">"</span>
+        <p class="quote-text" style="font-size:15px;">
+          I refuel after every gym session here. Clean ingredients, great taste. Nothing else comes close.
+        </p>
+        <div class="quote-author">— Arjun M., Fitness Enthusiast</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Why Operators Love Us</div>
+      <div class="h2" style="font-size:22px; margin-bottom:20px;">Zero hassle,<br>maximum impact.</div>
+      <ul class="wellness-list">
+        <li>
+          <div class="check-dot">
+            <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <span>Remote stock monitoring with automated restocking alerts</span>
+        </li>
+        <li>
+          <div class="check-dot">
+            <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <span>Revenue sharing model — earn from every sale, effortlessly</span>
+        </li>
+        <li>
+          <div class="check-dot">
+            <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <span>Full installation, maintenance and restocking by our team</span>
+        </li>
+        <li>
+          <div class="check-dot">
+            <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <span>Branded machine options — display your logo alongside ours</span>
+        </li>
+        <li>
+          <div class="check-dot">
+            <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <span>Detailed monthly usage analytics dashboard included</span>
+        </li>
+        <li>
+          <div class="check-dot">
+            <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <span>CSR-aligned — boost your organisation's wellness credentials</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="back-bottom">
+    <div class="placement-card">
+      <div class="placement-title">Where we thrive</div>
+      <ul class="placement-list">
+        <li>Corporate offices &amp; tech parks</li>
+        <li>Hospitals &amp; healthcare facilities</li>
+        <li>Gyms, yoga studios &amp; wellness centres</li>
+        <li>Universities &amp; colleges</li>
+        <li>Hotels &amp; premium hospitality</li>
+        <li>Airports &amp; transit hubs</li>
+        <li>Co-working spaces</li>
+        <li>Shopping malls &amp; food courts</li>
+      </ul>
+
+      <div style="margin-top: 24px; padding: 14px 16px; background: var(--leaf-pale); border-radius: 10px;">
+        <div style="font-size: 12px; font-weight: 500; color: var(--bark); margin-bottom: 4px;">Minimum footprint required</div>
+        <div style="font-size: 12px; color: var(--bark-mid);">Just 0.6m × 0.8m floor space. Power point required. Installation in under 3 hours.</div>
+      </div>
+    </div>
+
+    <div class="contact-panel">
+      <span class="brand-name" style="font-family: 'Playfair Display', serif; display:block; margin-bottom:6px;">FreshCharge</span>
+      <p>Ready to bring a wellness revolution to your space? Let's talk.</p>
+
+      <div class="contact-detail">
+        <div class="contact-row">
+          <span style="font-size:18px;">🌐</span>
+          <span>
+            <small>Website</small>
+            www.freshcharge.in
+          </span>
+        </div>
+        <div class="contact-row">
+          <span style="font-size:18px;">📧</span>
+          <span>
+            <small>Email</small>
+            hello@freshcharge.in
+          </span>
+        </div>
+        <div class="contact-row">
+          <span style="font-size:18px;">📞</span>
+          <span>
+            <small>Call us</small>
+            +91 98000 12345
+          </span>
+        </div>
+        <div class="contact-row">
+          <span style="font-size:18px;">📍</span>
+          <span>
+            <small>HQ</small>
+            Baner, Pune — 411045
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-strip">
+    <span>© 2025 FreshCharge India Pvt. Ltd. · All rights reserved.</span>
+    <div class="footer-cert">
+      <div class="cert-badge">FSSAI Certified</div>
+      <div class="cert-badge">ISO 22000</div>
+      <div class="cert-badge">Eco Partner</div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

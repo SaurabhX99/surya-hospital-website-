@@ -269,33 +269,6 @@ VM.data = {
     'SBI General Insurance',
   ],
 
-  /* ── Blogs ────────────────────────────────────────────── */
-  blogs: [
-    {
-      title: 'Understanding Heart Disease: Warning Signs You Should Never Ignore',
-      excerpt: 'Cardiovascular diseases are the leading cause of death worldwide. Learn the early warning signs and when to seek emergency care.',
-      category: 'Cardiology',
-      date: 'Jun 10, 2024',
-      readTime: '5 min read',
-      author: 'Cardiology Team',
-    },
-    {
-      title: 'Kidney Health: How to Protect Your Kidneys from Chronic Disease',
-      excerpt: 'Chronic kidney disease often develops silently. Discover practical lifestyle changes that can protect your kidneys for the long term.',
-      category: 'Nephrology',
-      date: 'May 28, 2024',
-      readTime: '6 min read',
-      author: 'Nephrology Dept.',
-    },
-    {
-      title: 'Pregnancy Care: Your Complete Guide to a Safe & Healthy Delivery',
-      excerpt: 'A healthy pregnancy requires the right medical support and lifestyle habits. Our obstetrics team shares their essential guide for expecting mothers.',
-      category: 'Maternity',
-      date: 'May 15, 2024',
-      readTime: '7 min read',
-      author: 'Obs & Gynae Team',
-    },
-  ],
 
 };
 
