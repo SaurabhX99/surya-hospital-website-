@@ -7,9 +7,11 @@ from __future__ import annotations
 
 import os
 import re
-from datetime import datetime, timezone
+import secrets
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 
+import bcrypt
 import certifi
 import httpx
 from bson import ObjectId
@@ -19,6 +21,7 @@ from fastapi.responses import JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from pymongo import MongoClient, DESCENDING
+from pymongo.errors import DuplicateKeyError
 
 load_dotenv()
 
@@ -51,7 +54,34 @@ _col     = _mdb["appointments"]
 _dcol    = _mdb["doctors"]
 _deptcol = _mdb["departments"]
 _bcol    = _mdb["blogs"]
+_mediacol  = _mdb["media"]
+_gcfgcol   = _mdb["gallery_config"]
+_testcol   = _mdb["testimonials"]
+_usercol   = _mdb["admin_users"]
 
+# ── Seed first admin user from env if the collection is empty ──────
+_admin_email    = os.getenv("ADMIN_EMAIL", "").strip().lower()
+_admin_password = os.getenv("ADMIN_PASSWORD", "").strip()
+if _admin_email and _admin_password and _usercol.count_documents({}) == 0:
+    _pw_hash = bcrypt.hashpw(_admin_password.encode(), bcrypt.gensalt())
+    _usercol.insert_one({
+        "email":         _admin_email,
+        "password_hash": _pw_hash,
+        "name":          "Hospital Admin",
+        "role":          "Super Admin",
+        "created_at":    datetime.now(timezone.utc),
+    })
+    print(f"[STARTUP] Created admin user: {_admin_email}")
+
+# Drop ALL non-_id unique indexes on appointments — let MongoDB _id be the only PK.
+for _idx_name, _idx_info in list(_col.index_information().items()):
+    if _idx_name == "_id_" or not _idx_info.get("unique"):
+        continue
+    try:
+        _col.drop_index(_idx_name)
+        print(f"[STARTUP] Dropped unique index: {_idx_name}")
+    except Exception as _e:
+        print(f"[STARTUP] Could not drop index {_idx_name}: {_e}")
 
 _STATUS_MAP = {
     "BOOKED": "confirmed", "PENDING": "pending",
@@ -86,6 +116,7 @@ class AppointmentIn(BaseModel):
     name: str
     mobile: str
     department: str
+    doctor: Optional[str] = None
     date: Optional[str] = None
     message: Optional[str] = None
 
@@ -154,6 +185,72 @@ class BlogUpdate(BaseModel):
     tags: Optional[str] = None
     published: Optional[bool] = None
     drive_link: Optional[str] = None
+
+
+class MediaIn(BaseModel):
+    title: str
+    type: str = "image"          # "image" or "video"
+    drive_link: str
+    alt: Optional[str] = None
+    show_in_gallery: bool = True
+    order: int = 0
+
+
+class MediaUpdate(BaseModel):
+    title: Optional[str] = None
+    type: Optional[str] = None
+    drive_link: Optional[str] = None
+    alt: Optional[str] = None
+    show_in_gallery: Optional[bool] = None
+    order: Optional[int] = None
+
+
+class GalleryConfigIn(BaseModel):
+    autoplay: Optional[bool] = None
+    interval: Optional[int] = None      # milliseconds between slides
+    transition: Optional[str] = None    # "fade" or "slide"
+    show_captions: Optional[bool] = None
+
+
+class TestimonialIn(BaseModel):
+    name: str
+    text: str
+    rating: int = 5
+    approved: bool = False
+
+
+class TestimonialUpdate(BaseModel):
+    name: Optional[str] = None
+    text: Optional[str] = None
+    rating: Optional[int] = None
+    approved: Optional[bool] = None
+
+
+class LoginIn(BaseModel):
+    email: str
+    password: str
+
+
+# ── Auth Helpers ────────────────────────────────────────────────────
+def _get_bearer(request: Request) -> str:
+    return request.headers.get("Authorization", "").removeprefix("Bearer ").strip()
+
+
+def _verify_token(token: str) -> dict | None:
+    """Return user doc if token is valid and not expired, else None."""
+    if not token:
+        return None
+    user = _usercol.find_one({"active_token": token})
+    if not user:
+        return None
+    exp = user.get("token_expires_at")
+    if not exp:
+        return None
+    if exp.tzinfo is None:
+        exp = exp.replace(tzinfo=timezone.utc)
+    if datetime.now(timezone.utc) > exp:
+        return None
+    return user
 
 
 # ── Notifications ──────────────────────────────────────────────────
@@ -229,12 +326,29 @@ def create_appointment(body: AppointmentIn):
         "name":           body.name,
         "mobile":         body.mobile,
         "department":     body.department,
+        "doctor":         body.doctor or "",
         "preferred_date": body.date,
         "message":        body.message,
         "status":         "pending",
         "created_at":     datetime.now(timezone.utc),
     }
-    result = _col.insert_one(doc)
+    try:
+        result = _col.insert_one(doc)
+    except DuplicateKeyError as _dke:
+        # Drop whatever unique index caused the conflict, then retry
+        print(f"[WARN] DuplicateKeyError on insert: {_dke}. Dropping all unique indexes and retrying.")
+        for _idx_name, _idx_info in list(_col.index_information().items()):
+            if _idx_name != "_id_" and _idx_info.get("unique"):
+                try:
+                    _col.drop_index(_idx_name)
+                except Exception:
+                    pass
+        doc.pop("_id", None)
+        try:
+            result = _col.insert_one(doc)
+        except DuplicateKeyError:
+            doc.pop("_id", None)
+            result = _col.insert_one(doc)
     _notify(body.name, body.mobile, body.department, body.date)
     return {"success": True, "id": str(result.inserted_id)}
 
@@ -270,15 +384,15 @@ def get_appointment(appt_id: str):
 
 
 def _gdrive_direct(url: Optional[str]) -> Optional[str]:
-    """Convert Google Drive share URL to a directly embeddable image URL."""
+    """Convert Google Drive share URL to a backend proxy URL for reliable image display."""
     if not url:
         return url
     m = re.search(r'drive\.google\.com/file/d/([^/?]+)', url)
     if m:
-        return f"https://drive.google.com/thumbnail?id={m.group(1)}&sz=w800"
+        return f"http://localhost:8000/api/proxy/image?id={m.group(1)}"
     m = re.search(r'drive\.google\.com/open\?id=([^&\s]+)', url)
     if m:
-        return f"https://drive.google.com/thumbnail?id={m.group(1)}&sz=w800"
+        return f"http://localhost:8000/api/proxy/image?id={m.group(1)}"
     return url
 
 
@@ -297,7 +411,7 @@ def _fmt_doctor(doc: dict) -> dict:
 
 @app.patch("/api/appointments/{appt_id}/status")
 def update_status(appt_id: str, body: StatusIn):
-    allowed = {"pending", "confirmed", "cancelled", "completed"}
+    allowed = {"pending", "confirmed", "cancelled", "completed", "rejected"}
     if body.status not in allowed:
         raise HTTPException(400, f"status must be one of {allowed}")
     try:
@@ -572,6 +686,240 @@ async def get_blog_content(blog_id: str):
     except Exception as e:
         print(f"[ERROR] get_blog_content: {e}")
         raise HTTPException(502, "Could not fetch content from Drive")
+
+
+# ── Testimonial Routes ───────────────────────────────────────────────
+def _fmt_testimonial(doc: dict) -> dict:
+    doc["id"] = str(doc.pop("_id"))
+    ca = doc.get("created_at")
+    if isinstance(ca, datetime):
+        doc["created_at"] = ca.isoformat()
+    doc.setdefault("approved", False)
+    doc.setdefault("rating", 5)
+    return doc
+
+
+@app.get("/api/testimonials")
+def list_testimonials(show_all: bool = False):
+    q = _tq() if show_all else _tq({"approved": True})
+    docs = list(_testcol.find(q).sort("created_at", DESCENDING))
+    return [_fmt_testimonial(d) for d in docs]
+
+
+@app.post("/api/testimonials", status_code=201)
+def create_testimonial(body: TestimonialIn):
+    doc = body.model_dump()
+    doc["approved"]    = False          # always pending until admin approves
+    doc["tenant_name"] = TENANT_NAME
+    doc["created_at"]  = datetime.now(timezone.utc)
+    result = _testcol.insert_one(doc)
+    return {"success": True, "id": str(result.inserted_id)}
+
+
+@app.patch("/api/testimonials/{test_id}")
+def update_testimonial(test_id: str, body: TestimonialUpdate):
+    try:
+        oid = ObjectId(test_id)
+    except Exception:
+        raise HTTPException(400, "Invalid id")
+    updates = {k: v for k, v in body.model_dump().items() if v is not None}
+    if not updates:
+        raise HTTPException(400, "No fields to update")
+    result = _testcol.update_one(_tq({"_id": oid}), {"$set": updates})
+    if result.matched_count == 0:
+        raise HTTPException(404, "Not found")
+    return {"success": True}
+
+
+@app.delete("/api/testimonials/{test_id}")
+def delete_testimonial(test_id: str):
+    try:
+        oid = ObjectId(test_id)
+    except Exception:
+        raise HTTPException(400, "Invalid id")
+    result = _testcol.delete_one(_tq({"_id": oid}))
+    if result.deleted_count == 0:
+        raise HTTPException(404, "Not found")
+    return {"success": True}
+
+
+# ── Media Routes ─────────────────────────────────────────────────────
+def _extract_drive_id(url: str) -> Optional[str]:
+    m = re.search(r'drive\.google\.com/file/d/([^/?]+)', url)
+    if m:
+        return m.group(1)
+    m = re.search(r'drive\.google\.com/open\?id=([^&\s]+)', url)
+    if m:
+        return m.group(1)
+    return None
+
+
+def _fmt_media(doc: dict) -> dict:
+    doc["id"] = str(doc.pop("_id"))
+    ca = doc.get("created_at")
+    if isinstance(ca, datetime):
+        doc["created_at"] = ca.isoformat()
+    link = doc.get("drive_link", "")
+    fid  = _extract_drive_id(link)
+    if doc.get("type") == "video":
+        doc["display_url"] = f"https://drive.google.com/file/d/{fid}/preview" if fid else link
+    else:
+        doc["display_url"] = f"http://localhost:8000/api/proxy/image?id={fid}" if fid else link
+    doc["thumb_url"] = f"http://localhost:8000/api/proxy/image?id={fid}" if fid else None
+    return doc
+
+
+@app.get("/api/media")
+def list_media(gallery: bool = False):
+    q = _tq({"show_in_gallery": True}) if gallery else _tq()
+    docs = list(_mediacol.find(q).sort("order", 1))
+    return [_fmt_media(d) for d in docs]
+
+
+@app.post("/api/media", status_code=201)
+def create_media(body: MediaIn):
+    doc = body.model_dump()
+    doc["tenant_name"] = TENANT_NAME
+    doc["created_at"]  = datetime.now(timezone.utc)
+    result = _mediacol.insert_one(doc)
+    return {"success": True, "id": str(result.inserted_id)}
+
+
+@app.patch("/api/media/{media_id}")
+def update_media(media_id: str, body: MediaUpdate):
+    try:
+        oid = ObjectId(media_id)
+    except Exception:
+        raise HTTPException(400, "Invalid id")
+    updates = {k: v for k, v in body.model_dump().items() if v is not None}
+    if not updates:
+        raise HTTPException(400, "No fields to update")
+    result = _mediacol.update_one(_tq({"_id": oid}), {"$set": updates})
+    if result.matched_count == 0:
+        raise HTTPException(404, "Not found")
+    return {"success": True}
+
+
+@app.delete("/api/media/{media_id}")
+def delete_media(media_id: str):
+    try:
+        oid = ObjectId(media_id)
+    except Exception:
+        raise HTTPException(400, "Invalid id")
+    result = _mediacol.delete_one(_tq({"_id": oid}))
+    if result.deleted_count == 0:
+        raise HTTPException(404, "Not found")
+    return {"success": True}
+
+
+@app.get("/api/gallery-config")
+def get_gallery_config():
+    doc = _gcfgcol.find_one(_tq())
+    if not doc:
+        return {"autoplay": True, "interval": 5000, "transition": "fade", "show_captions": True}
+    doc.pop("_id", None)
+    doc.pop("tenant_name", None)
+    return doc
+
+
+@app.patch("/api/gallery-config")
+def update_gallery_config(body: GalleryConfigIn):
+    data = {k: v for k, v in body.model_dump().items() if v is not None}
+    _gcfgcol.update_one(_tq(), {"$set": data}, upsert=True)
+    return {"success": True}
+
+
+@app.get("/api/proxy/image")
+async def proxy_drive_image(id: str):
+    """Proxy a Google Drive image by file ID to avoid CORS / auth walls."""
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Referer": "https://drive.google.com/",
+    }
+    # Try multiple URL patterns in order of reliability
+    candidates = [
+        f"https://drive.google.com/thumbnail?id={id}&sz=w1200-h900",
+        f"https://lh3.googleusercontent.com/d/{id}",
+        f"https://drive.google.com/uc?export=view&id={id}",
+    ]
+    try:
+        async with httpx.AsyncClient(follow_redirects=True, timeout=20, headers=headers) as client:
+            for url in candidates:
+                r = await client.get(url)
+                ct = r.headers.get("content-type", "")
+                if r.status_code == 200 and "image" in ct:
+                    return Response(content=r.content, media_type=ct.split(";")[0])
+                print(f"[PROXY] {url} → {r.status_code} {ct[:60]}")
+        raise HTTPException(502, "Could not fetch image from Drive — ensure the file is shared publicly")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[ERROR] proxy_drive_image: {e}")
+        raise HTTPException(502, "Could not fetch image from Drive")
+
+
+# ── Auth Routes ──────────────────────────────────────────────────────
+@app.post("/api/auth/login")
+def auth_login(body: LoginIn):
+    email = body.email.strip().lower()
+    user  = _usercol.find_one({"email": email})
+    if not user:
+        raise HTTPException(401, "Invalid email or password")
+    pw_hash = user.get("password_hash")
+    if not pw_hash or not bcrypt.checkpw(body.password.encode(), pw_hash):
+        raise HTTPException(401, "Invalid email or password")
+    token      = secrets.token_urlsafe(32)
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=30)
+    _usercol.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"active_token": token, "token_expires_at": expires_at, "last_login": datetime.now(timezone.utc)}}
+    )
+    return {
+        "token":      token,
+        "name":       user.get("name", "Admin"),
+        "role":       user.get("role", "Admin"),
+        "email":      user["email"],
+        "expires_at": expires_at.isoformat(),
+    }
+
+
+@app.post("/api/auth/logout")
+def auth_logout(request: Request):
+    token = _get_bearer(request)
+    if token:
+        _usercol.update_one(
+            {"active_token": token},
+            {"$unset": {"active_token": "", "token_expires_at": ""}}
+        )
+    return {"success": True}
+
+
+@app.get("/api/auth/verify")
+def auth_verify(request: Request):
+    token = _get_bearer(request)
+    user  = _verify_token(token)
+    if not user:
+        raise HTTPException(401, "Token invalid or expired")
+    exp = user["token_expires_at"]
+    if exp.tzinfo is None:
+        exp = exp.replace(tzinfo=timezone.utc)
+    return {
+        "name":       user.get("name", "Admin"),
+        "role":       user.get("role", "Admin"),
+        "email":      user["email"],
+        "expires_at": exp.isoformat(),
+    }
+
+
+@app.post("/api/auth/refresh")
+def auth_refresh(request: Request):
+    token = _get_bearer(request)
+    user  = _verify_token(token)
+    if not user:
+        raise HTTPException(401, "Token invalid or expired")
+    new_exp = datetime.now(timezone.utc) + timedelta(minutes=30)
+    _usercol.update_one({"_id": user["_id"]}, {"$set": {"token_expires_at": new_exp}})
+    return {"expires_at": new_exp.isoformat()}
 
 
 @app.delete("/api/blogs/{blog_id}")

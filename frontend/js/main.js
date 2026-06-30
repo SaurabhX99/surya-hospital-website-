@@ -101,11 +101,24 @@
   }
 
   /* ── Hero Slider ──────────────────────────────────────── */
-  function initHeroSlider() {
-    const slides    = $$('.hero-slide');
-    const dotsWrap  = $('#hero-dots');
-    const prevBtn   = $('#hero-prev');
-    const nextBtn   = $('#hero-next');
+  function initHeroSlider(cfg) {
+    cfg = cfg || {};
+    const interval   = cfg.interval   || 5000;
+    const autoplay   = cfg.autoplay   !== false;
+    const transition = cfg.transition || 'fade';
+
+    const container = $('#hero-slides');
+    if (container) {
+      container.dataset.transition = transition;
+      // Add transition class to section for CSS targeting
+      const heroEl = $('#hero');
+      if (heroEl) heroEl.dataset.transition = transition;
+    }
+
+    const slides   = $$('.hero-slide');
+    const dotsWrap = $('#hero-dots');
+    const prevBtn  = $('#hero-prev');
+    const nextBtn  = $('#hero-next');
     if (!slides.length) return;
 
     let current = 0;
@@ -121,7 +134,9 @@
 
     function startAuto() {
       clearInterval(timer);
-      timer = setInterval(() => goTo(current + 1), 5000);
+      if (autoplay && slides.length > 1) {
+        timer = setInterval(() => goTo(current + 1), interval);
+      }
     }
 
     if (dotsWrap) {
@@ -138,6 +153,108 @@
 
     if (prevBtn) prevBtn.addEventListener('click', () => { goTo(current - 1); startAuto(); });
     if (nextBtn) nextBtn.addEventListener('click', () => { goTo(current + 1); startAuto(); });
+
+    startAuto();
+  }
+
+  /* ── Media Gallery Section ────────────────────────────── */
+  async function initMediaGallery() {
+    // Hero still runs with its own default gradient slide
+    initHeroSlider();
+
+    const section = $('#media-gallery-section');
+    if (!section) return;
+
+    let media = [], cfg = {};
+    try {
+      [media, cfg] = await Promise.all([
+        fetch(API_BASE + '/api/media?gallery=true').then(r => r.json()),
+        fetch(API_BASE + '/api/gallery-config').then(r => r.json()),
+      ]);
+    } catch (e) { return; }
+
+    if (!media || !media.length) {
+      section.style.display = 'none';
+      return;
+    }
+
+    section.style.display = '';
+
+    const interval   = cfg.interval   || 5000;
+    const autoplay   = cfg.autoplay   !== false;
+    const transition = cfg.transition || 'fade';
+    const captions   = cfg.show_captions !== false;
+
+    // Apply transition type
+    const track = $('#gallery-track');
+    if (track) track.dataset.transition = transition;
+
+    // Build slides
+    if (track) {
+      track.innerHTML = '';
+      media.forEach((item, i) => {
+        const slide = document.createElement('div');
+        slide.className = 'gallery-slide' + (i === 0 ? ' active' : '');
+
+        if (item.type === 'video') {
+          slide.innerHTML = `
+            <div class="gallery-slide-inner">
+              <iframe src="${item.display_url}"
+                frameborder="0" allow="autoplay; fullscreen" allowfullscreen
+                style="position:absolute;inset:0;width:100%;height:100%;border:none;"></iframe>
+              ${captions && item.alt ? `<div class="gallery-caption">${item.alt}</div>` : ''}
+            </div>`;
+        } else {
+          slide.innerHTML = `
+            <div class="gallery-slide-inner">
+              <img src="${item.display_url}"
+                   alt="${item.alt || item.title}"
+                   style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;"
+                   onerror="this.style.display='none';this.parentElement.style.background='#1a2a3a';" />
+              ${captions && item.alt ? `<div class="gallery-caption">${item.alt}</div>` : ''}
+            </div>`;
+        }
+        track.appendChild(slide);
+      });
+    }
+
+    // Build dots
+    const dotsEl = $('#gallery-dots');
+    if (dotsEl) {
+      dotsEl.innerHTML = '';
+      media.forEach((_, i) => {
+        const dot = document.createElement('button');
+        dot.className = 'gallery-dot' + (i === 0 ? ' active' : '');
+        dot.setAttribute('aria-label', `Slide ${i + 1}`);
+        dotsEl.appendChild(dot);
+      });
+    }
+
+    // Slider logic
+    const slides  = () => track ? Array.from(track.querySelectorAll('.gallery-slide')) : [];
+    const dots    = () => dotsEl ? Array.from(dotsEl.querySelectorAll('.gallery-dot')) : [];
+    let current   = 0;
+    let timer     = null;
+
+    function goTo(idx) {
+      const sl = slides(), dt = dots();
+      sl[current]?.classList.remove('active');
+      dt[current]?.classList.remove('active');
+      current = (idx + sl.length) % sl.length;
+      sl[current]?.classList.add('active');
+      dt[current]?.classList.add('active');
+    }
+
+    function startAuto() {
+      clearInterval(timer);
+      if (autoplay && slides().length > 1) {
+        timer = setInterval(() => goTo(current + 1), interval);
+      }
+    }
+
+    dots().forEach((dot, i) => dot.addEventListener('click', () => { goTo(i); startAuto(); }));
+    $('#gallery-prev')?.addEventListener('click', () => { goTo(current - 1); startAuto(); });
+    $('#gallery-next')?.addEventListener('click', () => { goTo(current + 1); startAuto(); });
 
     startAuto();
   }
@@ -294,7 +411,7 @@
             </span>
           </div>
           <div class="doctor-actions">
-            <a href="#appointment" class="btn btn-primary" style="flex:1;justify-content:center;font-size:var(--text-sm);padding:var(--space-2) var(--space-4);">Book Consult</a>
+            <a href="#appointment" onclick="_prefillDoctor('${d.name.replace(/'/g, "\\'")}','${(d.department||'').replace(/'/g, "\\'")}');" class="btn btn-primary" style="flex:1;justify-content:center;font-size:var(--text-sm);padding:var(--space-2) var(--space-4);">Book Consult</a>
           </div>
         </div>
       </div>
@@ -312,20 +429,38 @@
     _renderDoctorCards(data.doctors);
   }
 
-  /* ── Render: Testimonials ─────────────────────────────── */
-  function renderTestimonials() {
+  /* ── Render: Testimonials (fetched from API) ──────────── */
+  async function renderTestimonials() {
     const track = $('#testimonials-track');
     const dotsEl = $('#test-dots');
-    if (!track || !data) return;
+    const section = $('#testimonials');
+    if (!track) return;
 
-    const items = data.testimonials;
+    let items = [];
+    try {
+      const res = await fetch(API_BASE + '/api/testimonials');
+      items = await res.json();
+    } catch (e) { /* API offline — hide section */ }
+
+    if (!items.length) {
+      if (section) section.style.display = 'none';
+      return;
+    }
+    if (section) section.style.display = '';
 
     function stars(n) {
-      return Array(n).fill(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`).join('');
+      return Array(Math.min(5, Math.max(1, n))).fill(
+        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
+      ).join('');
     }
 
     function initials(name) {
-      return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+      return (name || '').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    }
+
+    function fmt(iso) {
+      if (!iso) return '';
+      return new Date(iso).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
     }
 
     track.innerHTML = items.map(t => `
@@ -336,7 +471,7 @@
           <div class="testimonial-avatar-placeholder">${initials(t.name)}</div>
           <div>
             <div class="testimonial-name">${t.name}</div>
-            <div class="testimonial-date">${t.date}</div>
+            <div class="testimonial-date">${fmt(t.created_at)}</div>
           </div>
         </div>
       </div>
@@ -344,7 +479,6 @@
 
     /* Carousel logic */
     let current = 0;
-    const perPage = window.innerWidth > 1024 ? 3 : window.innerWidth > 640 ? 2 : 1;
 
     function getPerPage() {
       return window.innerWidth > 1024 ? 3 : window.innerWidth > 640 ? 2 : 1;
@@ -352,30 +486,26 @@
 
     function getCardWidth() {
       const pp = getPerPage();
-      const gap = 24;
-      return (track.parentElement.offsetWidth - gap * (pp - 1)) / pp;
+      return (track.parentElement.offsetWidth - 24 * (pp - 1)) / pp;
     }
 
     function setWidths() {
       const w = getCardWidth();
-      $$('.testimonial-card', track).forEach(c => {
-        c.style.flex = `0 0 ${w}px`;
-      });
+      $$('.testimonial-card', track).forEach(c => { c.style.flex = `0 0 ${w}px`; });
     }
 
     function goTo(idx) {
-      const pp = getPerPage();
+      const pp  = getPerPage();
       const max = Math.max(0, items.length - pp);
       current = Math.max(0, Math.min(idx, max));
-      const w = getCardWidth() + 24;
-      track.style.transform = `translateX(-${current * w}px)`;
+      track.style.transform = `translateX(-${current * (getCardWidth() + 24)}px)`;
       if (dotsEl) {
         $$('button', dotsEl).forEach((b, i) => b.classList.toggle('active', i === current));
       }
     }
 
     if (dotsEl) {
-      const pp = getPerPage();
+      const pp    = getPerPage();
       const total = Math.max(1, items.length - pp + 1);
       dotsEl.innerHTML = Array(total).fill(0).map((_, i) =>
         `<button style="width:8px;height:8px;border-radius:9999px;background:${i === 0 ? 'var(--color-primary)' : 'var(--color-border)'};border:none;cursor:pointer;transition:all 0.25s;" aria-label="Slide ${i + 1}"></button>`
@@ -391,10 +521,8 @@
     setWidths();
     window.addEventListener('resize', () => { setWidths(); goTo(current); });
 
-    /* Auto-play */
     setInterval(() => {
-      const pp = getPerPage();
-      const max = Math.max(0, items.length - pp);
+      const max = Math.max(0, items.length - getPerPage());
       goTo(current >= max ? 0 : current + 1);
     }, 5000);
   }
@@ -473,19 +601,45 @@
     `).join('');
   }
 
-  /* ── Populate Department Dropdown ─────────────────────── */
+  /* ── Populate Department Dropdown + Doctor Datalist ───── */
+  let _allDoctors = [];
+
+  function updateDoctorDatalist(deptName) {
+    const dl = document.getElementById('doctor-list');
+    if (!dl) return;
+    dl.innerHTML = '';
+    const filtered = deptName
+      ? _allDoctors.filter(d => d.department && d.department.toUpperCase() === deptName.toUpperCase())
+      : _allDoctors;
+    filtered.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d.name;
+      dl.appendChild(opt);
+    });
+  }
+
   async function populateDeptSelect() {
     const sel = $('#appt-dept');
     if (!sel) return;
     try {
-      const res = await fetch(API_BASE + '/api/departments');
-      const depts = await res.json();
+      const [deptRes, docRes] = await Promise.all([
+        fetch(API_BASE + '/api/departments'),
+        fetch(API_BASE + '/api/doctors'),
+      ]);
+      const depts = await deptRes.json();
+      _allDoctors = await docRes.json();
+
       depts.forEach(d => {
         const opt = document.createElement('option');
         opt.value = d.name;
         opt.textContent = d.name;
         sel.appendChild(opt);
       });
+
+      // Wire dept change → rebuild doctor datalist
+      sel.addEventListener('change', () => updateDoctorDatalist(sel.value));
+      // Populate datalist with all doctors initially
+      updateDoctorDatalist('');
     } catch(e) { /* keep placeholder only */ }
   }
 
@@ -495,6 +649,28 @@
     const success = $('#appt-success');
     const submit  = $('#appt-submit');
     if (!form) return;
+
+    /* Pre-fill doctor/dept from URL params (when coming from doctors.html) */
+    const _qs = new URLSearchParams(window.location.search);
+    const doctorParam = _qs.get('doctor');
+    const deptParam   = _qs.get('dept');
+    if (doctorParam || deptParam) {
+      // Wait for populateDeptSelect to finish populating the dept dropdown
+      setTimeout(() => {
+        if (deptParam) {
+          const deptEl = $('#appt-dept');
+          if (deptEl) {
+            deptEl.value = deptParam;
+            deptEl.dispatchEvent(new Event('change'));
+          }
+        }
+        if (doctorParam && $('#appt-doctor')) {
+          $('#appt-doctor').value = doctorParam;
+        }
+        const apptSection = $('#appointment');
+        if (apptSection) apptSection.scrollIntoView({ behavior: 'smooth' });
+      }, 600);
+    }
 
     /* Set min date to today */
     const dateInput = $('#appt-date');
@@ -538,14 +714,15 @@
       submit.disabled = true;
       submit.innerHTML = spinnerHtml;
 
-      const date    = $('#appt-date')    ? $('#appt-date').value    : '';
-      const message = $('#appt-message') ? $('#appt-message').value : '';
+      const doctor  = $('#appt-doctor')  ? $('#appt-doctor').value.trim()  : '';
+      const date    = $('#appt-date')    ? $('#appt-date').value            : '';
+      const message = $('#appt-message') ? $('#appt-message').value         : '';
 
       try {
         const res  = await fetch(API_BASE + '/api/appointments', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ name, mobile, department: dept, date, message }),
+          body:    JSON.stringify({ name, mobile, department: dept, doctor: doctor || undefined, date, message }),
         });
         const json = await res.json();
         if (!res.ok) throw new Error(json.detail || 'Submission failed');
@@ -674,6 +851,20 @@
   /* Expose so whatsapp.js can call it after all scripts load */
   if (window.VM) window.VM.showCallDialog = showCallDialog;
 
+  /* ── Pre-fill doctor (and dept) from card click ──────── */
+  function _prefillDoctor(name, dept) {
+    const docEl = $('#appt-doctor');
+    if (docEl) docEl.value = name;
+    if (dept) {
+      const deptEl = $('#appt-dept');
+      if (deptEl) {
+        deptEl.value = dept;
+        deptEl.dispatchEvent(new Event('change'));
+      }
+    }
+  }
+  window._prefillDoctor = _prefillDoctor;
+
   /* Intercept tel: links on desktop — show dialog instead of OS handler */
   function initTelLinks() {
     if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) return;
@@ -691,7 +882,7 @@
     setFooterYear();
     initHeader();
     initMobileNav();
-    initHeroSlider();
+    initMediaGallery();
     initSmoothScroll();
     initTelLinks();
 

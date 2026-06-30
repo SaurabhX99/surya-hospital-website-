@@ -270,6 +270,8 @@
     .status-badge.pending   { background: rgba(255,143,0,0.1);  color: #FF8F00; }
     .status-badge.confirmed { background: rgba(0,200,83,0.1);   color: #00A043; }
     .status-badge.cancelled { background: rgba(229,57,53,0.1);  color: #E53935; }
+    .status-badge.rejected  { background: rgba(103,58,183,0.1); color: #673AB7; }
+    .status-badge.completed { background: rgba(10,77,140,0.1);  color: #0A4D8C; }
 
     /* ════════════════════════════════════
        ACTIVITY FEED
@@ -484,6 +486,37 @@
       color: #9CA3AF; font-size: 14px; border: 1.5px dashed #CBD5E1;
     }
 
+    /* ── Session Warning Banner ── */
+    #session-warning-banner {
+      display: none;
+      align-items: center;
+      gap: 14px;
+      background: #FEF3C7;
+      border-bottom: 2px solid #F59E0B;
+      padding: 10px 24px;
+      font-size: 14px;
+      color: #92400E;
+      flex-shrink: 0;
+      z-index: 200;
+    }
+    #session-warning-banner svg { width: 18px; height: 18px; flex-shrink: 0; color: #D97706; }
+    #session-warning-banner strong { font-weight: 600; }
+    #session-countdown { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .session-extend-btn {
+      margin-left: auto;
+      padding: 6px 18px;
+      background: #D97706;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: background 0.2s;
+    }
+    .session-extend-btn:hover { background: #B45309; }
+
     /* ════════════════════════════════════
        RESPONSIVE
     ════════════════════════════════════ */
@@ -519,8 +552,57 @@
     .status-select.confirmed { background: rgba(0,200,83,0.1);   color: #00A043; border-color: rgba(0,200,83,0.3); }
     .status-select.cancelled { background: rgba(229,57,53,0.1);  color: #E53935; border-color: rgba(229,57,53,0.3); }
     .status-select.completed { background: rgba(10,77,140,0.1);  color: #0A4D8C; border-color: rgba(10,77,140,0.3); }
+    .status-select.rejected  { background: rgba(103,58,183,0.1); color: #673AB7; border-color: rgba(103,58,183,0.3); }
 
     .action-btn.call-btn:hover { border-color: #00C853 !important; color: #00C853 !important; background: rgba(0,200,83,0.06) !important; }
+
+    /* ════════════════════════════════════
+       MEDIA LIBRARY
+    ════════════════════════════════════ */
+    .gallery-config-panel {
+      background: #fff; border-radius: 14px;
+      border: 1.5px solid #F1F5F9; padding: 18px 20px;
+      margin-bottom: 20px; box-shadow: 0 1px 4px rgba(10,77,140,0.07);
+    }
+    .gallery-config-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 18px; margin-top: 16px;
+    }
+    .config-field label { display: block; font-size: 12px; font-weight: 600; color: #1F2937; }
+
+    .media-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap: 16px; padding: 20px;
+    }
+    .media-card {
+      border: 1.5px solid #F1F5F9; border-radius: 12px;
+      overflow: hidden; background: #fff; transition: all 0.2s;
+    }
+    .media-card:hover { box-shadow: 0 4px 16px rgba(10,77,140,0.1); transform: translateY(-2px); }
+    .media-thumb {
+      width: 100%; height: 130px; overflow: hidden;
+      background: #F0F4F8; display: flex; align-items: center; justify-content: center;
+    }
+    .media-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .media-thumb-placeholder {
+      width: 100%; height: 100%; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 8px; color: #9CA3AF;
+    }
+    .media-thumb-placeholder svg { width: 32px; height: 32px; opacity: 0.4; }
+    .media-thumb-placeholder span { font-size: 11px; }
+    .media-card-body { padding: 10px 12px 12px; }
+    .media-card-title { font-size: 13px; font-weight: 600; color: #1F2937; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .media-type-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 999px;
+      font-size: 10px; font-weight: 700; margin: 4px 0 8px; text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .media-type-badge.image { background: rgba(10,77,140,0.08); color: #0A4D8C; }
+    .media-type-badge.video { background: rgba(103,58,183,0.08); color: #673AB7; }
+    .media-card-footer { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #F1F5F9; padding-top: 8px; }
+    .media-card-footer .toggle-switch { transform: scale(0.85); transform-origin: left; }
+    .media-empty { grid-column: 1/-1; text-align: center; color: #9CA3AF; padding: 48px 20px; }
+    .media-empty svg { width: 48px; height: 48px; opacity: 0.25; margin-bottom: 12px; }
   </style>
 </head>
 <body>
@@ -542,14 +624,13 @@
   <nav class="sidebar-nav">
     <div class="nav-section-label">Main</div>
 
-    <button class="nav-item active" data-page="dashboard">
+    <button class="nav-item" data-page="dashboard" style="display:none">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
       <span class="nav-label">Dashboard</span>
     </button>
-    <button class="nav-item" data-page="appointments">
+    <button class="nav-item active" data-page="appointments">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       <span class="nav-label">Appointments</span>
-      <span class="nav-badge" id="appt-badge">…</span>
     </button>
     <button class="nav-item" data-page="doctors">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
@@ -568,9 +649,8 @@
     <button class="nav-item" data-page="testimonials">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
       <span class="nav-label">Testimonials</span>
-      <span class="nav-badge">3</span>
     </button>
-    <button class="nav-item" data-page="homepage">
+    <button class="nav-item" data-page="homepage" style="display:none">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       <span class="nav-label">Homepage CMS</span>
     </button>
@@ -580,11 +660,11 @@
     </button>
 
     <div class="nav-section-label">Settings</div>
-    <button class="nav-item" data-page="users">
+    <button class="nav-item" data-page="users" style="display:none">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
       <span class="nav-label">Users &amp; Roles</span>
     </button>
-    <button class="nav-item" data-page="seo">
+    <button class="nav-item" data-page="seo" style="display:none">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <span class="nav-label">SEO Settings</span>
     </button>
@@ -615,8 +695,8 @@
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
       <div>
-        <div class="topbar-title" id="topbar-title">Dashboard</div>
-        <div class="topbar-breadcrumb">Admin / <span id="topbar-bc">Overview</span></div>
+        <div class="topbar-title" id="topbar-title">Appointments</div>
+        <div class="topbar-breadcrumb">Admin / <span id="topbar-bc">Appointments</span></div>
       </div>
     </div>
     <div class="topbar-right">
@@ -638,11 +718,20 @@
     </div>
   </div>
 
+  <!-- Session Warning Banner -->
+  <div id="session-warning-banner">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+    </svg>
+    <span>Your session expires in <strong><span id="session-countdown">5:00</span></strong>. Unsaved changes will be lost.</span>
+    <button class="session-extend-btn" onclick="extendSession()">Extend Session</button>
+  </div>
+
   <!-- Content -->
   <div class="content-area">
 
     <!-- ── DASHBOARD ── -->
-    <div class="page-view active" id="page-dashboard">
+    <div class="page-view" id="page-dashboard">
       <div class="page-title-row">
         <div>
           <div class="page-title">Welcome back 👋</div>
@@ -767,7 +856,7 @@
     </div>
 
     <!-- ── APPOINTMENTS ── -->
-    <div class="page-view" id="page-appointments">
+    <div class="page-view active" id="page-appointments">
       <div class="page-title-row">
         <div><div class="page-title">Appointments</div><div class="page-subtitle">Manage all patient appointment requests</div></div>
       </div>
@@ -776,9 +865,13 @@
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
             <div class="search-wrap">
               <span class="search-icon-abs"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-              <input type="text" class="search-input" placeholder="Search appointments…" />
+              <input type="text" class="search-input" id="appt-search-input" placeholder="Search appointments…" oninput="applyApptFilters()" />
             </div>
-            <select class="filter-select"><option>All Status</option><option>Pending</option><option>Confirmed</option><option>Cancelled</option></select>
+            <select class="filter-select" id="appt-status-filter" onchange="applyApptFilters()"><option value="">All Status</option><option value="pending">Pending</option><option value="confirmed">Confirmed</option><option value="cancelled">Cancelled</option><option value="completed">Completed</option><option value="rejected">Rejected</option></select>
+            <select class="filter-select" id="appt-sort" onchange="applyApptFilters()">
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+            </select>
           </div>
         </div>
         <div style="overflow-x:auto">
@@ -812,9 +905,15 @@
       </div>
       <div class="card-panel">
         <div class="card-panel-header">
-          <div class="search-wrap">
-            <span class="search-icon-abs"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-            <input type="text" class="search-input" id="doc-search-admin" placeholder="Search doctors…" oninput="filterDoctors(this.value)" />
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div class="search-wrap">
+              <span class="search-icon-abs"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+              <input type="text" class="search-input" id="doc-search-admin" placeholder="Search doctors…" oninput="filterDoctors(this.value)" />
+            </div>
+            <select class="filter-select" id="doc-sort" onchange="sortDoctors(this.value)">
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+            </select>
           </div>
         </div>
         <div style="overflow-x:auto">
@@ -839,9 +938,15 @@
       </div>
       <div class="card-panel">
         <div class="card-panel-header">
-          <div class="search-wrap">
-            <span class="search-icon-abs"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-            <input type="text" class="search-input" id="blog-search" placeholder="Search blogs…" oninput="filterBlogs(this.value)" />
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div class="search-wrap">
+              <span class="search-icon-abs"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+              <input type="text" class="search-input" id="blog-search" placeholder="Search blogs…" oninput="filterBlogs(this.value)" />
+            </div>
+            <select class="filter-select" id="blog-sort" onchange="sortBlogs(this.value)">
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+            </select>
           </div>
         </div>
         <div style="overflow-x:auto">
@@ -858,15 +963,20 @@
     <!-- ── TESTIMONIALS ── -->
     <div class="page-view" id="page-testimonials">
       <div class="page-title-row">
-        <div><div class="page-title">Testimonials</div><div class="page-subtitle">Approve or reject patient reviews</div></div>
+        <div><div class="page-title">Testimonials</div><div class="page-subtitle">Approve or delete patient reviews submitted via the website</div></div>
       </div>
       <div class="card-panel">
+        <div class="card-panel-header">
+          <select class="filter-select" id="test-sort" onchange="sortTestimonials(this.value)">
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+          </select>
+        </div>
         <div style="overflow-x:auto">
           <table class="data-table">
             <thead><tr><th>Patient</th><th>Review</th><th>Rating</th><th>Date</th><th>Approved</th><th>Actions</th></tr></thead>
-            <tbody>
-              <tr><td><strong>Rajesh Kumar</strong></td><td style="max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Excellent care from the entire medical team…</td><td>⭐⭐⭐⭐⭐</td><td>Jun 10, 2024</td><td><label class="toggle-switch"><input type="checkbox" checked/><span class="toggle-slider"></span></label></td><td><div class="table-actions"><button class="action-btn view"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="action-btn del"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m5 5v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3"/></svg></button></div></td></tr>
-              <tr><td><strong>Priya Sharma</strong></td><td style="max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">I had my delivery at Vedansh Medicare and the experience…</td><td>⭐⭐⭐⭐⭐</td><td>Jan 15, 2024</td><td><label class="toggle-switch"><input type="checkbox"/><span class="toggle-slider"></span></label></td><td><div class="table-actions"><button class="action-btn view"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="action-btn del"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m5 5v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3"/></svg></button></div></td></tr>
+            <tbody id="tbody-testimonials">
+              <tr><td colspan="6" style="text-align:center;color:#9CA3AF;padding:24px;">Loading…</td></tr>
             </tbody>
           </table>
         </div>
@@ -884,9 +994,15 @@
       </div>
       <div class="card-panel">
         <div class="card-panel-header">
-          <div class="search-wrap">
-            <span class="search-icon-abs"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-            <input type="text" class="search-input" id="dept-search" placeholder="Search departments…" oninput="filterDepts(this.value)" />
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div class="search-wrap">
+              <span class="search-icon-abs"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+              <input type="text" class="search-input" id="dept-search" placeholder="Search departments…" oninput="filterDepts(this.value)" />
+            </div>
+            <select class="filter-select" id="dept-sort" onchange="sortDepts(this.value)">
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+            </select>
           </div>
         </div>
         <div style="overflow-x:auto">
@@ -900,7 +1016,75 @@
       </div>
     </div>
     <div class="page-view" id="page-homepage"><div class="page-title-row"><div><div class="page-title">Homepage CMS</div><div class="page-subtitle">Control hero banners, sections, and content</div></div></div><div class="chart-placeholder">Homepage CMS controls — connect to backend API</div></div>
-    <div class="page-view" id="page-media"><div class="page-title-row"><div><div class="page-title">Media Library</div><div class="page-subtitle">Images, videos and documents</div></div></div><div class="chart-placeholder">Media library — connect to backend API</div></div>
+    <!-- ── MEDIA LIBRARY ── -->
+    <div class="page-view" id="page-media">
+      <div class="page-title-row">
+        <div><div class="page-title">Media Library</div><div class="page-subtitle">Upload images &amp; videos — displayed in the homepage hero gallery</div></div>
+        <button class="btn-add" onclick="openMediaModal()">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Media
+        </button>
+      </div>
+
+      <!-- Gallery Config Panel -->
+      <div class="gallery-config-panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-family:'Poppins',sans-serif;font-size:14px;font-weight:600;color:#1F2937;">Gallery Settings</div>
+            <div style="font-size:12px;color:#9CA3AF;margin-top:2px;">Controls how the hero gallery plays on the homepage</div>
+          </div>
+          <button class="btn-save" onclick="saveGalleryConfig()" style="padding:8px 18px;">Save Settings</button>
+        </div>
+        <div class="gallery-config-grid">
+          <div class="config-field">
+            <label>Autoplay</label>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+              <label class="toggle-switch"><input type="checkbox" id="cfg-autoplay" checked /><span class="toggle-slider"></span></label>
+              <span style="font-size:12px;color:#4B5563;">Slides advance automatically</span>
+            </div>
+          </div>
+          <div class="config-field">
+            <label>Interval</label>
+            <select id="cfg-interval" class="filter-select" style="width:100%;margin-top:4px;">
+              <option value="3000">3 seconds</option>
+              <option value="5000" selected>5 seconds</option>
+              <option value="7000">7 seconds</option>
+              <option value="10000">10 seconds</option>
+            </select>
+          </div>
+          <div class="config-field">
+            <label>Transition Effect</label>
+            <select id="cfg-transition" class="filter-select" style="width:100%;margin-top:4px;">
+              <option value="fade" selected>Fade</option>
+              <option value="slide">Slide</option>
+            </select>
+          </div>
+          <div class="config-field">
+            <label>Show Captions</label>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+              <label class="toggle-switch"><input type="checkbox" id="cfg-captions" checked /><span class="toggle-slider"></span></label>
+              <span style="font-size:12px;color:#4B5563;">Show title overlays on slides</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Media Grid -->
+      <div class="card-panel">
+        <div class="card-panel-header">
+          <span class="card-panel-title" id="media-count-label">All Media</span>
+          <div style="display:flex;gap:8px;">
+            <select class="filter-select" id="media-type-filter" onchange="filterMedia()" style="font-size:12px;padding:6px 10px;">
+              <option value="">All Types</option>
+              <option value="image">Images</option>
+              <option value="video">Videos</option>
+            </select>
+          </div>
+        </div>
+        <div id="media-grid" class="media-grid">
+          <div style="grid-column:1/-1;text-align:center;color:#9CA3AF;padding:40px;">Loading…</div>
+        </div>
+      </div>
+    </div>
     <div class="page-view" id="page-users"><div class="page-title-row"><div><div class="page-title">Users &amp; Roles</div><div class="page-subtitle">Manage admin users and permissions</div></div></div><div class="chart-placeholder">Users &amp; roles management — connect to backend API</div></div>
     <div class="page-view" id="page-seo"><div class="page-title-row"><div><div class="page-title">SEO Settings</div><div class="page-subtitle">Meta tags, sitemap, and schema settings</div></div></div><div class="chart-placeholder">SEO configuration — connect to backend API</div></div>
 
@@ -926,12 +1110,7 @@
         <div class="form-group"><label class="form-label">Speciality</label><input type="text" id="doc-spec" class="form-control" placeholder="e.g. Cardiologist" /></div>
         <div class="form-group"><label class="form-label">Department</label>
           <select id="doc-dept" class="form-control">
-            <option>General Medicine</option><option>Cardiology</option>
-            <option>Obstetrics &amp; Gynaecology</option><option>Pediatrics</option>
-            <option>Orthopaedics</option><option>Nephrology</option>
-            <option>Neuroscience</option><option>Dermatology</option>
-            <option>Urology</option><option>Eye Care</option>
-            <option>ENT</option><option>Gastroenterology</option>
+            <option value="" disabled selected>Loading departments…</option>
           </select>
         </div>
       </div>
@@ -995,10 +1174,7 @@
       <div class="form-row">
         <div class="form-group"><label class="form-label">Category <span style="color:#E53935">*</span></label>
           <select id="blog-category" class="form-control">
-            <option>Cardiology</option><option>Nephrology</option><option>Maternity</option>
-            <option>Pediatrics</option><option>Orthopaedics</option><option>Neuroscience</option>
-            <option>Dermatology</option><option>ENT</option><option>Urology</option>
-            <option>Gastroenterology</option><option>General Health</option>
+            <option value="" disabled selected>Loading departments…</option>
           </select>
         </div>
         <div class="form-group"><label class="form-label">Author <span style="color:#E53935">*</span></label><input type="text" id="blog-author" class="form-control" placeholder="Dr. Name / Dept." /></div>
@@ -1026,16 +1202,103 @@
   </div>
 </div>
 
+<!-- Testimonial Modal -->
+<div class="modal-overlay" id="modal-testimonial">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="test-modal-title">Add Testimonial</h3>
+      <button class="modal-close" onclick="closeModal('testimonial')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="test-id" />
+      <div class="form-group"><label class="form-label">Patient Name <span style="color:#E53935">*</span></label><input type="text" id="test-name" class="form-control" placeholder="Full name" /></div>
+      <div class="form-group"><label class="form-label">Review <span style="color:#E53935">*</span></label><textarea id="test-text" class="form-control" rows="4" placeholder="Patient's review…"></textarea></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Rating</label>
+          <select id="test-rating" class="form-control">
+            <option value="5">⭐⭐⭐⭐⭐ — 5 Stars</option>
+            <option value="4">⭐⭐⭐⭐ — 4 Stars</option>
+            <option value="3">⭐⭐⭐ — 3 Stars</option>
+            <option value="2">⭐⭐ — 2 Stars</option>
+            <option value="1">⭐ — 1 Star</option>
+          </select>
+        </div>
+        <div class="form-group" style="display:flex;flex-direction:column;justify-content:flex-end;">
+          <div style="display:flex;align-items:center;gap:10px;padding-bottom:4px;">
+            <label class="toggle-switch"><input type="checkbox" id="test-approved" /><span class="toggle-slider"></span></label>
+            <span style="font-size:13px;color:#1F2937;">Approved (visible on website)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('testimonial')">Cancel</button>
+      <button class="btn-save" id="test-save-btn" onclick="saveTestimonial()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Media Modal -->
+<div class="modal-overlay" id="modal-media">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="media-modal-title">Add Media</h3>
+      <button class="modal-close" onclick="closeModal('media')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="media-id" />
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Title <span style="color:#E53935">*</span></label><input type="text" id="media-title" class="form-control" placeholder="e.g. ICU Ward, Operation Theatre…" /></div>
+        <div class="form-group"><label class="form-label">Type</label>
+          <select id="media-type" class="form-control">
+            <option value="image">Image</option>
+            <option value="video">Video</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Google Drive Share Link <span style="color:#E53935">*</span></label>
+        <input type="url" id="media-drive-link" class="form-control" placeholder="https://drive.google.com/file/d/…/view?usp=sharing" />
+        <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Share the file publicly ("Anyone with link can view"), then paste the link here. Works for images and videos.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Alt Text / Caption</label>
+        <input type="text" id="media-alt" class="form-control" placeholder="Describe the image or video for accessibility" />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Display Order</label>
+          <input type="number" id="media-order" class="form-control" placeholder="0" min="0" value="0" />
+          <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Lower number = shown first</div>
+        </div>
+        <div class="form-group" style="display:flex;flex-direction:column;justify-content:flex-end;">
+          <div style="display:flex;align-items:center;gap:10px;padding-bottom:4px;">
+            <label class="toggle-switch"><input type="checkbox" id="media-gallery" checked /><span class="toggle-slider"></span></label>
+            <span style="font-size:13px;color:#1F2937;">Show in homepage gallery</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('media')">Cancel</button>
+      <button class="btn-save" id="media-save-btn" onclick="saveMedia()">Save Media</button>
+    </div>
+  </div>
+</div>
+
 <script>
   /* ── Auth guard ───────────────────────────────────────── */
-  const admin = JSON.parse(sessionStorage.getItem('vm_admin') || 'null');
-  if (!admin) window.location.href = 'login.html';
+  const _tokenData = JSON.parse(sessionStorage.getItem('vm_token') || 'null');
+  if (!_tokenData || !_tokenData.token) { window.location.href = 'login.html'; }
 
-  if (admin) {
+  const admin = _tokenData || {};
+
+  if (admin.name) {
     const initials = admin.name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
     ['user-avatar','tb-avatar'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = initials; });
     ['user-name','tb-name'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = admin.name; });
-    ['user-role','tb-role'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = admin.role; });
+    ['user-role','tb-role'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = admin.role || 'Admin'; });
   }
 
   document.getElementById('current-date').textContent =
@@ -1044,9 +1307,15 @@
   /* ── API ──────────────────────────────────────────────── */
   const API = 'http://localhost:8000';
 
+  function _authHeaders() {
+    const d = JSON.parse(sessionStorage.getItem('vm_token') || '{}');
+    return d.token ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${d.token}` }
+                   : { 'Content-Type': 'application/json' };
+  }
+
   async function apiFetch(path, opts = {}) {
     try {
-      const res = await fetch(API + path, { headers: { 'Content-Type': 'application/json' }, ...opts });
+      const res = await fetch(API + path, { headers: _authHeaders(), ...opts });
       if (!res.ok) throw new Error(await res.text());
       return await res.json();
     } catch (e) {
@@ -1055,6 +1324,79 @@
     }
   }
 
+  /* ── Session Management ───────────────────────────────── */
+  function _getExpiry() {
+    const d = JSON.parse(sessionStorage.getItem('vm_token') || '{}');
+    return d.expires_at ? new Date(d.expires_at) : null;
+  }
+
+  function _forceLogout(reason) {
+    sessionStorage.removeItem('vm_token');
+    sessionStorage.setItem('vm_logout_reason', reason);
+    window.location.href = 'login.html';
+  }
+
+  async function _verifySession() {
+    const d = JSON.parse(sessionStorage.getItem('vm_token') || '{}');
+    if (!d.token) { _forceLogout('session_expired'); return; }
+    try {
+      const res = await fetch(`${API}/api/auth/verify`, {
+        headers: { 'Authorization': `Bearer ${d.token}` }
+      });
+      if (res.status === 401) {
+        const expiry = _getExpiry();
+        _forceLogout(expiry && expiry > new Date() ? 'other_device' : 'session_expired');
+        return;
+      }
+      if (!res.ok) return;
+      const data = await res.json();
+      // Refresh expiry stored locally
+      d.expires_at = data.expires_at;
+      sessionStorage.setItem('vm_token', JSON.stringify(d));
+    } catch (e) {
+      console.error('[Session verify]', e);
+    }
+  }
+
+  async function extendSession() {
+    const d = JSON.parse(sessionStorage.getItem('vm_token') || '{}');
+    if (!d.token) return;
+    try {
+      const res = await fetch(`${API}/api/auth/refresh`, {
+        method:  'POST',
+        headers: { 'Authorization': `Bearer ${d.token}` }
+      });
+      if (!res.ok) { _forceLogout('session_expired'); return; }
+      const data = await res.json();
+      d.expires_at = data.expires_at;
+      sessionStorage.setItem('vm_token', JSON.stringify(d));
+      document.getElementById('session-warning-banner').style.display = 'none';
+      toast('Session extended by 30 minutes');
+    } catch (e) {
+      console.error('[Session refresh]', e);
+    }
+  }
+
+  // Poll server every 60 s
+  setInterval(_verifySession, 60_000);
+
+  // Local countdown — runs every second
+  setInterval(function () {
+    const expiry = _getExpiry();
+    if (!expiry) return;
+    const msLeft = expiry - Date.now();
+    if (msLeft <= 0) { _forceLogout('session_expired'); return; }
+    const banner = document.getElementById('session-warning-banner');
+    if (msLeft <= 5 * 60 * 1000) {
+      const mins = Math.floor(msLeft / 60000);
+      const secs = Math.floor((msLeft % 60000) / 1000);
+      document.getElementById('session-countdown').textContent = `${mins}:${secs.toString().padStart(2,'0')}`;
+      banner.style.display = 'flex';
+    } else {
+      banner.style.display = 'none';
+    }
+  }, 1000);
+
   /* ── Stats ────────────────────────────────────────────── */
   async function loadStats() {
     const s = await apiFetch('/api/appointments/stats');
@@ -1062,7 +1404,6 @@
     const g = id => document.getElementById(id);
     if (g('stat-today'))   g('stat-today').textContent   = s.today;
     if (g('stat-pending')) g('stat-pending').textContent = s.pending;
-    if (g('appt-badge'))   g('appt-badge').textContent   = s.pending || 0;
   }
 
   /* ── Recent appointments (dashboard widget) ───────────── */
@@ -1101,7 +1442,7 @@
       return;
     }
     _appts = data;
-    renderTable(_appts);
+    applyApptFilters();
     loadStats();
   }
 
@@ -1133,6 +1474,7 @@
                   onchange="updateStatus('${a.id}', this.value, this)">
             <option value="pending"   ${a.status==='pending'   ?'selected':''}>Pending</option>
             <option value="confirmed" ${a.status==='confirmed' ?'selected':''}>Confirmed</option>
+            <option value="rejected"  ${a.status==='rejected'  ?'selected':''}>Rejected</option>
             <option value="cancelled" ${a.status==='cancelled' ?'selected':''}>Cancelled</option>
             <option value="completed" ${a.status==='completed' ?'selected':''}>Completed</option>
           </select>
@@ -1219,20 +1561,50 @@
     });
   }
 
-  /* ── Search & filter (appointments page) ─────────────── */
-  document.querySelector('.search-input')?.addEventListener('input', function () {
-    const q = this.value.toLowerCase();
-    renderTable(q ? _appts.filter(a =>
-      a.name.toLowerCase().includes(q) ||
-      a.mobile.includes(q) ||
-      a.department.toLowerCase().includes(q)
-    ) : _appts);
-  });
+  /* ── Shared date-sort helper ──────────────────────────── */
+  function sortByDate(arr, order) {
+    return [...arr].sort((a, b) => {
+      const da = new Date(a.created_at || 0);
+      const db = new Date(b.created_at || 0);
+      return order === 'oldest' ? da - db : db - da;
+    });
+  }
 
-  document.querySelector('.filter-select')?.addEventListener('change', function () {
-    const s = this.value.toLowerCase();
-    renderTable(s === 'all status' ? _appts : _appts.filter(a => a.status === s));
-  });
+  /* ── Search, filter & sort (appointments page) ────────── */
+  function applyApptFilters() {
+    const q      = (document.getElementById('appt-search-input')?.value || '').toLowerCase();
+    const status = (document.getElementById('appt-status-filter')?.value || '').toLowerCase();
+    const order  = document.getElementById('appt-sort')?.value || 'newest';
+    let list = _appts;
+    if (q)      list = list.filter(a => a.name.toLowerCase().includes(q) || a.mobile.includes(q) || a.department.toLowerCase().includes(q));
+    if (status) list = list.filter(a => a.status === status);
+    renderTable(sortByDate(list, order));
+  }
+
+  document.querySelector('#page-appointments .search-input')?.addEventListener('input', applyApptFilters);
+
+  /* ── Sort helpers for each table ──────────────────────── */
+  function sortDoctors(order) {
+    const q = (document.getElementById('doc-search-admin')?.value || '').toLowerCase();
+    let list = q ? _doctors.filter(d => d.name.toLowerCase().includes(q) || d.specialty.toLowerCase().includes(q) || d.department.toLowerCase().includes(q)) : _doctors;
+    renderDoctorsTable(sortByDate(list, order));
+  }
+
+  function sortBlogs(order) {
+    const q = (document.getElementById('blog-search')?.value || '').toLowerCase();
+    let list = q ? _blogs.filter(b => b.title.toLowerCase().includes(q) || (b.author||'').toLowerCase().includes(q) || (b.category||'').toLowerCase().includes(q) || (b.tags||'').toLowerCase().includes(q)) : _blogs;
+    renderBlogsTable(sortByDate(list, order));
+  }
+
+  function sortTestimonials(order) {
+    renderTestimonialsTable(sortByDate(_testimonials, order));
+  }
+
+  function sortDepts(order) {
+    const q = (document.getElementById('dept-search')?.value || '').toLowerCase();
+    let list = q ? _depts.filter(d => d.name.toLowerCase().includes(q) || (d.description||'').toLowerCase().includes(q) || (d.head_doctor||'').toLowerCase().includes(q)) : _depts;
+    renderDeptsTable(sortByDate(list, order));
+  }
 
   /* ── Toast ────────────────────────────────────────────── */
   function toast(msg, type) {
@@ -1272,10 +1644,12 @@
     document.getElementById('topbar-title').textContent = title;
     document.getElementById('topbar-bc').textContent   = title;
     window.scrollTo(0, 0);
-    if (page === 'appointments') loadAppointments();
-    if (page === 'doctors')      loadDoctors();
-    if (page === 'departments')  loadDepartments();
-    if (page === 'blogs')        loadBlogs();
+    if (page === 'appointments')  loadAppointments();
+    if (page === 'doctors')       loadDoctors();
+    if (page === 'departments')   loadDepartments();
+    if (page === 'blogs')         loadBlogs();
+    if (page === 'media')         loadMedia();
+    if (page === 'testimonials')  loadTestimonials();
   }
 
   document.querySelectorAll('.nav-item[data-page]').forEach(btn => {
@@ -1293,8 +1667,18 @@
   });
 
   /* ── Logout ───────────────────────────────────────────── */
-  function logout() {
-    if (confirm('Log out?')) { sessionStorage.removeItem('vm_admin'); window.location.href = 'login.html'; }
+  async function logout() {
+    if (!confirm('Log out?')) return;
+    const d = JSON.parse(sessionStorage.getItem('vm_token') || '{}');
+    if (d.token) {
+      try {
+        await fetch(`${API}/api/auth/logout`, {
+          method: 'POST', headers: { 'Authorization': `Bearer ${d.token}` }
+        });
+      } catch (_) {}
+    }
+    sessionStorage.removeItem('vm_token');
+    window.location.href = 'login.html';
   }
 
   /* ── Doctors ──────────────────────────────────────────── */
@@ -1309,7 +1693,7 @@
       return;
     }
     _doctors = data;
-    renderDoctorsTable(_doctors);
+    renderDoctorsTable(sortByDate(_doctors, 'newest'));
   }
 
   function renderDoctorsTable(list) {
@@ -1353,12 +1737,10 @@
   }
 
   function filterDoctors(q) {
+    const order = document.getElementById('doc-sort')?.value || 'newest';
     const s = q.toLowerCase();
-    renderDoctorsTable(s ? _doctors.filter(d =>
-      d.name.toLowerCase().includes(s) ||
-      d.specialty.toLowerCase().includes(s) ||
-      d.department.toLowerCase().includes(s)
-    ) : _doctors);
+    const list = s ? _doctors.filter(d => d.name.toLowerCase().includes(s) || d.specialty.toLowerCase().includes(s) || d.department.toLowerCase().includes(s)) : _doctors;
+    renderDoctorsTable(sortByDate(list, order));
   }
 
   function openDoctorModal(doctor) {
@@ -1372,8 +1754,10 @@
     document.getElementById('doc-photo').value    = doctor ? (doctor.photo || '') : '';
     document.getElementById('doc-featured').checked = doctor ? !!doctor.featured : false;
     const sel = document.getElementById('doc-dept');
-    if (doctor) {
-      for (let o of sel.options) { if (o.value === doctor.department) { o.selected = true; break; } }
+    if (doctor && doctor.department) {
+      let found = false;
+      for (let o of sel.options) { if (o.value === doctor.department) { o.selected = true; found = true; break; } }
+      if (!found) sel.selectedIndex = 0;
     } else {
       sel.selectedIndex = 0;
     }
@@ -1392,6 +1776,9 @@
       photo:         document.getElementById('doc-photo').value.trim() || null,
       featured:      document.getElementById('doc-featured').checked,
     };
+    body.name          = body.name.toUpperCase();
+    body.qualification = body.qualification.toUpperCase();
+    body.specialty     = body.specialty.toUpperCase();
     if (!body.name || !body.qualification || !body.specialty) {
       toast('Name, qualification and speciality are required', 'error'); return;
     }
@@ -1452,7 +1839,7 @@
       return;
     }
     _depts = data;
-    renderDeptsTable(_depts);
+    renderDeptsTable(sortByDate(_depts, 'newest'));
   }
 
   function renderDeptsTable(list) {
@@ -1495,12 +1882,10 @@
   }
 
   function filterDepts(q) {
+    const order = document.getElementById('dept-sort')?.value || 'newest';
     const s = q.toLowerCase();
-    renderDeptsTable(s ? _depts.filter(d =>
-      d.name.toLowerCase().includes(s) ||
-      (d.description || '').toLowerCase().includes(s) ||
-      (d.head_doctor || '').toLowerCase().includes(s)
-    ) : _depts);
+    const list = s ? _depts.filter(d => d.name.toLowerCase().includes(s) || (d.description||'').toLowerCase().includes(s) || (d.head_doctor||'').toLowerCase().includes(s)) : _depts;
+    renderDeptsTable(sortByDate(list, order));
   }
 
   function openDeptModal(dept) {
@@ -1519,11 +1904,12 @@
     const id   = document.getElementById('dept-id').value;
     const name = document.getElementById('dept-name').value.trim();
     if (!name) { toast('Department name is required', 'error'); return; }
+    const rawHead = document.getElementById('dept-head').value.trim();
     const body = {
-      name,
+      name:        name.toUpperCase(),
       description: document.getElementById('dept-desc').value.trim()  || null,
       icon:        document.getElementById('dept-icon').value.trim()   || null,
-      head_doctor: document.getElementById('dept-head').value.trim()   || null,
+      head_doctor: rawHead ? rawHead.toUpperCase() : null,
       order:       parseInt(document.getElementById('dept-order').value) || 0,
       active:      document.getElementById('dept-active').checked,
     };
@@ -1583,7 +1969,7 @@
       return;
     }
     _blogs = data;
-    renderBlogsTable(_blogs);
+    renderBlogsTable(sortByDate(_blogs, 'newest'));
   }
 
   function renderBlogsTable(list) {
@@ -1635,13 +2021,10 @@
   }
 
   function filterBlogs(q) {
+    const order = document.getElementById('blog-sort')?.value || 'newest';
     const s = q.toLowerCase();
-    renderBlogsTable(s ? _blogs.filter(b =>
-      b.title.toLowerCase().includes(s) ||
-      (b.author || '').toLowerCase().includes(s) ||
-      (b.category || '').toLowerCase().includes(s) ||
-      (b.tags || '').toLowerCase().includes(s)
-    ) : _blogs);
+    const list = s ? _blogs.filter(b => b.title.toLowerCase().includes(s) || (b.author||'').toLowerCase().includes(s) || (b.category||'').toLowerCase().includes(s) || (b.tags||'').toLowerCase().includes(s)) : _blogs;
+    renderBlogsTable(sortByDate(list, order));
   }
 
   function openBlogModal(blog) {
@@ -1722,9 +2105,301 @@
     }
   }
 
+  /* ── Department options (shared across doctor & blog modals) ── */
+  let _deptCache = [];
+
+  async function loadDeptOptions() {
+    try {
+      _deptCache = await apiFetch('/api/departments?show_all=true') || [];
+    } catch(e) { _deptCache = []; }
+
+    [document.getElementById('doc-dept'), document.getElementById('blog-category')].forEach(sel => {
+      if (!sel) return;
+      const current = sel.value;
+      sel.innerHTML = '';
+      _deptCache.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d.name;
+        opt.textContent = d.name;
+        sel.appendChild(opt);
+      });
+      // Restore selected value if editing
+      if (current) {
+        for (let o of sel.options) { if (o.value === current) { o.selected = true; break; } }
+      }
+    });
+  }
+
+  /* ── Testimonials ─────────────────────────────────────── */
+  let _testimonials = [];
+
+  async function loadTestimonials() {
+    const tbody = document.getElementById('tbody-testimonials');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#9CA3AF;">Loading…</td></tr>';
+    const data = await apiFetch('/api/testimonials?show_all=true');
+    if (!data) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#E53935;">Cannot connect to API</td></tr>';
+      return;
+    }
+    _testimonials = data;
+    renderTestimonialsTable(sortByDate(_testimonials, 'newest'));
+  }
+
+  function renderTestimonialsTable(list) {
+    const tbody = document.getElementById('tbody-testimonials');
+    if (!tbody) return;
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#9CA3AF;">No testimonials yet — they will appear here once patients submit feedback on the website.</td></tr>';
+      return;
+    }
+    const EDIT_SVG = '<path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>';
+    const DEL_SVG  = '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m5 5v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3"/>';
+    const star = '⭐';
+    tbody.innerHTML = list.map(t => `
+      <tr data-id="${t.id}">
+        <td><strong>${esc(t.name)}</strong></td>
+        <td style="max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(t.text)}">${esc(t.text)}</td>
+        <td>${star.repeat(Math.min(5, t.rating || 5))}</td>
+        <td style="font-size:12px;">${(t.created_at || '').slice(0, 10)}</td>
+        <td>
+          <label class="toggle-switch">
+            <input type="checkbox" ${t.approved ? 'checked' : ''}
+                   onchange="toggleTestimonialApproved('${t.id}', this.checked)" />
+            <span class="toggle-slider"></span>
+          </label>
+        </td>
+        <td>
+          <div class="table-actions">
+            <button class="action-btn del" title="Delete" onclick="deleteTestimonial('${t.id}', '${esc(t.name)}')">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">${DEL_SVG}</svg>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function openTestimonialModal(t) {
+    document.getElementById('test-modal-title').textContent = t ? 'Edit Testimonial' : 'Add Testimonial';
+    document.getElementById('test-save-btn').textContent    = t ? 'Save Changes' : 'Save';
+    document.getElementById('test-id').value       = t ? t.id : '';
+    document.getElementById('test-name').value     = t ? t.name : '';
+    document.getElementById('test-text').value     = t ? t.text : '';
+    document.getElementById('test-rating').value   = t ? String(t.rating || 5) : '5';
+    document.getElementById('test-approved').checked = t ? !!t.approved : false;
+    document.getElementById('modal-testimonial').classList.add('open');
+  }
+
+  async function saveTestimonial() {
+    const id   = document.getElementById('test-id').value;
+    const name = document.getElementById('test-name').value.trim();
+    const text = document.getElementById('test-text').value.trim();
+    if (!name || !text) { toast('Name and review are required', 'error'); return; }
+    const body = {
+      name,
+      text,
+      rating:   parseInt(document.getElementById('test-rating').value) || 5,
+      approved: document.getElementById('test-approved').checked,
+    };
+    const btn = document.getElementById('test-save-btn');
+    btn.textContent = 'Saving…'; btn.disabled = true;
+    const method   = id ? 'PATCH' : 'POST';
+    const endpoint = id ? `/api/testimonials/${id}` : '/api/testimonials';
+    const result   = await apiFetch(endpoint, { method, body: JSON.stringify(body) });
+    btn.textContent = id ? 'Save Changes' : 'Save'; btn.disabled = false;
+    if (result && result.success) {
+      closeModal('testimonial');
+      loadTestimonials();
+      toast(id ? 'Testimonial updated' : 'Testimonial added', 'success');
+    } else {
+      toast('Failed to save testimonial', 'error');
+    }
+  }
+
+  async function deleteTestimonial(id, name) {
+    if (!confirm(`Delete testimonial from "${name}"?`)) return;
+    const result = await apiFetch(`/api/testimonials/${id}`, { method: 'DELETE' });
+    if (result && result.success) { loadTestimonials(); toast('Deleted', 'success'); }
+    else toast('Failed to delete', 'error');
+  }
+
+  async function toggleTestimonialApproved(id, approved) {
+    const result = await apiFetch(`/api/testimonials/${id}`, {
+      method: 'PATCH', body: JSON.stringify({ approved }),
+    });
+    if (result && result.success) {
+      const t = _testimonials.find(x => x.id === id);
+      if (t) t.approved = approved;
+      toast(approved ? 'Testimonial approved — now visible on website' : 'Testimonial hidden from website', 'success');
+    } else {
+      toast('Failed to update', 'error'); loadTestimonials();
+    }
+  }
+
+  /* ── Media Library ────────────────────────────────────── */
+  let _mediaItems = [];
+
+  async function loadMedia() {
+    const grid = document.getElementById('media-grid');
+    if (!grid) return;
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#9CA3AF;padding:40px;">Loading…</div>';
+    const data = await apiFetch('/api/media');
+    if (!data) {
+      grid.innerHTML = '<div class="media-empty">Cannot connect to API</div>';
+      return;
+    }
+    _mediaItems = data;
+    renderMediaGrid(_mediaItems);
+    // Also load gallery config
+    loadGalleryConfig();
+  }
+
+  function renderMediaGrid(items) {
+    const grid = document.getElementById('media-grid');
+    if (!grid) return;
+    const label = document.getElementById('media-count-label');
+    if (label) label.textContent = `All Media (${items.length})`;
+    if (!items.length) {
+      grid.innerHTML = `
+        <div class="media-empty">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          <div style="font-size:14px;font-weight:600;color:#4B5563;margin-bottom:4px;">No media yet</div>
+          <div style="font-size:12px;">Click "Add Media" to upload your first image or video</div>
+        </div>`;
+      return;
+    }
+    const VIDEO_ICON = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>';
+    const EDIT_SVG   = '<path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>';
+    const DEL_SVG    = '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m5 5v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3"/>';
+
+    grid.innerHTML = items.map(m => `
+      <div class="media-card" data-id="${m.id}">
+        <div class="media-thumb">
+          ${m.type === 'video'
+            ? `<div class="media-thumb-placeholder">${VIDEO_ICON}<span>Video</span></div>`
+            : `<img src="${esc(m.thumb_url || m.display_url || '')}" alt="${esc(m.alt || m.title)}" onerror="this.parentElement.innerHTML='<div class=\\'media-thumb-placeholder\\'><span>No preview</span></div>'" />`
+          }
+        </div>
+        <div class="media-card-body">
+          <div class="media-card-title" title="${esc(m.title)}">${esc(m.title)}</div>
+          <span class="media-type-badge ${m.type}">${m.type}</span>
+          <div class="media-card-footer">
+            <label class="toggle-switch" title="${m.show_in_gallery ? 'In gallery' : 'Hidden from gallery'}">
+              <input type="checkbox" ${m.show_in_gallery ? 'checked' : ''}
+                     onchange="toggleMediaGallery('${m.id}', this.checked)" />
+              <span class="toggle-slider"></span>
+            </label>
+            <div class="table-actions">
+              <button class="action-btn edit" title="Edit" onclick="openMediaModal(${JSON.stringify(m).replace(/"/g,'&quot;')})">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">${EDIT_SVG}</svg>
+              </button>
+              <button class="action-btn del" title="Delete" onclick="deleteMedia('${m.id}', '${esc(m.title)}')">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">${DEL_SVG}</svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function filterMedia() {
+    const type = document.getElementById('media-type-filter').value;
+    renderMediaGrid(type ? _mediaItems.filter(m => m.type === type) : _mediaItems);
+  }
+
+  function openMediaModal(item) {
+    document.getElementById('media-modal-title').textContent = item ? 'Edit Media' : 'Add Media';
+    document.getElementById('media-save-btn').textContent    = item ? 'Save Changes' : 'Save Media';
+    document.getElementById('media-id').value         = item ? item.id : '';
+    document.getElementById('media-title').value      = item ? item.title : '';
+    document.getElementById('media-type').value       = item ? (item.type || 'image') : 'image';
+    document.getElementById('media-drive-link').value = item ? (item.drive_link || '') : '';
+    document.getElementById('media-alt').value        = item ? (item.alt || '') : '';
+    document.getElementById('media-order').value      = item ? (item.order ?? 0) : 0;
+    document.getElementById('media-gallery').checked  = item ? !!item.show_in_gallery : true;
+    document.getElementById('modal-media').classList.add('open');
+  }
+
+  async function saveMedia() {
+    const id    = document.getElementById('media-id').value;
+    const title = document.getElementById('media-title').value.trim();
+    const link  = document.getElementById('media-drive-link').value.trim();
+    if (!title) { toast('Title is required', 'error'); return; }
+    if (!id && !link) { toast('Google Drive link is required', 'error'); return; }
+
+    const body = {
+      title,
+      type:            document.getElementById('media-type').value,
+      drive_link:      link || undefined,
+      alt:             document.getElementById('media-alt').value.trim() || null,
+      order:           parseInt(document.getElementById('media-order').value) || 0,
+      show_in_gallery: document.getElementById('media-gallery').checked,
+    };
+
+    const btn = document.getElementById('media-save-btn');
+    btn.textContent = 'Saving…'; btn.disabled = true;
+    const method   = id ? 'PATCH' : 'POST';
+    const endpoint = id ? `/api/media/${id}` : '/api/media';
+    const result   = await apiFetch(endpoint, { method, body: JSON.stringify(body) });
+    btn.textContent = id ? 'Save Changes' : 'Save Media'; btn.disabled = false;
+    if (result && result.success) {
+      closeModal('media');
+      loadMedia();
+      toast(id ? 'Media updated' : 'Media added', 'success');
+    } else {
+      toast('Failed to save media', 'error');
+    }
+  }
+
+  async function deleteMedia(id, title) {
+    if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
+    const result = await apiFetch(`/api/media/${id}`, { method: 'DELETE' });
+    if (result && result.success) { loadMedia(); toast('Media deleted', 'success'); }
+    else toast('Failed to delete media', 'error');
+  }
+
+  async function toggleMediaGallery(id, show_in_gallery) {
+    const result = await apiFetch(`/api/media/${id}`, {
+      method: 'PATCH', body: JSON.stringify({ show_in_gallery }),
+    });
+    if (result && result.success) {
+      const m = _mediaItems.find(x => x.id === id);
+      if (m) m.show_in_gallery = show_in_gallery;
+      toast(show_in_gallery ? 'Added to gallery' : 'Removed from gallery', 'success');
+    } else {
+      toast('Failed to update', 'error'); loadMedia();
+    }
+  }
+
+  /* ── Gallery Config ────────────────────────────────────── */
+  async function loadGalleryConfig() {
+    const cfg = await apiFetch('/api/gallery-config');
+    if (!cfg) return;
+    const g = id => document.getElementById(id);
+    if (g('cfg-autoplay'))   g('cfg-autoplay').checked = cfg.autoplay !== false;
+    if (g('cfg-captions'))   g('cfg-captions').checked = cfg.show_captions !== false;
+    if (g('cfg-interval'))   g('cfg-interval').value   = String(cfg.interval || 5000);
+    if (g('cfg-transition')) g('cfg-transition').value = cfg.transition || 'fade';
+  }
+
+  async function saveGalleryConfig() {
+    const body = {
+      autoplay:      document.getElementById('cfg-autoplay').checked,
+      interval:      parseInt(document.getElementById('cfg-interval').value) || 5000,
+      transition:    document.getElementById('cfg-transition').value,
+      show_captions: document.getElementById('cfg-captions').checked,
+    };
+    const result = await apiFetch('/api/gallery-config', { method: 'PATCH', body: JSON.stringify(body) });
+    if (result && result.success) toast('Gallery settings saved', 'success');
+    else toast('Failed to save settings', 'error');
+  }
+
   /* ── Boot ─────────────────────────────────────────────── */
+  loadDeptOptions();
   loadStats();
-  loadRecentAppointments();
+  loadAppointments();
 </script>
 </body>
 </html>

@@ -179,7 +179,7 @@ function renderDoctors(list) {
         <div class="doctor-info-row">${svg(CLK_SVG)}  <span>${d.experience} Experience</span></div>
         <div class="doctor-info-row">${svg(CAL_SVG)}  <span>${d.timing}</span></div>
         <div class="doctor-card-actions">
-          <a href="index.html#appointment" class="btn btn-primary" style="flex:1;justify-content:center;font-size:var(--text-sm);">Book Consultation</a>
+          <a href="index.html?doctor=${encodeURIComponent(d.name)}&dept=${encodeURIComponent(d.department||'')}#appointment" class="btn btn-primary" style="flex:1;justify-content:center;font-size:var(--text-sm);">Book Consultation</a>
         </div>
       </div>
     </div>

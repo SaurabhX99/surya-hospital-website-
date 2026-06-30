@@ -52,19 +52,10 @@
     .contact-form-card { background:#fff; border-radius:var(--radius-2xl); box-shadow:var(--shadow-lg); overflow:hidden; }
     .contact-form-header { background:var(--gradient-primary); color:#fff; padding:var(--space-5) var(--space-6); display:flex; align-items:center; gap:var(--space-3); }
     .contact-form-header svg { width:28px; height:28px; }
-    .contact-form-header h3 { font-family:var(--font-heading); font-size:var(--text-xl); font-weight:var(--font-bold); }
-    .contact-form-header p { font-size:var(--text-sm); opacity:.85; }
+    .contact-form-header h3 { font-family:var(--font-heading); font-size:var(--text-xl); font-weight:var(--font-bold); margin:0; }
+    .contact-form-header p { font-size:var(--text-sm); opacity:.85; margin:2px 0 0; }
     .contact-form-body { padding:var(--space-6); }
     .form-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:var(--space-4); }
-    .form-group { margin-bottom:var(--space-4); }
-    .form-label { display:block; font-size:var(--text-sm); font-weight:var(--font-semibold); color:var(--color-text); margin-bottom:8px; }
-    .form-control { width:100%; padding:var(--space-3) var(--space-4); border:1.5px solid var(--color-border); border-radius:var(--radius-lg); font-size:var(--text-base); font-family:var(--font-body); color:var(--color-text); outline:none; transition:all .2s; background:#fff; }
-    .form-control:focus { border-color:var(--color-primary); box-shadow:0 0 0 3px rgba(10,77,140,.1); }
-    .form-control::placeholder { color:var(--color-text-muted); }
-    textarea.form-control { resize:vertical; }
-
-    /* Success message */
-    .form-success { display:none; padding:var(--space-4); background:rgba(0,200,83,.08); border:1.5px solid var(--color-accent); border-radius:var(--radius-lg); color:var(--color-accent-dark); font-weight:var(--font-medium); font-size:var(--text-sm); margin-top:var(--space-4); }
 
     /* OPD Hours */
     .opd-table { width:100%; border-collapse:collapse; }
@@ -74,6 +65,13 @@
 
     @keyframes spin { to { transform:rotate(360deg); } }
     .spin { animation:spin 1s linear infinite; }
+
+    /* Feedback form */
+    .star-rating { display:flex; gap:6px; font-size:30px; cursor:pointer; line-height:1; padding-top:4px; }
+    .star { color:#D1D5DB; transition:color .15s; user-select:none; }
+    .star.active { color:#F59E0B; }
+    .fb-success { display:none; margin-top:var(--space-4); padding:var(--space-4); background:rgba(0,200,83,.08); border:1.5px solid var(--color-accent); border-radius:var(--radius-lg); color:var(--color-accent-dark); font-weight:500; font-size:var(--text-sm); }
+    .fb-error { display:none; margin-top:var(--space-3); padding:var(--space-3) var(--space-4); background:rgba(229,57,53,.08); border:1.5px solid #E53935; border-radius:var(--radius-lg); color:#C62828; font-size:var(--text-sm); font-weight:500; }
 
     @media (max-width:1024px) { .contact-layout { grid-template-columns:1fr; } }
     @media (max-width:640px)  { .page-hero h1 { font-size:var(--text-3xl); } .form-grid-2 { grid-template-columns:1fr; } .quick-ctas { grid-template-columns:1fr; } }
@@ -93,7 +91,7 @@
 <div class="mobile-nav" id="mobile-nav"><div class="mobile-nav-panel">
   <div class="mobile-nav-header"><img src="images/logo.png" alt="Vedansh Medicare" class="site-logo-img-sm" /><button id="mobile-nav-close" aria-label="Close"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="24" height="24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button></div>
   <nav class="mobile-nav-links"><a href="index.html" class="mobile-nav-link">Home</a><a href="about.html" class="mobile-nav-link">About</a><a href="specialities.html" class="mobile-nav-link">Specialities</a><a href="doctors.html" class="mobile-nav-link">Doctors</a><a href="facilities.html" class="mobile-nav-link">Facilities</a><a href="blogs.html" class="mobile-nav-link">Blogs</a><a href="contact.html" class="mobile-nav-link active">Contact</a></nav>
-  <div class="mobile-nav-footer"><a href="tel:+919650494019" class="btn btn-emergency w-full" style="justify-content:center;">Emergency: +91 9650494019</a><a href="#contact-form" class="btn btn-primary w-full" style="justify-content:center;">Send Message</a></div>
+  <div class="mobile-nav-footer"><a href="tel:+919650494019" class="btn btn-emergency w-full" style="justify-content:center;">Emergency: +91 9650494019</a></div>
 </div></div>
 
 <main>
@@ -157,7 +155,7 @@
         </div>
       </div>
 
-      <!-- RIGHT: Map + Form -->
+      <!-- RIGHT: Map + Feedback Form -->
       <div class="contact-right" data-animate="fade-left">
         <!-- Map -->
         <div class="map-wrap">
@@ -170,53 +168,46 @@
           </iframe>
         </div>
 
-        <!-- Contact Form -->
-        <div class="contact-form-card" id="contact-form">
+        <!-- Feedback Form -->
+        <div class="contact-form-card">
           <div class="contact-form-header">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
             <div>
-              <h3>Send Us a Message</h3>
-              <p>We'll get back to you within a few hours</p>
+              <h3>Share Your Feedback</h3>
+              <p>Your feedback will appear on our website after approval by our team.</p>
             </div>
           </div>
           <div class="contact-form-body">
-            <form id="contact-msg-form" novalidate>
+            <form id="feedback-form" novalidate>
               <div class="form-grid-2">
                 <div class="form-group">
-                  <label class="form-label" for="c-name">Full Name <span style="color:var(--color-emergency)">*</span></label>
-                  <input type="text" id="c-name" class="form-control" placeholder="Your full name" required />
+                  <label class="form-label" for="fb-name">Your Name *</label>
+                  <input type="text" id="fb-name" class="form-control" placeholder="e.g. Rahul Sharma" required />
                 </div>
                 <div class="form-group">
-                  <label class="form-label" for="c-mobile">Mobile Number <span style="color:var(--color-emergency)">*</span></label>
-                  <input type="tel" id="c-mobile" class="form-control" placeholder="+91 XXXXX XXXXX" required />
+                  <label class="form-label">Your Rating *</label>
+                  <div class="star-rating" id="fb-stars" role="group" aria-label="Rate your experience">
+                    <span class="star active" data-val="1">★</span>
+                    <span class="star active" data-val="2">★</span>
+                    <span class="star active" data-val="3">★</span>
+                    <span class="star active" data-val="4">★</span>
+                    <span class="star active" data-val="5">★</span>
+                  </div>
+                  <input type="hidden" id="fb-rating" value="5" />
                 </div>
               </div>
               <div class="form-group">
-                <label class="form-label" for="c-email">Email Address</label>
-                <input type="email" id="c-email" class="form-control" placeholder="your@email.com" />
+                <label class="form-label" for="fb-text">Your Feedback *</label>
+                <textarea id="fb-text" class="form-control" rows="4" placeholder="Tell us about your visit, treatment, or the care you received…" required></textarea>
               </div>
-              <div class="form-group">
-                <label class="form-label" for="c-subject">Subject <span style="color:var(--color-emergency)">*</span></label>
-                <select id="c-subject" class="form-control" required>
-                  <option value="" disabled selected>Select subject</option>
-                  <option>Appointment Enquiry</option>
-                  <option>Medical Query</option>
-                  <option>Insurance / Billing</option>
-                  <option>Feedback / Complaint</option>
-                  <option>General Enquiry</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label" for="c-msg">Message <span style="color:var(--color-emergency)">*</span></label>
-                <textarea id="c-msg" class="form-control" rows="4" placeholder="Write your message here…" required></textarea>
-              </div>
-              <button type="submit" class="btn btn-primary w-full" id="contact-submit" style="justify-content:center;padding:var(--space-4);">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                Send Message
+              <button type="submit" id="fb-submit" class="btn btn-primary" style="width:100%;justify-content:center;">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                Submit Feedback
               </button>
-              <div class="form-success" id="contact-success">
-                ✅ Thank you! Your message has been received. We'll contact you within a few hours.
+              <div class="fb-success" id="fb-success">
+                ✅ Thank you! Your feedback has been submitted and will appear on our website once approved by our team.
               </div>
+              <div class="fb-error" id="fb-error"></div>
             </form>
           </div>
         </div>
@@ -243,30 +234,64 @@
   <div class="footer-bottom"><span>&copy; <span id="footer-year"></span> Vedansh Medicare. All rights reserved.</span><div class="footer-bottom-links"><a href="#">Privacy Policy</a><a href="#">Terms &amp; Conditions</a></div></div>
 </div></footer>
 
-<script>
-document.getElementById('contact-msg-form').addEventListener('submit', function (e) {
-  e.preventDefault();
-  const name    = document.getElementById('c-name').value.trim();
-  const mobile  = document.getElementById('c-mobile').value.trim();
-  const subject = document.getElementById('c-subject').value;
-  const msg     = document.getElementById('c-msg').value.trim();
-  const btn     = document.getElementById('contact-submit');
-  const success = document.getElementById('contact-success');
-
-  if (!name || !mobile || !subject || !msg) return;
-
-  btn.disabled = true;
-  btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="18" height="18" class="spin"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Sending…`;
-
-  setTimeout(() => {
-    btn.disabled = false;
-    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Send Message`;
-    success.style.display = 'block';
-    this.reset();
-    success.scrollIntoView({ behavior:'smooth', block:'nearest' });
-  }, 1400);
-});
-</script>
 <script src="js/shared.js"></script>
+<script>
+(function () {
+  const API_BASE = 'http://localhost:8000';
+  const stars     = document.querySelectorAll('#fb-stars .star');
+  const ratingIn  = document.getElementById('fb-rating');
+  let selected = 5;
+
+  function paintStars(upTo) {
+    stars.forEach(s => s.classList.toggle('active', +s.dataset.val <= upTo));
+  }
+
+  stars.forEach(star => {
+    star.addEventListener('mouseenter', () => paintStars(+star.dataset.val));
+    star.addEventListener('click', () => { selected = +star.dataset.val; ratingIn.value = selected; });
+  });
+  document.getElementById('fb-stars').addEventListener('mouseleave', () => paintStars(selected));
+
+  document.getElementById('feedback-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const name  = document.getElementById('fb-name').value.trim();
+    const text  = document.getElementById('fb-text').value.trim();
+    const rating = parseInt(ratingIn.value) || 5;
+    const errEl  = document.getElementById('fb-error');
+    errEl.style.display = 'none';
+
+    if (!name || !text) {
+      errEl.textContent = 'Please fill in your name and review before submitting.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    const btn = document.getElementById('fb-submit');
+    btn.textContent = 'Submitting…';
+    btn.disabled = true;
+
+    try {
+      const res = await fetch(API_BASE + '/api/testimonials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, text, rating }),
+      });
+      if (res.ok) {
+        document.getElementById('fb-success').style.display = 'block';
+        btn.style.display = 'none';
+        this.querySelectorAll('input:not([type=hidden]), textarea').forEach(el => el.value = '');
+        selected = 5; ratingIn.value = 5; paintStars(5);
+      } else {
+        throw new Error();
+      }
+    } catch {
+      errEl.textContent = 'Submission failed. Please try again or call us at +91 9650494019.';
+      errEl.style.display = 'block';
+      btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Submit Feedback';
+      btn.disabled = false;
+    }
+  });
+})();
+</script>
 </body>
 </html>

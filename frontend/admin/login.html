@@ -266,6 +266,20 @@
     }
     .login-error svg { width: 18px; height: 18px; flex-shrink: 0; }
 
+    .login-notice {
+      margin-bottom: 20px;
+      padding: 12px 16px;
+      background: rgba(245,158,11,0.08);
+      border: 1.5px solid rgba(245,158,11,0.35);
+      border-radius: 10px;
+      font-size: 14px;
+      color: #B45309;
+      display: none;
+      align-items: center;
+      gap: 8px;
+    }
+    .login-notice svg { width: 18px; height: 18px; flex-shrink: 0; }
+
 
 
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -334,6 +348,11 @@
     <h1>Welcome back 👋</h1>
     <p class="subtitle">Sign in to your admin account to continue</p>
 
+    <div class="login-notice" id="login-notice">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+      <span id="login-notice-msg">You have been logged out.</span>
+    </div>
+
     <form id="login-form" novalidate>
       <div class="form-group">
         <label class="form-label" for="email">Email Address</label>
@@ -400,7 +419,29 @@
 </div>
 
 <script>
-  /* Toggle Password Visibility */
+  const API = 'http://localhost:8000';
+  const SIGN_IN_HTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="18" height="18">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+    </svg>
+    Sign In`;
+
+  /* ── Show logout reason if redirected from dashboard ── */
+  (function () {
+    const reason = sessionStorage.getItem('vm_logout_reason');
+    if (!reason) return;
+    sessionStorage.removeItem('vm_logout_reason');
+    const notice = document.getElementById('login-notice');
+    const msg    = document.getElementById('login-notice-msg');
+    if (reason === 'other_device') {
+      msg.textContent = 'You were signed out because this account logged in from another browser or device.';
+    } else {
+      msg.textContent = 'Your session expired. Please sign in again.';
+    }
+    notice.style.display = 'flex';
+  })();
+
+  /* ── Toggle Password Visibility ── */
   document.getElementById('toggle-pass').addEventListener('click', function () {
     const pwd  = document.getElementById('password');
     const icon = document.getElementById('eye-icon');
@@ -416,8 +457,8 @@
     }
   });
 
-  /* Login Submit */
-  document.getElementById('login-form').addEventListener('submit', function (e) {
+  /* ── Login Submit ── */
+  document.getElementById('login-form').addEventListener('submit', async function (e) {
     e.preventDefault();
     const email    = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
@@ -425,6 +466,7 @@
     const errEl    = document.getElementById('login-error');
 
     errEl.style.display = 'none';
+    document.getElementById('login-notice').style.display = 'none';
     btn.disabled = true;
     btn.innerHTML = `
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="18" height="18" class="spin">
@@ -432,22 +474,21 @@
       </svg>
       Signing in…`;
 
-    setTimeout(function () {
-      if (email === 'admin@vedanshmedicare.com' && password === 'Admin@123') {
-        sessionStorage.setItem('vm_admin', JSON.stringify({
-          email, role: 'Super Admin', name: 'Hospital Admin'
-        }));
-        window.location.href = 'dashboard.html';
-      } else {
-        btn.disabled = false;
-        btn.innerHTML = `
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="18" height="18">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
-          </svg>
-          Sign In`;
-        errEl.style.display = 'flex';
-      }
-    }, 1200);
+    try {
+      const res = await fetch(`${API}/api/auth/login`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ email, password }),
+      });
+      if (!res.ok) throw new Error('invalid');
+      const data = await res.json();
+      sessionStorage.setItem('vm_token', JSON.stringify(data));
+      window.location.href = 'dashboard.html';
+    } catch (_) {
+      btn.disabled = false;
+      btn.innerHTML = SIGN_IN_HTML;
+      errEl.style.display = 'flex';
+    }
   });
 </script>
 </body>
