@@ -17,7 +17,7 @@ import httpx
 from bson import ObjectId
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from pymongo import MongoClient, DESCENDING
@@ -58,6 +58,7 @@ _mediacol  = _mdb["media"]
 _gcfgcol   = _mdb["gallery_config"]
 _testcol   = _mdb["testimonials"]
 _usercol   = _mdb["admin_users"]
+_offercol  = _mdb["offers"]
 
 # ── Seed first admin user from env if the collection is empty ──────
 _admin_email    = os.getenv("ADMIN_EMAIL", "").strip().lower()
@@ -115,10 +116,22 @@ def _fmt(doc: dict) -> dict:
 class AppointmentIn(BaseModel):
     name: str
     mobile: str
-    department: str
+    department: Optional[str] = None
     doctor: Optional[str] = None
     date: Optional[str] = None
     message: Optional[str] = None
+
+
+class OfferIn(BaseModel):
+    text: str
+    active: bool = True
+    order: int = 0
+
+
+class OfferUpdate(BaseModel):
+    text: Optional[str] = None
+    active: Optional[bool] = None
+    order: Optional[int] = None
 
 
 class StatusIn(BaseModel):
@@ -762,7 +775,7 @@ def _fmt_media(doc: dict) -> dict:
     link = doc.get("drive_link", "")
     fid  = _extract_drive_id(link)
     if doc.get("type") == "video":
-        doc["display_url"] = f"https://drive.google.com/file/d/{fid}/preview" if fid else link
+        doc["display_url"] = f"http://localhost:8000/api/proxy/video?id={fid}" if fid else link
     else:
         doc["display_url"] = f"http://localhost:8000/api/proxy/image?id={fid}" if fid else link
     doc["thumb_url"] = f"http://localhost:8000/api/proxy/image?id={fid}" if fid else None
@@ -856,6 +869,111 @@ async def proxy_drive_image(id: str):
     except Exception as e:
         print(f"[ERROR] proxy_drive_image: {e}")
         raise HTTPException(502, "Could not fetch image from Drive")
+
+
+@app.get("/api/proxy/video")
+async def proxy_drive_video(id: str, request: Request):
+    """Stream a Google Drive video by file ID so <video> autoplay works."""
+    req_headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
+    }
+    if "range" in request.headers:
+        req_headers["Range"] = request.headers["range"]
+
+    candidates = [
+        f"https://drive.google.com/uc?export=download&id={id}&confirm=t",
+        f"https://drive.google.com/uc?export=view&id={id}",
+    ]
+    try:
+        for url in candidates:
+            client = httpx.AsyncClient(follow_redirects=True, timeout=httpx.Timeout(15, read=None))
+            r = await client.get(url, headers=req_headers)
+            ct = r.headers.get("content-type", "")
+            if r.status_code in (200, 206) and "video" in ct:
+                resp_headers = {
+                    "Accept-Ranges": "bytes",
+                    "Cache-Control": "max-age=3600",
+                    "Access-Control-Allow-Origin": "*",
+                }
+                for h in ("content-length", "content-range", "last-modified"):
+                    if h in r.headers:
+                        resp_headers[h] = r.headers[h]
+
+                async def _stream(r=r, client=client):
+                    try:
+                        async for chunk in r.aiter_bytes(65536):
+                            yield chunk
+                    finally:
+                        await client.aclose()
+
+                return StreamingResponse(
+                    _stream(),
+                    status_code=r.status_code,
+                    headers=resp_headers,
+                    media_type=ct.split(";")[0],
+                )
+            await client.aclose()
+            print(f"[VIDEO-PROXY] {url} → {r.status_code} {ct[:60]}")
+        raise HTTPException(502, "Could not stream video from Drive — ensure the file is shared publicly")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[ERROR] proxy_drive_video: {e}")
+        raise HTTPException(502, "Could not stream video from Drive")
+
+
+# ── Offers Routes ───────────────────────────────────────────────────
+def _fmt_offer(doc: dict) -> dict:
+    doc["id"] = str(doc.pop("_id"))
+    ca = doc.get("created_at")
+    if isinstance(ca, datetime):
+        doc["created_at"] = ca.isoformat()
+    doc.setdefault("active", True)
+    doc.setdefault("order", 0)
+    return doc
+
+
+@app.get("/api/offers")
+def list_offers(show_all: bool = False):
+    q = _tq() if show_all else _tq({"active": True})
+    docs = list(_offercol.find(q).sort("order", 1))
+    return [_fmt_offer(d) for d in docs]
+
+
+@app.post("/api/offers", status_code=201)
+def create_offer(body: OfferIn):
+    doc = body.model_dump()
+    doc["tenant_name"] = TENANT_NAME
+    doc["created_at"]  = datetime.now(timezone.utc)
+    result = _offercol.insert_one(doc)
+    return {"success": True, "id": str(result.inserted_id)}
+
+
+@app.patch("/api/offers/{offer_id}")
+def update_offer(offer_id: str, body: OfferUpdate):
+    try:
+        oid = ObjectId(offer_id)
+    except Exception:
+        raise HTTPException(400, "Invalid id")
+    updates = {k: v for k, v in body.model_dump().items() if v is not None}
+    if not updates:
+        raise HTTPException(400, "No fields to update")
+    result = _offercol.update_one(_tq({"_id": oid}), {"$set": updates})
+    if result.matched_count == 0:
+        raise HTTPException(404, "Not found")
+    return {"success": True}
+
+
+@app.delete("/api/offers/{offer_id}")
+def delete_offer(offer_id: str):
+    try:
+        oid = ObjectId(offer_id)
+    except Exception:
+        raise HTTPException(400, "Invalid id")
+    result = _offercol.delete_one(_tq({"_id": oid}))
+    if result.deleted_count == 0:
+        raise HTTPException(404, "Not found")
+    return {"success": True}
 
 
 # ── Auth Routes ──────────────────────────────────────────────────────

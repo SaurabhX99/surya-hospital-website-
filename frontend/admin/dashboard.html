@@ -272,7 +272,6 @@
     .status-badge.cancelled { background: rgba(229,57,53,0.1);  color: #E53935; }
     .status-badge.rejected  { background: rgba(103,58,183,0.1); color: #673AB7; }
     .status-badge.completed { background: rgba(10,77,140,0.1);  color: #0A4D8C; }
-
     /* ════════════════════════════════════
        ACTIVITY FEED
     ════════════════════════════════════ */
@@ -657,6 +656,10 @@
     <button class="nav-item" data-page="media">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
       <span class="nav-label">Media Library</span>
+    </button>
+    <button class="nav-item" data-page="offers">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+      <span class="nav-label">Offers Marquee</span>
     </button>
 
     <div class="nav-section-label">Settings</div>
@@ -1085,6 +1088,21 @@
         </div>
       </div>
     </div>
+    <!-- ── OFFERS MARQUEE ── -->
+    <div class="page-view" id="page-offers">
+      <div class="page-title-row">
+        <div><div class="page-title">Offers Marquee</div><div class="page-subtitle">Manage scrolling offers shown on the homepage</div></div>
+        <button class="btn-add" onclick="openOfferModal()">+ Add Offer</button>
+      </div>
+      <div class="card-panel">
+        <div class="card-panel-header"><span class="card-panel-title">Active Offers</span></div>
+        <table class="data-table" id="offers-table">
+          <thead><tr><th>Text</th><th>Order</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="offers-tbody"><tr><td colspan="4" style="text-align:center;color:#94A3B8;padding:32px;">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="page-view" id="page-users"><div class="page-title-row"><div><div class="page-title">Users &amp; Roles</div><div class="page-subtitle">Manage admin users and permissions</div></div></div><div class="chart-placeholder">Users &amp; roles management — connect to backend API</div></div>
     <div class="page-view" id="page-seo"><div class="page-title-row"><div><div class="page-title">SEO Settings</div><div class="page-subtitle">Meta tags, sitemap, and schema settings</div></div></div><div class="chart-placeholder">SEO configuration — connect to backend API</div></div>
 
@@ -1283,6 +1301,40 @@
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeModal('media')">Cancel</button>
       <button class="btn-save" id="media-save-btn" onclick="saveMedia()">Save Media</button>
+    </div>
+  </div>
+</div>
+
+<!-- Offer Modal -->
+<div class="modal-overlay" id="modal-offer">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="offer-modal-title">Add Offer</h3>
+      <button class="modal-close" onclick="closeModal('offer')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="offer-id" />
+      <div class="form-group">
+        <label class="form-label">Offer Text <span style="color:#E53935">*</span></label>
+        <input type="text" id="offer-text" class="form-control" placeholder="e.g. Free Health Checkup every Sunday | 20% off on Dialysis packages" />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Display Order</label>
+          <input type="number" id="offer-order" class="form-control" value="0" min="0" />
+          <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Lower number = shown first</div>
+        </div>
+        <div class="form-group" style="display:flex;flex-direction:column;justify-content:flex-end;">
+          <div style="display:flex;align-items:center;gap:10px;padding-bottom:4px;">
+            <label class="toggle-switch"><input type="checkbox" id="offer-active" checked /><span class="toggle-slider"></span></label>
+            <span style="font-size:13px;color:#1F2937;">Active (show on homepage)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('offer')">Cancel</button>
+      <button class="btn-save" id="offer-save-btn" onclick="saveOffer()">Save Offer</button>
     </div>
   </div>
 </div>
@@ -1650,6 +1702,7 @@
     if (page === 'blogs')         loadBlogs();
     if (page === 'media')         loadMedia();
     if (page === 'testimonials')  loadTestimonials();
+    if (page === 'offers')        loadOffers();
   }
 
   document.querySelectorAll('.nav-item[data-page]').forEach(btn => {
@@ -2394,6 +2447,80 @@
     const result = await apiFetch('/api/gallery-config', { method: 'PATCH', body: JSON.stringify(body) });
     if (result && result.success) toast('Gallery settings saved', 'success');
     else toast('Failed to save settings', 'error');
+  }
+
+  /* ── Offers ───────────────────────────────────────────── */
+  let _offers = [];
+
+  async function loadOffers() {
+    const tbody = document.getElementById('offers-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#9CA3AF;padding:32px;">Loading…</td></tr>';
+    const data = await apiFetch('/api/offers?show_all=true');
+    if (!data) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#E53935;padding:32px;">Cannot connect to API</td></tr>'; return; }
+    _offers = data;
+    if (!data.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#9CA3AF;padding:32px;">No offers yet. Click "+ Add Offer" to create one.</td></tr>'; return; }
+    tbody.innerHTML = data.map(o => `
+      <tr>
+        <td style="max-width:400px;">${o.text}</td>
+        <td>${o.order}</td>
+        <td><span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:${o.active ? 'rgba(0,200,83,0.12)' : 'rgba(148,163,184,0.15)'};color:${o.active ? '#00843D' : '#64748B'};">${o.active ? 'Active' : 'Inactive'}</span></td>
+        <td>
+          <button onclick="editOffer('${o.id}')" style="background:none;border:1px solid #CBD5E1;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;color:#374151;margin-right:6px;">Edit</button>
+          <button onclick="deleteOffer('${o.id}')" style="background:none;border:1px solid #FCA5A5;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;color:#DC2626;">Delete</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  function openOfferModal(id) {
+    document.getElementById('offer-id').value = '';
+    document.getElementById('offer-text').value = '';
+    document.getElementById('offer-order').value = 0;
+    document.getElementById('offer-active').checked = true;
+    document.getElementById('offer-modal-title').textContent = 'Add Offer';
+    document.getElementById('modal-offer').classList.add('open');
+  }
+
+  function editOffer(id) {
+    const o = _offers.find(x => x.id === id);
+    if (!o) return;
+    document.getElementById('offer-id').value = o.id;
+    document.getElementById('offer-text').value = o.text;
+    document.getElementById('offer-order').value = o.order;
+    document.getElementById('offer-active').checked = o.active;
+    document.getElementById('offer-modal-title').textContent = 'Edit Offer';
+    document.getElementById('modal-offer').classList.add('open');
+  }
+
+  async function saveOffer() {
+    const id     = document.getElementById('offer-id').value;
+    const text   = document.getElementById('offer-text').value.trim();
+    const order  = parseInt(document.getElementById('offer-order').value) || 0;
+    const active = document.getElementById('offer-active').checked;
+    if (!text) { toast('Please enter offer text', 'error'); return; }
+    const btn = document.getElementById('offer-save-btn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    let result;
+    if (id) {
+      result = await apiFetch(`/api/offers/${id}`, { method: 'PATCH', body: JSON.stringify({ text, order, active }) });
+    } else {
+      result = await apiFetch('/api/offers', { method: 'POST', body: JSON.stringify({ text, order, active }) });
+    }
+    btn.disabled = false; btn.textContent = 'Save Offer';
+    if (result && result.success !== false) {
+      closeModal('offer');
+      loadOffers();
+      toast(id ? 'Offer updated' : 'Offer added', 'success');
+    } else {
+      toast('Failed to save offer', 'error');
+    }
+  }
+
+  async function deleteOffer(id) {
+    if (!confirm('Delete this offer?')) return;
+    const result = await apiFetch(`/api/offers/${id}`, { method: 'DELETE' });
+    if (result && result.success) { loadOffers(); toast('Offer deleted', 'success'); }
+    else toast('Failed to delete', 'error');
   }
 
   /* ── Boot ─────────────────────────────────────────────── */

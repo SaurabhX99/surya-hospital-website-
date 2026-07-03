@@ -199,9 +199,8 @@
         if (item.type === 'video') {
           slide.innerHTML = `
             <div class="gallery-slide-inner">
-              <iframe src="${item.display_url}"
-                frameborder="0" allow="autoplay; fullscreen" allowfullscreen
-                style="position:absolute;inset:0;width:100%;height:100%;border:none;"></iframe>
+              <video data-src="${item.display_url}" muted playsinline
+                style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;background:#0d1b2a;"></video>
               ${captions && item.alt ? `<div class="gallery-caption">${item.alt}</div>` : ''}
             </div>`;
         } else {
@@ -236,18 +235,46 @@
     let current   = 0;
     let timer     = null;
 
+    function videoEl(idx) {
+      const sl = slides();
+      return sl[idx] ? sl[idx].querySelector('video') : null;
+    }
+
+    function activateVideo(vid) {
+      if (!vid) return;
+      vid.setAttribute('src', vid.dataset.src);
+      vid.load();
+      vid.play().catch(() => {});
+    }
+
+    function deactivateVideo(vid) {
+      if (!vid) return;
+      vid.pause();
+      vid.removeAttribute('src');
+      vid.load();
+    }
+
     function goTo(idx) {
       const sl = slides(), dt = dots();
+      deactivateVideo(videoEl(current));
       sl[current]?.classList.remove('active');
       dt[current]?.classList.remove('active');
       current = (idx + sl.length) % sl.length;
       sl[current]?.classList.add('active');
       dt[current]?.classList.add('active');
+      const vid = videoEl(current);
+      if (vid) {
+        clearInterval(timer);
+        timer = null;
+        activateVideo(vid);
+        // Advance carousel automatically when video ends
+        vid.addEventListener('ended', () => { goTo(current + 1); startAuto(); }, { once: true });
+      }
     }
 
     function startAuto() {
       clearInterval(timer);
-      if (autoplay && slides().length > 1) {
+      if (autoplay && slides().length > 1 && !videoEl(current)) {
         timer = setInterval(() => goTo(current + 1), interval);
       }
     }
@@ -255,6 +282,12 @@
     dots().forEach((dot, i) => dot.addEventListener('click', () => { goTo(i); startAuto(); }));
     $('#gallery-prev')?.addEventListener('click', () => { goTo(current - 1); startAuto(); });
     $('#gallery-next')?.addEventListener('click', () => { goTo(current + 1); startAuto(); });
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && !videoEl(current)) startAuto();
+      if (document.hidden) { const v = videoEl(current); if (v) v.pause(); }
+    });
+    // Kick off video if first slide is a video
+    activateVideo(videoEl(0));
 
     startAuto();
   }
@@ -697,12 +730,6 @@
         $('#appt-mobile').focus();
         return;
       }
-      if (!dept) {
-        showToast('Please select a department.', 'error');
-        $('#appt-dept').focus();
-        return;
-      }
-
       /* Submit to API */
       const spinnerHtml = `
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="18" height="18" style="animation:spin 1s linear infinite"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
@@ -722,7 +749,7 @@
         const res  = await fetch(API_BASE + '/api/appointments', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ name, mobile, department: dept, doctor: doctor || undefined, date, message }),
+          body:    JSON.stringify({ name, mobile, department: dept || undefined, doctor: doctor || undefined, date, message }),
         });
         const json = await res.json();
         if (!res.ok) throw new Error(json.detail || 'Submission failed');
@@ -832,16 +859,7 @@
     const copyBtn = document.getElementById('vm-copy-btn');
     const rawNumber = number.replace(/\s/g, '');
     copyBtn.addEventListener('click', () => {
-      const doFallback = () => {
-        const ta = document.createElement('textarea');
-        ta.value = rawNumber;
-        ta.style.cssText = 'position:fixed;opacity:0;';
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        ta.remove();
-      };
-      (navigator.clipboard ? navigator.clipboard.writeText(rawNumber).catch(doFallback) : Promise.resolve(doFallback()));
+      if (navigator.clipboard) navigator.clipboard.writeText(rawNumber).catch(() => {});
       copyBtn.textContent = '✓ Copied!';
       copyBtn.style.background = '#00C853';
       setTimeout(() => { copyBtn.textContent = 'Copy Number'; copyBtn.style.background = '#0A4D8C'; }, 2000);
@@ -876,12 +894,32 @@
     });
   }
 
+  /* ── Offers Marquee ──────────────────────────────────── */
+  async function initOffersMarquee() {
+    const bar   = document.getElementById('offers-marquee-bar');
+    const track = document.getElementById('offers-marquee-track');
+    if (!bar || !track) return;
+    try {
+      const res    = await fetch(API_BASE + '/api/offers');
+      const offers = await res.json();
+      if (!Array.isArray(offers) || !offers.length) return;
+      const items = offers.map(o => `<span class="offers-marquee-item">${o.text}</span><span class="offers-marquee-sep">★</span>`).join('');
+      track.innerHTML = items + items;
+      bar.style.display = '';
+      // Measure actual height and push hero content down
+      const h = bar.getBoundingClientRect().height || 38;
+      document.documentElement.style.setProperty('--marquee-height', h + 'px');
+      document.body.classList.add('has-marquee');
+    } catch (_) {}
+  }
+
   /* ── Init All ─────────────────────────────────────────── */
   function init() {
     injectSpinKeyframe();
     setFooterYear();
     initHeader();
     initMobileNav();
+    initOffersMarquee();
     initMediaGallery();
     initSmoothScroll();
     initTelLinks();
