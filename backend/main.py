@@ -5,6 +5,7 @@ Docs: http://localhost:8000/docs
 """
 from __future__ import annotations
 
+import contextvars
 import os
 import re
 import secrets
@@ -28,9 +29,15 @@ load_dotenv()
 # ── Tenant & upload config ──────────────────────────────────────────
 TENANT_NAME = os.getenv("TENANT_NAME", "vedansh_medicare").strip()
 
+# Per-request tenant (set by middleware from auth token; defaults to TENANT_NAME)
+_request_tenant: contextvars.ContextVar[str] = contextvars.ContextVar("_request_tenant")
+
+def _tenant() -> str:
+    return _request_tenant.get(TENANT_NAME)
+
 def _tq(extra: dict | None = None) -> dict:
-    """Return a base query scoped to the current tenant."""
-    return {"tenant_name": TENANT_NAME, **(extra or {})}
+    """Return a base query scoped to the current request's tenant."""
+    return {"tenant_name": _tenant(), **(extra or {})}
 
 # ── App ────────────────────────────────────────────────────────────
 app = FastAPI(title="Vedansh Medicare API", version="1.0.0")
@@ -59,6 +66,27 @@ _gcfgcol   = _mdb["gallery_config"]
 _testcol   = _mdb["testimonials"]
 _usercol   = _mdb["admin_users"]
 _offercol  = _mdb["offers"]
+_inscol    = _mdb["insurance_providers"]
+
+# ── Tenant middleware — resolves tenant from auth token per request ──
+@app.middleware("http")
+async def _tenant_middleware(request: Request, call_next):
+    tenant = TENANT_NAME
+    token = request.headers.get("Authorization", "").removeprefix("Bearer ").strip()
+    if token:
+        user = _usercol.find_one(
+            {"active_token": token},
+            {"tenant_name": 1, "token_expires_at": 1},
+        )
+        if user and user.get("tenant_name"):
+            exp = user.get("token_expires_at")
+            if exp:
+                if exp.tzinfo is None:
+                    exp = exp.replace(tzinfo=timezone.utc)
+                if datetime.now(timezone.utc) <= exp:
+                    tenant = user["tenant_name"]
+    _request_tenant.set(tenant)
+    return await call_next(request)
 
 # ── Seed first admin user from env if the collection is empty ──────
 _admin_email    = os.getenv("ADMIN_EMAIL", "").strip().lower()
@@ -130,6 +158,20 @@ class OfferIn(BaseModel):
 
 class OfferUpdate(BaseModel):
     text: Optional[str] = None
+    active: Optional[bool] = None
+    order: Optional[int] = None
+
+
+class InsuranceIn(BaseModel):
+    name: str
+    logo_drive_link: Optional[str] = None
+    active: bool = True
+    order: int = 0
+
+
+class InsuranceUpdate(BaseModel):
+    name: Optional[str] = None
+    logo_drive_link: Optional[str] = None
     active: Optional[bool] = None
     order: Optional[int] = None
 
@@ -335,7 +377,7 @@ def root():
 @app.post("/api/appointments", status_code=201)
 def create_appointment(body: AppointmentIn):
     doc = {
-        "tenant_name":    TENANT_NAME,
+        "tenant_name":    _tenant(),
         "name":           body.name,
         "mobile":         body.mobile,
         "department":     body.department,
@@ -455,7 +497,7 @@ def list_doctors(featured: Optional[bool] = None, show_all: bool = False):
 def create_doctor(body: DoctorIn):
     try:
         doc = body.model_dump()
-        doc["tenant_name"] = TENANT_NAME
+        doc["tenant_name"] = _tenant()
         doc["created_at"]  = datetime.now(timezone.utc)
         result = _dcol.insert_one(doc)
         return {"success": True, "id": str(result.inserted_id)}
@@ -532,7 +574,7 @@ def list_departments(show_all: bool = False):
 def create_department(body: DepartmentIn):
     try:
         doc = body.model_dump()
-        doc["tenant_name"] = TENANT_NAME
+        doc["tenant_name"] = _tenant()
         doc["created_at"]  = datetime.now(timezone.utc)
         result = _deptcol.insert_one(doc)
         return {"success": True, "id": str(result.inserted_id)}
@@ -636,7 +678,7 @@ def get_blog(blog_id: str):
 @app.post("/api/blogs", status_code=201)
 def create_blog(body: BlogIn):
     doc = {
-        "tenant_name": TENANT_NAME,
+        "tenant_name": _tenant(),
         "title":       body.title,
         "author":      body.author,
         "category":    body.category,
@@ -723,7 +765,7 @@ def list_testimonials(show_all: bool = False):
 def create_testimonial(body: TestimonialIn):
     doc = body.model_dump()
     doc["approved"]    = False          # always pending until admin approves
-    doc["tenant_name"] = TENANT_NAME
+    doc["tenant_name"] = _tenant()
     doc["created_at"]  = datetime.now(timezone.utc)
     result = _testcol.insert_one(doc)
     return {"success": True, "id": str(result.inserted_id)}
@@ -775,7 +817,7 @@ def _fmt_media(doc: dict) -> dict:
     link = doc.get("drive_link", "")
     fid  = _extract_drive_id(link)
     if doc.get("type") == "video":
-        doc["display_url"] = f"http://localhost:8000/api/proxy/video?id={fid}" if fid else link
+        doc["display_url"] = f"https://drive.google.com/file/d/{fid}/preview" if fid else link
     else:
         doc["display_url"] = f"http://localhost:8000/api/proxy/image?id={fid}" if fid else link
     doc["thumb_url"] = f"http://localhost:8000/api/proxy/image?id={fid}" if fid else None
@@ -792,7 +834,7 @@ def list_media(gallery: bool = False):
 @app.post("/api/media", status_code=201)
 def create_media(body: MediaIn):
     doc = body.model_dump()
-    doc["tenant_name"] = TENANT_NAME
+    doc["tenant_name"] = _tenant()
     doc["created_at"]  = datetime.now(timezone.utc)
     result = _mediacol.insert_one(doc)
     return {"success": True, "id": str(result.inserted_id)}
@@ -943,7 +985,7 @@ def list_offers(show_all: bool = False):
 @app.post("/api/offers", status_code=201)
 def create_offer(body: OfferIn):
     doc = body.model_dump()
-    doc["tenant_name"] = TENANT_NAME
+    doc["tenant_name"] = _tenant()
     doc["created_at"]  = datetime.now(timezone.utc)
     result = _offercol.insert_one(doc)
     return {"success": True, "id": str(result.inserted_id)}
@@ -976,6 +1018,64 @@ def delete_offer(offer_id: str):
     return {"success": True}
 
 
+# ── Insurance Provider Routes ────────────────────────────────────────
+def _fmt_insurance(doc: dict) -> dict:
+    doc["id"] = str(doc.pop("_id"))
+    ca = doc.get("created_at")
+    if isinstance(ca, datetime):
+        doc["created_at"] = ca.isoformat()
+    doc.setdefault("active", True)
+    doc.setdefault("order", 0)
+    doc.setdefault("logo_drive_link", None)
+    link = doc.get("logo_drive_link") or ""
+    fid  = _extract_drive_id(link)
+    doc["logo_url"] = f"http://localhost:8000/api/proxy/image?id={fid}" if fid else None
+    return doc
+
+
+@app.get("/api/insurance")
+def list_insurance(show_all: bool = False):
+    q = _tq() if show_all else _tq({"active": True})
+    docs = list(_inscol.find(q).sort("order", 1))
+    return [_fmt_insurance(d) for d in docs]
+
+
+@app.post("/api/insurance", status_code=201)
+def create_insurance(body: InsuranceIn):
+    doc = body.model_dump()
+    doc["tenant_name"] = _tenant()
+    doc["created_at"]  = datetime.now(timezone.utc)
+    result = _inscol.insert_one(doc)
+    return {"success": True, "id": str(result.inserted_id)}
+
+
+@app.patch("/api/insurance/{ins_id}")
+def update_insurance(ins_id: str, body: InsuranceUpdate):
+    try:
+        oid = ObjectId(ins_id)
+    except Exception:
+        raise HTTPException(400, "Invalid id")
+    updates = {k: v for k, v in body.model_dump().items() if v is not None}
+    if not updates:
+        raise HTTPException(400, "No fields to update")
+    result = _inscol.update_one(_tq({"_id": oid}), {"$set": updates})
+    if result.matched_count == 0:
+        raise HTTPException(404, "Not found")
+    return {"success": True}
+
+
+@app.delete("/api/insurance/{ins_id}")
+def delete_insurance(ins_id: str):
+    try:
+        oid = ObjectId(ins_id)
+    except Exception:
+        raise HTTPException(400, "Invalid id")
+    result = _inscol.delete_one(_tq({"_id": oid}))
+    if result.deleted_count == 0:
+        raise HTTPException(404, "Not found")
+    return {"success": True}
+
+
 # ── Auth Routes ──────────────────────────────────────────────────────
 @app.post("/api/auth/login")
 def auth_login(body: LoginIn):
@@ -993,11 +1093,13 @@ def auth_login(body: LoginIn):
         {"$set": {"active_token": token, "token_expires_at": expires_at, "last_login": datetime.now(timezone.utc)}}
     )
     return {
-        "token":      token,
-        "name":       user.get("name", "Admin"),
-        "role":       user.get("role", "Admin"),
-        "email":      user["email"],
-        "expires_at": expires_at.isoformat(),
+        "token":         token,
+        "name":          user.get("name", "Admin"),
+        "role":          user.get("role", "Admin"),
+        "email":         user["email"],
+        "expires_at":    expires_at.isoformat(),
+        "tenant_name":   user.get("tenant_name", TENANT_NAME),
+        "hospital_name": user.get("hospital_name", "Hospital Admin"),
     }
 
 
@@ -1022,10 +1124,12 @@ def auth_verify(request: Request):
     if exp.tzinfo is None:
         exp = exp.replace(tzinfo=timezone.utc)
     return {
-        "name":       user.get("name", "Admin"),
-        "role":       user.get("role", "Admin"),
-        "email":      user["email"],
-        "expires_at": exp.isoformat(),
+        "name":          user.get("name", "Admin"),
+        "role":          user.get("role", "Admin"),
+        "email":         user["email"],
+        "expires_at":    exp.isoformat(),
+        "tenant_name":   user.get("tenant_name", TENANT_NAME),
+        "hospital_name": user.get("hospital_name", "Hospital Admin"),
     }
 
 

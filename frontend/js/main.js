@@ -173,6 +173,7 @@
       ]);
     } catch (e) { return; }
 
+    media = media.filter(m => m.type !== 'video');
     if (!media || !media.length) {
       section.style.display = 'none';
       return;
@@ -196,15 +197,7 @@
         const slide = document.createElement('div');
         slide.className = 'gallery-slide' + (i === 0 ? ' active' : '');
 
-        if (item.type === 'video') {
-          slide.innerHTML = `
-            <div class="gallery-slide-inner">
-              <video data-src="${item.display_url}" muted playsinline
-                style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;background:#0d1b2a;"></video>
-              ${captions && item.alt ? `<div class="gallery-caption">${item.alt}</div>` : ''}
-            </div>`;
-        } else {
-          slide.innerHTML = `
+        slide.innerHTML = `
             <div class="gallery-slide-inner">
               <img src="${item.display_url}"
                    alt="${item.alt || item.title}"
@@ -212,7 +205,6 @@
                    onerror="this.style.display='none';this.parentElement.style.background='#1a2a3a';" />
               ${captions && item.alt ? `<div class="gallery-caption">${item.alt}</div>` : ''}
             </div>`;
-        }
         track.appendChild(slide);
       });
     }
@@ -235,46 +227,18 @@
     let current   = 0;
     let timer     = null;
 
-    function videoEl(idx) {
-      const sl = slides();
-      return sl[idx] ? sl[idx].querySelector('video') : null;
-    }
-
-    function activateVideo(vid) {
-      if (!vid) return;
-      vid.setAttribute('src', vid.dataset.src);
-      vid.load();
-      vid.play().catch(() => {});
-    }
-
-    function deactivateVideo(vid) {
-      if (!vid) return;
-      vid.pause();
-      vid.removeAttribute('src');
-      vid.load();
-    }
-
     function goTo(idx) {
       const sl = slides(), dt = dots();
-      deactivateVideo(videoEl(current));
       sl[current]?.classList.remove('active');
       dt[current]?.classList.remove('active');
       current = (idx + sl.length) % sl.length;
       sl[current]?.classList.add('active');
       dt[current]?.classList.add('active');
-      const vid = videoEl(current);
-      if (vid) {
-        clearInterval(timer);
-        timer = null;
-        activateVideo(vid);
-        // Advance carousel automatically when video ends
-        vid.addEventListener('ended', () => { goTo(current + 1); startAuto(); }, { once: true });
-      }
     }
 
     function startAuto() {
       clearInterval(timer);
-      if (autoplay && slides().length > 1 && !videoEl(current)) {
+      if (autoplay && slides().length > 1) {
         timer = setInterval(() => goTo(current + 1), interval);
       }
     }
@@ -282,12 +246,6 @@
     dots().forEach((dot, i) => dot.addEventListener('click', () => { goTo(i); startAuto(); }));
     $('#gallery-prev')?.addEventListener('click', () => { goTo(current - 1); startAuto(); });
     $('#gallery-next')?.addEventListener('click', () => { goTo(current + 1); startAuto(); });
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden && !videoEl(current)) startAuto();
-      if (document.hidden) { const v = videoEl(current); if (v) v.pause(); }
-    });
-    // Kick off video if first slide is a video
-    activateVideo(videoEl(0));
 
     startAuto();
   }
@@ -574,42 +532,73 @@
   }
 
   /* ── Render: Insurance Partners ───────────────────────── */
-  function renderPartners() {
+  async function renderPartners() {
     const track = $('#insurance-track');
-    if (!track || !data) return;
+    if (!track) return;
 
-    const makeLogos = () => data.partners.map(p => `
+    let providers = [];
+    try {
+      const res = await fetch(API_BASE + '/api/insurance');
+      const json = await res.json();
+      if (Array.isArray(json) && json.length) providers = json;
+    } catch (_) {}
+
+    // Fall back to static list if API returns nothing
+    if (!providers.length) {
+      const names = (data && data.partners) ? data.partners : [];
+      const makeStatic = () => names.map(n => `
+        <div class="partner-logo">
+          <span style="font-size:var(--text-sm);font-weight:var(--font-semibold);color:var(--color-text-secondary);white-space:nowrap;">${n}</span>
+        </div>`).join('');
+      track.innerHTML = makeStatic() + makeStatic();
+      return;
+    }
+
+    const makeCard = (p) => `
       <div class="partner-logo">
-        <span style="font-size:var(--text-sm);font-weight:var(--font-semibold);color:var(--color-text-secondary);white-space:nowrap;">${p}</span>
-      </div>
-    `).join('');
+        ${p.logo_url ? `<img src="${p.logo_url}" alt="${p.name}" loading="lazy" onerror="this.style.display='none'" />` : ''}
+        <span class="partner-logo-name">${p.name}</span>
+      </div>`;
 
-    /* Duplicate for infinite scroll */
-    track.innerHTML = makeLogos() + makeLogos();
+    const html = providers.map(makeCard).join('');
+    track.innerHTML = html + html;
   }
 
   /* ── Render: Blogs ────────────────────────────────────── */
   async function renderBlogs() {
-    const grid = $('#blogs-grid');
+    const grid    = $('#blogs-grid');
+    const section = document.getElementById('blogs');
     if (!grid) return;
     const categoryColors = {
-      'Cardiology': '#E53935',
-      'Nephrology': '#0A4D8C',
-      'Maternity':  '#E91E8C',
+      'Cardiology':     '#E53935',
+      'Nephrology':     '#0A4D8C',
+      'Maternity':      '#E91E8C',
+      'General Health': '#00A6A6',
+      'Orthopedics':    '#F57C00',
+      'Neurology':      '#7B1FA2',
+      'Pediatrics':     '#0288D1',
     };
+    const defaultColor = '#0A4D8C';
     let blogs = [];
     try {
       const res = await fetch(API_BASE + '/api/blogs');
       blogs = await res.json();
-    } catch(e) { return; }
-    if (!blogs.length) return;
-    grid.innerHTML = blogs.slice(0, 3).map((b, i) => `
+    } catch(e) { if (section) section.style.display = 'none'; return; }
+    if (!Array.isArray(blogs) || !blogs.length) {
+      if (section) section.style.display = 'none';
+      return;
+    }
+    grid.innerHTML = blogs.slice(0, 3).map((b, i) => {
+      const color = categoryColors[b.category] || defaultColor;
+      return `
       <div class="blog-card" data-animate="fade-up" data-delay="${i * 100}">
         <div class="blog-image-wrap">
-          <div style="width:100%;height:100%;background:linear-gradient(135deg,${categoryColors[b.category] || 'var(--color-primary)'}22,${categoryColors[b.category] || 'var(--color-primary)'}44);display:flex;align-items:center;justify-content:center;">
-            ${svgIcon('<path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>', 64).replace('stroke="currentColor"', `stroke="${categoryColors[b.category] || 'var(--color-primary)'}" opacity="0.4"`)}
+          <div class="blog-image-placeholder" style="background:linear-gradient(135deg,${color}22,${color}55);">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="${color}" stroke-width="1.5" width="56" height="56" opacity="0.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+            </svg>
           </div>
-          <span class="blog-category-badge" style="background:${categoryColors[b.category] || 'var(--color-secondary)'};">${b.category}</span>
+          <span class="blog-category-badge" style="background:${color};">${b.category || 'Health'}</span>
         </div>
         <div class="blog-card-body">
           <div class="blog-meta">
@@ -631,7 +620,8 @@
           </div>
         </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
   }
 
   /* ── Populate Department Dropdown + Doctor Datalist ───── */

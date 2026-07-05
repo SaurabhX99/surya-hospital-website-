@@ -615,8 +615,8 @@
       </svg>
     </div>
     <div class="sidebar-brand-text">
-      <strong>Vedansh Medicare</strong>
-      <span>Admin Panel</span>
+      <strong id="sidebar-hospital-name">Admin Panel</strong>
+      <span>Admin Portal</span>
     </div>
   </div>
 
@@ -660,6 +660,10 @@
     <button class="nav-item" data-page="offers">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
       <span class="nav-label">Offers Marquee</span>
+    </button>
+    <button class="nav-item" data-page="insurance">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+      <span class="nav-label">Insurance</span>
     </button>
 
     <div class="nav-section-label">Settings</div>
@@ -738,7 +742,7 @@
       <div class="page-title-row">
         <div>
           <div class="page-title">Welcome back 👋</div>
-          <div class="page-subtitle">Here's what's happening at Vedansh Medicare today.</div>
+          <div class="page-subtitle" id="dashboard-subtitle">Here's what's happening today.</div>
         </div>
         <div class="date-text" id="current-date"></div>
       </div>
@@ -1088,6 +1092,21 @@
         </div>
       </div>
     </div>
+    <!-- ── INSURANCE PROVIDERS ── -->
+    <div class="page-view" id="page-insurance">
+      <div class="page-title-row">
+        <div><div class="page-title">Insurance Providers</div><div class="page-subtitle">Manage insurance logos shown in the homepage scrolling strip</div></div>
+        <button class="btn-add" onclick="openInsuranceModal()">+ Add Provider</button>
+      </div>
+      <div class="card-panel">
+        <div class="card-panel-header"><span class="card-panel-title">Providers</span></div>
+        <table class="data-table" id="insurance-table">
+          <thead><tr><th>Logo</th><th>Name</th><th>Order</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="insurance-tbody"><tr><td colspan="5" style="text-align:center;color:#94A3B8;padding:32px;">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- ── OFFERS MARQUEE ── -->
     <div class="page-view" id="page-offers">
       <div class="page-title-row">
@@ -1305,6 +1324,45 @@
   </div>
 </div>
 
+<!-- Insurance Modal -->
+<div class="modal-overlay" id="modal-insurance">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="insurance-modal-title">Add Insurance Provider</h3>
+      <button class="modal-close" onclick="closeModal('insurance')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="insurance-id" />
+      <div class="form-group">
+        <label class="form-label">Provider Name <span style="color:#E53935">*</span></label>
+        <input type="text" id="insurance-name" class="form-control" placeholder="e.g. Star Health Insurance" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Logo — Google Drive Share Link</label>
+        <input type="url" id="insurance-logo" class="form-control" placeholder="https://drive.google.com/file/d/…/view?usp=sharing" />
+        <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Share the image publicly ("Anyone with link can view"), then paste the link. Leave blank to show name only.</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Display Order</label>
+          <input type="number" id="insurance-order" class="form-control" value="0" min="0" />
+          <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Lower = shown first</div>
+        </div>
+        <div class="form-group" style="display:flex;flex-direction:column;justify-content:flex-end;">
+          <div style="display:flex;align-items:center;gap:10px;padding-bottom:4px;">
+            <label class="toggle-switch"><input type="checkbox" id="insurance-active" checked /><span class="toggle-slider"></span></label>
+            <span style="font-size:13px;color:#1F2937;">Active (show on homepage)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('insurance')">Cancel</button>
+      <button class="btn-save" id="insurance-save-btn" onclick="saveInsurance()">Save Provider</button>
+    </div>
+  </div>
+</div>
+
 <!-- Offer Modal -->
 <div class="modal-overlay" id="modal-offer">
   <div class="modal">
@@ -1352,6 +1410,13 @@
     ['user-name','tb-name'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = admin.name; });
     ['user-role','tb-role'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = admin.role || 'Admin'; });
   }
+
+  // Show hospital name from token
+  const _hospitalName = admin.hospital_name || 'Hospital Admin';
+  const _sidebarName = document.getElementById('sidebar-hospital-name');
+  if (_sidebarName) _sidebarName.textContent = _hospitalName;
+  const _subtitle = document.getElementById('dashboard-subtitle');
+  if (_subtitle) _subtitle.textContent = `Here's what's happening at ${_hospitalName} today.`;
 
   document.getElementById('current-date').textContent =
     new Date().toLocaleDateString('en-IN', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
@@ -1402,8 +1467,10 @@
       }
       if (!res.ok) return;
       const data = await res.json();
-      // Refresh expiry stored locally
-      d.expires_at = data.expires_at;
+      // Refresh expiry and tenant info stored locally
+      d.expires_at    = data.expires_at;
+      d.tenant_name   = data.tenant_name   || d.tenant_name;
+      d.hospital_name = data.hospital_name || d.hospital_name;
       sessionStorage.setItem('vm_token', JSON.stringify(d));
     } catch (e) {
       console.error('[Session verify]', e);
@@ -1703,6 +1770,7 @@
     if (page === 'media')         loadMedia();
     if (page === 'testimonials')  loadTestimonials();
     if (page === 'offers')        loadOffers();
+    if (page === 'insurance')     loadInsurance();
   }
 
   document.querySelectorAll('.nav-item[data-page]').forEach(btn => {
@@ -2520,6 +2588,82 @@
     if (!confirm('Delete this offer?')) return;
     const result = await apiFetch(`/api/offers/${id}`, { method: 'DELETE' });
     if (result && result.success) { loadOffers(); toast('Offer deleted', 'success'); }
+    else toast('Failed to delete', 'error');
+  }
+
+  /* ── Insurance Providers ──────────────────────────────── */
+  let _insuranceItems = [];
+
+  async function loadInsurance() {
+    const tbody = document.getElementById('insurance-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#9CA3AF;padding:32px;">Loading…</td></tr>';
+    const data = await apiFetch('/api/insurance?show_all=true');
+    if (!data) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#E53935;padding:32px;">Cannot connect to API</td></tr>'; return; }
+    _insuranceItems = data;
+    if (!data.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#9CA3AF;padding:32px;">No providers yet. Click "+ Add Provider" to create one.</td></tr>'; return; }
+    tbody.innerHTML = data.map(p => `
+      <tr>
+        <td>${p.logo_url ? `<img src="${p.logo_url}" alt="${p.name}" style="height:36px;max-width:80px;object-fit:contain;border-radius:4px;background:#f8fafc;padding:2px;" onerror="this.style.display='none'" />` : '<span style="color:#9CA3AF;font-size:12px;">No logo</span>'}</td>
+        <td style="font-weight:500;">${p.name}</td>
+        <td>${p.order}</td>
+        <td><span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:${p.active ? 'rgba(0,200,83,0.12)' : 'rgba(148,163,184,0.15)'};color:${p.active ? '#00843D' : '#64748B'};">${p.active ? 'Active' : 'Inactive'}</span></td>
+        <td>
+          <button onclick="editInsurance('${p.id}')" style="background:none;border:1px solid #CBD5E1;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;color:#374151;margin-right:6px;">Edit</button>
+          <button onclick="deleteInsurance('${p.id}')" style="background:none;border:1px solid #FCA5A5;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;color:#DC2626;">Delete</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  function openInsuranceModal() {
+    document.getElementById('insurance-id').value = '';
+    document.getElementById('insurance-name').value = '';
+    document.getElementById('insurance-logo').value = '';
+    document.getElementById('insurance-order').value = 0;
+    document.getElementById('insurance-active').checked = true;
+    document.getElementById('insurance-modal-title').textContent = 'Add Insurance Provider';
+    document.getElementById('modal-insurance').classList.add('open');
+  }
+
+  function editInsurance(id) {
+    const p = _insuranceItems.find(x => x.id === id);
+    if (!p) return;
+    document.getElementById('insurance-id').value = p.id;
+    document.getElementById('insurance-name').value = p.name;
+    document.getElementById('insurance-logo').value = p.logo_drive_link || '';
+    document.getElementById('insurance-order').value = p.order;
+    document.getElementById('insurance-active').checked = p.active;
+    document.getElementById('insurance-modal-title').textContent = 'Edit Insurance Provider';
+    document.getElementById('modal-insurance').classList.add('open');
+  }
+
+  async function saveInsurance() {
+    const id    = document.getElementById('insurance-id').value;
+    const name  = document.getElementById('insurance-name').value.trim();
+    const logo  = document.getElementById('insurance-logo').value.trim();
+    const order = parseInt(document.getElementById('insurance-order').value) || 0;
+    const active = document.getElementById('insurance-active').checked;
+    if (!name) { toast('Please enter provider name', 'error'); return; }
+    const btn = document.getElementById('insurance-save-btn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    const body = { name, logo_drive_link: logo || null, order, active };
+    const result = id
+      ? await apiFetch(`/api/insurance/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
+      : await apiFetch('/api/insurance',        { method: 'POST',  body: JSON.stringify(body) });
+    btn.disabled = false; btn.textContent = 'Save Provider';
+    if (result && result.success !== false) {
+      closeModal('insurance');
+      loadInsurance();
+      toast(id ? 'Provider updated' : 'Provider added', 'success');
+    } else {
+      toast('Failed to save provider', 'error');
+    }
+  }
+
+  async function deleteInsurance(id) {
+    if (!confirm('Delete this insurance provider?')) return;
+    const result = await apiFetch(`/api/insurance/${id}`, { method: 'DELETE' });
+    if (result && result.success) { loadInsurance(); toast('Provider deleted', 'success'); }
     else toast('Failed to delete', 'error');
   }
 
