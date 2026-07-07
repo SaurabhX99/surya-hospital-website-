@@ -1397,6 +1397,7 @@
   </div>
 </div>
 
+<script src="../_config.js"></script>
 <script>
   /* ── Auth guard ───────────────────────────────────────── */
   const _tokenData = JSON.parse(sessionStorage.getItem('vm_token') || 'null');
@@ -1422,7 +1423,7 @@
     new Date().toLocaleDateString('en-IN', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
 
   /* ── API ──────────────────────────────────────────────── */
-  const API = 'http://localhost:8000';
+  const API = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || 'http://localhost:8000';
 
   function _authHeaders() {
     const d = JSON.parse(sessionStorage.getItem('vm_token') || '{}');

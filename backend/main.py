@@ -40,7 +40,14 @@ def _tq(extra: dict | None = None) -> dict:
     return {"tenant_name": _tenant(), **(extra or {})}
 
 # ── App ────────────────────────────────────────────────────────────
-app = FastAPI(title="Vedansh Medicare API", version="1.0.0")
+_docs_enabled = os.getenv("ENABLE_DOCS", "false").lower() == "true"
+app = FastAPI(
+    title="Vedansh Medicare API",
+    version="1.0.0",
+    docs_url="/docs" if _docs_enabled else None,
+    redoc_url="/redoc" if _docs_enabled else None,
+    openapi_url="/openapi.json" if _docs_enabled else None,
+)
 
 app.add_middleware(
     CORSMiddleware,

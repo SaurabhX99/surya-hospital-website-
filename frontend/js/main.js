@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  const API_BASE = 'http://localhost:8000';
+  const API_BASE = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || 'http://localhost:8000';
   const data = window.VM && window.VM.data;
 
   /* ── Utility ──────────────────────────────────────────── */
