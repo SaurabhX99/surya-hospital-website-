@@ -173,7 +173,6 @@
       ]);
     } catch (e) { return; }
 
-    media = media.filter(m => m.type !== 'video');
     if (!media || !media.length) {
       section.style.display = 'none';
       return;
@@ -186,18 +185,25 @@
     const transition = cfg.transition || 'fade';
     const captions   = cfg.show_captions !== false;
 
-    // Apply transition type
     const track = $('#gallery-track');
     if (track) track.dataset.transition = transition;
 
-    // Build slides
+    // Build slides — images use img, videos use lazy-loaded iframe
     if (track) {
       track.innerHTML = '';
       media.forEach((item, i) => {
         const slide = document.createElement('div');
         slide.className = 'gallery-slide' + (i === 0 ? ' active' : '');
-
-        slide.innerHTML = `
+        if (item.type === 'video') {
+          slide.innerHTML = `
+            <div class="gallery-slide-inner" style="background:#000;">
+              <iframe data-src="${item.display_url}"
+                frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen
+                style="position:absolute;inset:0;width:100%;height:100%;border:none;"></iframe>
+              ${captions && item.alt ? `<div class="gallery-caption">${item.alt}</div>` : ''}
+            </div>`;
+        } else {
+          slide.innerHTML = `
             <div class="gallery-slide-inner">
               <img src="${item.display_url}"
                    alt="${item.alt || item.title}"
@@ -205,6 +211,7 @@
                    onerror="this.style.display='none';this.parentElement.style.background='#1a2a3a';" />
               ${captions && item.alt ? `<div class="gallery-caption">${item.alt}</div>` : ''}
             </div>`;
+        }
         track.appendChild(slide);
       });
     }
@@ -227,18 +234,39 @@
     let current   = 0;
     let timer     = null;
 
+    function iframeOf(idx) {
+      const sl = slides();
+      return sl[idx] ? sl[idx].querySelector('iframe') : null;
+    }
+
+    function activateSlide(idx) {
+      const iframe = iframeOf(idx);
+      if (iframe && !iframe.getAttribute('src')) {
+        iframe.src = iframe.dataset.src;
+      }
+    }
+
+    function deactivateSlide(idx) {
+      const iframe = iframeOf(idx);
+      if (iframe) iframe.removeAttribute('src');
+    }
+
     function goTo(idx) {
       const sl = slides(), dt = dots();
+      deactivateSlide(current);
       sl[current]?.classList.remove('active');
       dt[current]?.classList.remove('active');
       current = (idx + sl.length) % sl.length;
       sl[current]?.classList.add('active');
       dt[current]?.classList.add('active');
+      activateSlide(current);
+      // Pause auto-advance while a video is showing
+      if (iframeOf(current)) { clearInterval(timer); timer = null; }
     }
 
     function startAuto() {
       clearInterval(timer);
-      if (autoplay && slides().length > 1) {
+      if (autoplay && slides().length > 1 && !iframeOf(current)) {
         timer = setInterval(() => goTo(current + 1), interval);
       }
     }
@@ -247,6 +275,8 @@
     $('#gallery-prev')?.addEventListener('click', () => { goTo(current - 1); startAuto(); });
     $('#gallery-next')?.addEventListener('click', () => { goTo(current + 1); startAuto(); });
 
+    // Load first slide if it's a video
+    activateSlide(0);
     startAuto();
   }
 
