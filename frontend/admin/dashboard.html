@@ -1865,8 +1865,10 @@
     renderDoctorsTable(sortByDate(list, order));
   }
 
-  function openDoctorModal(doctor) {
+  async function openDoctorModal(doctor) {
     document.getElementById('doctor-modal-title').textContent = doctor ? 'Edit Doctor' : 'Add Doctor';
+    // Always reload dept options so dropdown is fresh
+    await loadDeptOptions();
     document.getElementById('doc-id').value       = doctor ? doctor.id : '';
     document.getElementById('doc-name').value     = doctor ? doctor.name : '';
     document.getElementById('doc-qual').value     = doctor ? doctor.qualification : '';
@@ -2232,20 +2234,35 @@
 
   async function loadDeptOptions() {
     try {
-      _deptCache = await apiFetch('/api/departments?show_all=true') || [];
+      const data = await apiFetch('/api/departments?show_all=true');
+      _deptCache = Array.isArray(data) ? data : [];
     } catch(e) { _deptCache = []; }
 
     [document.getElementById('doc-dept'), document.getElementById('blog-category')].forEach(sel => {
       if (!sel) return;
       const current = sel.value;
       sel.innerHTML = '';
+      if (!_deptCache.length) {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.disabled = true;
+        opt.selected = true;
+        opt.textContent = 'No departments found — add one first';
+        sel.appendChild(opt);
+        return;
+      }
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.disabled = true;
+      placeholder.selected = !current;
+      placeholder.textContent = 'Select Department';
+      sel.appendChild(placeholder);
       _deptCache.forEach(d => {
         const opt = document.createElement('option');
         opt.value = d.name;
         opt.textContent = d.name;
         sel.appendChild(opt);
       });
-      // Restore selected value if editing
       if (current) {
         for (let o of sel.options) { if (o.value === current) { o.selected = true; break; } }
       }

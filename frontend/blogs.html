@@ -220,7 +220,7 @@ function buildCatTabs() {
   tabsEl.querySelector('[data-cat="all"]').addEventListener('click', () => filterCat('all'));
 }
 
-fetch('http://localhost:8000/api/blogs')
+fetch(((window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || 'http://localhost:8000') + '/api/blogs')
   .then(r => r.json())
   .then(data => {
     BLOGS = data.map(b => ({

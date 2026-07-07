@@ -28,6 +28,7 @@ load_dotenv()
 
 # ── Tenant & upload config ──────────────────────────────────────────
 TENANT_NAME = os.getenv("TENANT_NAME", "vedansh_medicare").strip()
+BASE_URL    = os.getenv("BASE_URL", "http://localhost:8000").rstrip("/")
 
 # Per-request tenant (set by middleware from auth token; defaults to TENANT_NAME)
 _request_tenant: contextvars.ContextVar[str] = contextvars.ContextVar("_request_tenant")
@@ -451,10 +452,10 @@ def _gdrive_direct(url: Optional[str]) -> Optional[str]:
         return url
     m = re.search(r'drive\.google\.com/file/d/([^/?]+)', url)
     if m:
-        return f"http://localhost:8000/api/proxy/image?id={m.group(1)}"
+        return f"{BASE_URL}/api/proxy/image?id={m.group(1)}"
     m = re.search(r'drive\.google\.com/open\?id=([^&\s]+)', url)
     if m:
-        return f"http://localhost:8000/api/proxy/image?id={m.group(1)}"
+        return f"{BASE_URL}/api/proxy/image?id={m.group(1)}"
     return url
 
 
@@ -826,8 +827,8 @@ def _fmt_media(doc: dict) -> dict:
     if doc.get("type") == "video":
         doc["display_url"] = f"https://drive.google.com/file/d/{fid}/preview" if fid else link
     else:
-        doc["display_url"] = f"http://localhost:8000/api/proxy/image?id={fid}" if fid else link
-    doc["thumb_url"] = f"http://localhost:8000/api/proxy/image?id={fid}" if fid else None
+        doc["display_url"] = f"{BASE_URL}/api/proxy/image?id={fid}" if fid else link
+    doc["thumb_url"] = f"{BASE_URL}/api/proxy/image?id={fid}" if fid else None
     return doc
 
 
@@ -1036,7 +1037,7 @@ def _fmt_insurance(doc: dict) -> dict:
     doc.setdefault("logo_drive_link", None)
     link = doc.get("logo_drive_link") or ""
     fid  = _extract_drive_id(link)
-    doc["logo_url"] = f"http://localhost:8000/api/proxy/image?id={fid}" if fid else None
+    doc["logo_url"] = f"{BASE_URL}/api/proxy/image?id={fid}" if fid else None
     return doc
 
 

@@ -413,7 +413,7 @@
     const grid = $('#doctors-grid');
     if (!grid) return;
     try {
-      const res = await fetch('http://localhost:8000/api/doctors?featured=true');
+      const res = await fetch(API_BASE + '/api/doctors?featured=true');
       const doctors = await res.json();
       if (doctors.length) { _renderDoctorCards(doctors); return; }
     } catch(e) { /* fall through to static data */ }
