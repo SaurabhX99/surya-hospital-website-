@@ -2579,6 +2579,7 @@ body.nav-open { overflow: hidden; }
   .hero-title            { font-size: var(--text-3xl); }
   .specialities-grid     { grid-template-columns: repeat(2, 1fr); }
   .why-us-features       { grid-template-columns: 1fr; }
+  .hero-nabh-badge       { display: none; }
   .doctors-grid          { grid-template-columns: 1fr; }
   .testimonial-card      { flex: 0 0 calc(100% - var(--space-4)); }
   .stats-grid            { grid-template-columns: repeat(2, 1fr); }
