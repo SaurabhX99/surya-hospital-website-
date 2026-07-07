@@ -197,9 +197,8 @@
         if (item.type === 'video') {
           slide.innerHTML = `
             <div class="gallery-slide-inner" style="background:#000;">
-              <iframe data-src="${item.display_url}"
-                frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen
-                style="position:absolute;inset:0;width:100%;height:100%;border:none;"></iframe>
+              <video data-src="${item.display_url}" muted playsinline loop
+                style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;"></video>
               ${captions && item.alt ? `<div class="gallery-caption">${item.alt}</div>` : ''}
             </div>`;
         } else {
@@ -234,21 +233,24 @@
     let current   = 0;
     let timer     = null;
 
-    function iframeOf(idx) {
+    function videoOf(idx) {
       const sl = slides();
-      return sl[idx] ? sl[idx].querySelector('iframe') : null;
+      return sl[idx] ? sl[idx].querySelector('video') : null;
     }
 
     function activateSlide(idx) {
-      const iframe = iframeOf(idx);
-      if (iframe && !iframe.getAttribute('src')) {
-        iframe.src = iframe.dataset.src;
-      }
+      const vid = videoOf(idx);
+      if (!vid) return;
+      if (!vid.getAttribute('src')) vid.setAttribute('src', vid.dataset.src);
+      vid.play().catch(() => {});
     }
 
     function deactivateSlide(idx) {
-      const iframe = iframeOf(idx);
-      if (iframe) iframe.removeAttribute('src');
+      const vid = videoOf(idx);
+      if (!vid) return;
+      vid.pause();
+      vid.removeAttribute('src');
+      vid.load();
     }
 
     function goTo(idx) {
@@ -260,13 +262,12 @@
       sl[current]?.classList.add('active');
       dt[current]?.classList.add('active');
       activateSlide(current);
-      // Pause auto-advance while a video is showing
-      if (iframeOf(current)) { clearInterval(timer); timer = null; }
+      if (videoOf(current)) { clearInterval(timer); timer = null; }
     }
 
     function startAuto() {
       clearInterval(timer);
-      if (autoplay && slides().length > 1 && !iframeOf(current)) {
+      if (autoplay && slides().length > 1 && !videoOf(current)) {
         timer = setInterval(() => goTo(current + 1), interval);
       }
     }
@@ -275,7 +276,6 @@
     $('#gallery-prev')?.addEventListener('click', () => { goTo(current - 1); startAuto(); });
     $('#gallery-next')?.addEventListener('click', () => { goTo(current + 1); startAuto(); });
 
-    // Load first slide if it's a video
     activateSlide(0);
     startAuto();
   }

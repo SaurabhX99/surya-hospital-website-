@@ -825,7 +825,7 @@ def _fmt_media(doc: dict) -> dict:
     link = doc.get("drive_link", "")
     fid  = _extract_drive_id(link)
     if doc.get("type") == "video":
-        doc["display_url"] = f"https://drive.google.com/file/d/{fid}/preview" if fid else link
+        doc["display_url"] = f"{BASE_URL}/api/proxy/video?id={fid}" if fid else link
     else:
         doc["display_url"] = f"{BASE_URL}/api/proxy/image?id={fid}" if fid else link
     doc["thumb_url"] = f"{BASE_URL}/api/proxy/image?id={fid}" if fid else None
