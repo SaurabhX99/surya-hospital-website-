@@ -66,6 +66,7 @@
     @media (max-width:1024px) { .doctors-grid-full { grid-template-columns:repeat(2,1fr); } }
     @media (max-width:640px)  { .doctors-grid-full { grid-template-columns:1fr; } .page-hero h1 { font-size:var(--text-3xl); } .filter-bar { margin-top:0; border-radius:var(--radius-xl); } }
   </style>
+  <script src="/_config.js"></script>
 </head>
 <body>
 
@@ -224,7 +225,6 @@ document.getElementById('doc-search').addEventListener('input', function () { se
 document.getElementById('dept-filter').addEventListener('change', function () { dept = this.value; applyFilter(); });
 init();
 </script>
-<script src="/_config.js"></script>
 <script src="js/shared.js"></script>
 </body>
 </html>
