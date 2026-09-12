@@ -154,11 +154,43 @@
     }
     .topbar-btn:hover { background: #EEF4FA; }
     .topbar-btn svg { width: 17px; height: 17px; }
-    .notif-dot {
-      position: absolute; top: 5px; right: 5px;
-      width: 8px; height: 8px;
-      background: #E53935; border-radius: 50%; border: 2px solid #fff;
+    .notif-dot { display: none; }
+    .notif-badge {
+      position: absolute; top: 3px; right: 3px;
+      min-width: 16px; height: 16px; padding: 0 4px;
+      background: #E53935; color: #fff;
+      border-radius: 999px; border: 2px solid #fff;
+      font-size: 9px; font-weight: 700; line-height: 12px;
+      display: flex; align-items: center; justify-content: center;
     }
+    .notif-badge.hidden { display: none; }
+
+    /* Notification dropdown panel */
+    .notif-panel {
+      position: absolute; top: calc(100% + 10px); right: 0;
+      width: 320px; background: #fff;
+      border: 1.5px solid #E8EEF4; border-radius: 14px;
+      box-shadow: 0 8px 32px rgba(10,77,140,0.13);
+      z-index: 999; overflow: hidden;
+    }
+    .notif-panel.hidden { display: none; }
+    .notif-panel-header {
+      padding: 14px 16px 10px;
+      font-size: 13px; font-weight: 700; color: #1E293B;
+      border-bottom: 1px solid #F1F5F9;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .notif-panel-header span { font-size: 11px; font-weight: 500; color: #9CA3AF; }
+    .notif-list { max-height: 300px; overflow-y: auto; }
+    .notif-item {
+      padding: 11px 16px; border-bottom: 1px solid #F8FAFC;
+      display: flex; flex-direction: column; gap: 2px; cursor: pointer;
+    }
+    .notif-item:hover { background: #F8FAFC; }
+    .notif-item:last-child { border-bottom: none; }
+    .notif-item-name { font-size: 12px; font-weight: 600; color: #1E293B; }
+    .notif-item-meta { font-size: 11px; color: #9CA3AF; }
+    .notif-empty { padding: 24px 16px; text-align: center; font-size: 12px; color: #9CA3AF; }
 
     .topbar-profile {
       display: flex; align-items: center; gap: 8px;
@@ -535,9 +567,9 @@
       .form-row   { grid-template-columns: 1fr; }
     }
 
-    /* Status dropdown — matches badge colours */
-    .status-select {
-      padding: 3px 10px;
+    /* Status chip — clickable toggle */
+    .status-chip {
+      padding: 4px 12px;
       border-radius: 999px;
       font-size: 11px;
       font-weight: 600;
@@ -545,13 +577,17 @@
       cursor: pointer;
       outline: none;
       font-family: 'Inter', sans-serif;
-      appearance: none;
+      display: inline-flex; align-items: center; gap: 5px;
+      transition: filter 0.15s;
+      white-space: nowrap;
     }
-    .status-select.pending   { background: rgba(255,143,0,0.1);  color: #FF8F00; border-color: rgba(255,143,0,0.3); }
-    .status-select.confirmed { background: rgba(0,200,83,0.1);   color: #00A043; border-color: rgba(0,200,83,0.3); }
-    .status-select.cancelled { background: rgba(229,57,53,0.1);  color: #E53935; border-color: rgba(229,57,53,0.3); }
-    .status-select.completed { background: rgba(10,77,140,0.1);  color: #0A4D8C; border-color: rgba(10,77,140,0.3); }
-    .status-select.rejected  { background: rgba(103,58,183,0.1); color: #673AB7; border-color: rgba(103,58,183,0.3); }
+    .status-chip:hover { filter: brightness(0.93); }
+    .status-chip::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+    .status-chip.pending   { background: rgba(255,143,0,0.1);  color: #FF8F00; border-color: rgba(255,143,0,0.3); }
+    .status-chip.confirmed { background: rgba(0,200,83,0.1);   color: #00A043; border-color: rgba(0,200,83,0.3); }
+    .status-chip.completed { background: rgba(10,77,140,0.1);  color: #0A4D8C; border-color: rgba(10,77,140,0.3); }
+    .status-chip.cancelled { background: rgba(229,57,53,0.1);  color: #E53935; border-color: rgba(229,57,53,0.3); }
+    .status-chip.rejected  { background: rgba(103,58,183,0.1); color: #673AB7; border-color: rgba(103,58,183,0.3); }
 
     .action-btn.call-btn:hover { border-color: #00C853 !important; color: #00C853 !important; background: rgba(0,200,83,0.06) !important; }
 
@@ -665,6 +701,10 @@
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
       <span class="nav-label">Insurance</span>
     </button>
+    <button class="nav-item" data-page="partners">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      <span class="nav-label">Partners</span>
+    </button>
 
     <div class="nav-section-label">Settings</div>
     <button class="nav-item" data-page="users" style="display:none">
@@ -710,10 +750,20 @@
       <a href="../index.html" target="_blank" class="topbar-btn" title="View Website">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
       </a>
-      <button class="topbar-btn" title="Notifications">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-        <span class="notif-dot"></span>
-      </button>
+      <div style="position:relative;">
+        <button class="topbar-btn" id="notif-btn" title="New Appointments">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          <span class="notif-badge hidden" id="notif-badge">0</span>
+        </button>
+        <div class="notif-panel hidden" id="notif-panel">
+          <div class="notif-panel-header">
+            New Appointments <span id="notif-panel-count"></span>
+          </div>
+          <div class="notif-list" id="notif-list">
+            <div class="notif-empty">No new appointments</div>
+          </div>
+        </div>
+      </div>
       <button class="topbar-profile" id="topbar-profile">
         <div class="user-avatar" id="tb-avatar" style="width:28px;height:28px;font-size:11px;">SA</div>
         <div>
@@ -1022,7 +1072,7 @@
         </div>
       </div>
     </div>
-    <div class="page-view" id="page-homepage"><div class="page-title-row"><div><div class="page-title">Homepage CMS</div><div class="page-subtitle">Control hero banners, sections, and content</div></div></div><div class="chart-placeholder">Homepage CMS controls — connect to backend API</div></div>
+    <div class="page-view" id="page-homepage"><div class="page-title-row"><div><div class="page-title">Homepage CMS</div><div class="page-subtitle">Control hero banners, sections, and content</div></div></div><div class="chart-placeholder">Coming soon</div></div>
     <!-- ── MEDIA LIBRARY ── -->
     <div class="page-view" id="page-media">
       <div class="page-title-row">
@@ -1107,6 +1157,21 @@
       </div>
     </div>
 
+    <!-- ── PARTNERS ── -->
+    <div class="page-view" id="page-partners">
+      <div class="page-title-row">
+        <div><div class="page-title">Partners</div><div class="page-subtitle">Manage partner logos shown on the homepage</div></div>
+        <button class="btn-add" onclick="openPartnerModal()">+ Add Partner</button>
+      </div>
+      <div class="card-panel">
+        <div class="card-panel-header"><span class="card-panel-title">Partners</span></div>
+        <table class="data-table" id="partners-table">
+          <thead><tr><th>Logo</th><th>Name</th><th>Order</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="partners-tbody"><tr><td colspan="5" style="text-align:center;color:#94A3B8;padding:32px;">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- ── OFFERS MARQUEE ── -->
     <div class="page-view" id="page-offers">
       <div class="page-title-row">
@@ -1122,8 +1187,8 @@
       </div>
     </div>
 
-    <div class="page-view" id="page-users"><div class="page-title-row"><div><div class="page-title">Users &amp; Roles</div><div class="page-subtitle">Manage admin users and permissions</div></div></div><div class="chart-placeholder">Users &amp; roles management — connect to backend API</div></div>
-    <div class="page-view" id="page-seo"><div class="page-title-row"><div><div class="page-title">SEO Settings</div><div class="page-subtitle">Meta tags, sitemap, and schema settings</div></div></div><div class="chart-placeholder">SEO configuration — connect to backend API</div></div>
+    <div class="page-view" id="page-users"><div class="page-title-row"><div><div class="page-title">Users &amp; Roles</div><div class="page-subtitle">Manage admin users and permissions</div></div></div><div class="chart-placeholder">Coming soon</div></div>
+    <div class="page-view" id="page-seo"><div class="page-title-row"><div><div class="page-title">SEO Settings</div><div class="page-subtitle">Meta tags, sitemap, and schema settings</div></div></div><div class="chart-placeholder">Coming soon</div></div>
 
   </div>
 </div>
@@ -1340,7 +1405,8 @@
       <div class="form-group">
         <label class="form-label">Logo — Google Drive Share Link</label>
         <input type="url" id="insurance-logo" class="form-control" placeholder="https://drive.google.com/file/d/…/view?usp=sharing" />
-        <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Share the image publicly ("Anyone with link can view"), then paste the link. Leave blank to show name only.</div>
+        <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Must be a Google Drive link. Share publicly ("Anyone with link can view"), then paste here. Leave blank to show name only.</div>
+        <div class="form-field-error" id="insurance-logo-error" style="display:none;font-size:12px;color:#E53935;margin-top:4px;">Please enter a valid Google Drive link.</div>
       </div>
       <div class="form-row">
         <div class="form-group">
@@ -1359,6 +1425,46 @@
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeModal('insurance')">Cancel</button>
       <button class="btn-save" id="insurance-save-btn" onclick="saveInsurance()">Save Provider</button>
+    </div>
+  </div>
+</div>
+
+<!-- Partners Modal -->
+<div class="modal-overlay" id="modal-partner">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="partner-modal-title">Add Partner</h3>
+      <button class="modal-close" onclick="closeModal('partner')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="partner-id" />
+      <div class="form-group">
+        <label class="form-label">Partner Name <span style="color:#E53935">*</span></label>
+        <input type="text" id="partner-name" class="form-control" placeholder="e.g. Apollo Diagnostics" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Logo — Google Drive Share Link</label>
+        <input type="url" id="partner-logo" class="form-control" placeholder="https://drive.google.com/file/d/…/view?usp=sharing" />
+        <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Must be a Google Drive link. Share publicly ("Anyone with link can view"), then paste here. Leave blank to show name only.</div>
+        <div class="form-field-error" id="partner-logo-error" style="display:none;font-size:12px;color:#E53935;margin-top:4px;">Please enter a valid Google Drive link.</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Display Order</label>
+          <input type="number" id="partner-order" class="form-control" value="0" min="0" />
+          <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Lower = shown first</div>
+        </div>
+        <div class="form-group" style="display:flex;flex-direction:column;justify-content:flex-end;">
+          <div style="display:flex;align-items:center;gap:10px;padding-bottom:4px;">
+            <label class="toggle-switch"><input type="checkbox" id="partner-active" checked /><span class="toggle-slider"></span></label>
+            <span style="font-size:13px;color:#1F2937;">Active (show on homepage)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('partner')">Cancel</button>
+      <button class="btn-save" id="partner-save-btn" onclick="savePartner()">Save Partner</button>
     </div>
   </div>
 </div>
@@ -1426,9 +1532,12 @@
   const API = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || 'http://localhost:8000';
 
   function _authHeaders() {
-    const d = JSON.parse(sessionStorage.getItem('vm_token') || '{}');
-    return d.token ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${d.token}` }
-                   : { 'Content-Type': 'application/json' };
+    const d   = JSON.parse(sessionStorage.getItem('vm_token') || '{}');
+    const key = (window.APP_CONFIG && window.APP_CONFIG.PUBLIC_API_KEY) || '';
+    const h   = { 'Content-Type': 'application/json' };
+    if (key)     h['X-Api-Key']    = key;
+    if (d.token) h['Authorization'] = `Bearer ${d.token}`;
+    return h;
   }
 
   async function apiFetch(path, opts = {}) {
@@ -1437,7 +1546,7 @@
       if (!res.ok) throw new Error(await res.text());
       return await res.json();
     } catch (e) {
-      console.error('[API]', path, e.message);
+      console.error('Request failed:', path);
       return null;
     }
   }
@@ -1532,7 +1641,7 @@
     if (!tbody) return;
     const appts = await apiFetch('/api/appointments');
     if (!appts) {
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#E53935;padding:16px;">API offline — start the backend</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#E53935;padding:16px;">Something went wrong. Please refresh the page.</td></tr>';
       return;
     }
     if (!appts.length) {
@@ -1558,7 +1667,7 @@
     tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:#9CA3AF;">Loading…</td></tr>';
     const data = await apiFetch('/api/appointments');
     if (!data) {
-      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:#E53935;">Cannot connect to API — is the backend running on port 8000?</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:#E53935;">Something went wrong. Please refresh the page.</td></tr>';
       return;
     }
     _appts = data;
@@ -1590,14 +1699,11 @@
         <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
             title="${esc(a.message || '')}">${esc(a.message || '—')}</td>
         <td>
-          <select class="status-select ${a.status}"
-                  onchange="updateStatus('${a.id}', this.value, this)">
-            <option value="pending"   ${a.status==='pending'   ?'selected':''}>Pending</option>
-            <option value="confirmed" ${a.status==='confirmed' ?'selected':''}>Confirmed</option>
-            <option value="rejected"  ${a.status==='rejected'  ?'selected':''}>Rejected</option>
-            <option value="cancelled" ${a.status==='cancelled' ?'selected':''}>Cancelled</option>
-            <option value="completed" ${a.status==='completed' ?'selected':''}>Completed</option>
-          </select>
+          <button class="status-chip ${a.status}"
+                  data-status="${a.status}"
+                  onclick="cycleStatus('${a.id}', this)">
+            ${statusLabel(a.status)}
+          </button>
         </td>
         <td>
           <div class="table-actions">
@@ -1619,21 +1725,86 @@
     `).join('');
   }
 
-  /* ── Status update ────────────────────────────────────── */
+  /* ── Status label & cycle ─────────────────────────────── */
+  const _STATUS_CYCLE  = ['pending', 'confirmed', 'completed'];
+  const _STATUS_LABELS = { pending: 'Created', confirmed: 'Contacted', completed: 'Completed', cancelled: 'Cancelled', rejected: 'Rejected' };
+
+  function statusLabel(s) { return _STATUS_LABELS[s] || cap(s); }
+
+  async function cycleStatus(id, btn) {
+    const cur   = _STATUS_CYCLE.includes(btn.dataset.status || '')
+                    ? btn.dataset.status
+                    : (btn.className.match(/\b(pending|confirmed|completed|cancelled|rejected)\b/) || [])[1] || 'pending';
+    const next  = _STATUS_CYCLE[(_STATUS_CYCLE.indexOf(cur) + 1) % _STATUS_CYCLE.length];
+    const result = await apiFetch(`/api/appointments/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: next }),
+    });
+    if (result && result.success) {
+      btn.className    = `status-chip ${next}`;
+      btn.dataset.status = next;
+      btn.textContent  = statusLabel(next);
+      const a = _appts.find(x => x.id === id);
+      if (a) a.status = next;
+      loadStats();
+      loadNotifications();
+      toast(`Status → ${statusLabel(next)}`, 'success');
+    } else {
+      toast('Failed to update status', 'error');
+    }
+  }
+
+  /* ── Notifications (bell) ─────────────────────────────── */
+  async function loadNotifications() {
+    const badge = document.getElementById('notif-badge');
+    const list  = document.getElementById('notif-list');
+    const count = document.getElementById('notif-panel-count');
+    if (!badge) return;
+
+    const data = await apiFetch('/api/appointments');
+    if (!data || !Array.isArray(data)) return;
+
+    const pending = data.filter(a => a.status === 'pending');
+    if (pending.length) {
+      badge.textContent = pending.length > 99 ? '99+' : pending.length;
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+
+    if (count) count.textContent = pending.length ? `${pending.length} new` : '';
+    if (list) {
+      list.innerHTML = pending.length ? pending.map(a => `
+        <div class="notif-item" onclick="navigate('appointments')">
+          <div class="notif-item-name">${esc(a.name)} — ${esc(a.department)}</div>
+          <div class="notif-item-meta">${esc(a.mobile)} &nbsp;·&nbsp; ${(a.preferred_date || a.created_at || '').slice(0,10)}</div>
+        </div>`).join('') : '<div class="notif-empty">No new appointments</div>';
+    }
+  }
+
+  /* bell toggle */
+  document.getElementById('notif-btn')?.addEventListener('click', function (e) {
+    e.stopPropagation();
+    const panel = document.getElementById('notif-panel');
+    panel.classList.toggle('hidden');
+  });
+  document.addEventListener('click', function () {
+    document.getElementById('notif-panel')?.classList.add('hidden');
+  });
+
+  /* ── Status update (legacy) ────────────────────────────── */
   async function updateStatus(id, status, sel) {
     const result = await apiFetch(`/api/appointments/${id}/status`, {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     });
     if (result && result.success) {
-      sel.className = `status-select ${status}`;
       const a = _appts.find(x => x.id === id);
       if (a) a.status = status;
       loadStats();
       toast(`Status updated to ${cap(status)}`, 'success');
     } else {
       toast('Failed to update status', 'error');
-      sel.value = (_appts.find(x => x.id === id) || {}).status || 'pending';
     }
   }
 
@@ -1772,6 +1943,7 @@
     if (page === 'testimonials')  loadTestimonials();
     if (page === 'offers')        loadOffers();
     if (page === 'insurance')     loadInsurance();
+    if (page === 'partners')      loadPartners();
   }
 
   document.querySelectorAll('.nav-item[data-page]').forEach(btn => {
@@ -1811,7 +1983,7 @@
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#9CA3AF;">Loading…</td></tr>';
     const data = await apiFetch('/api/doctors?show_all=true');
     if (!data) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#E53935;">Cannot connect to API</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#E53935;">Something went wrong. Please refresh the page.</td></tr>';
       return;
     }
     _doctors = data;
@@ -1959,7 +2131,7 @@
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#9CA3AF;">Loading…</td></tr>';
     const data = await apiFetch('/api/departments?show_all=true');
     if (!data) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#E53935;">Cannot connect to API — is the backend running on port 8000?</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#E53935;">Something went wrong. Please refresh the page.</td></tr>';
       return;
     }
     _depts = data;
@@ -2089,7 +2261,7 @@
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#9CA3AF;">Loading…</td></tr>';
     const data = await apiFetch('/api/blogs?show_all=true');
     if (!data) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#E53935;">Cannot connect to API — is the backend running on port 8000?</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#E53935;">Something went wrong. Please refresh the page.</td></tr>';
       return;
     }
     _blogs = data;
@@ -2278,7 +2450,7 @@
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#9CA3AF;">Loading…</td></tr>';
     const data = await apiFetch('/api/testimonials?show_all=true');
     if (!data) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#E53935;">Cannot connect to API</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#E53935;">Something went wrong. Please refresh the page.</td></tr>';
       return;
     }
     _testimonials = data;
@@ -2385,7 +2557,7 @@
     grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#9CA3AF;padding:40px;">Loading…</div>';
     const data = await apiFetch('/api/media');
     if (!data) {
-      grid.innerHTML = '<div class="media-empty">Cannot connect to API</div>';
+      grid.innerHTML = '<div class="media-empty">Something went wrong. Please refresh the page.</div>';
       return;
     }
     _mediaItems = data;
@@ -2543,7 +2715,7 @@
     if (!tbody) return;
     tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#9CA3AF;padding:32px;">Loading…</td></tr>';
     const data = await apiFetch('/api/offers?show_all=true');
-    if (!data) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#E53935;padding:32px;">Cannot connect to API</td></tr>'; return; }
+    if (!data) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#E53935;padding:32px;">Something went wrong. Please refresh the page.</td></tr>'; return; }
     _offers = data;
     if (!data.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#9CA3AF;padding:32px;">No offers yet. Click "+ Add Offer" to create one.</td></tr>'; return; }
     tbody.innerHTML = data.map(o => `
@@ -2609,6 +2781,12 @@
     else toast('Failed to delete', 'error');
   }
 
+  /* ── Drive Link Validation ────────────────────────────── */
+  function isDriveLink(url) {
+    if (!url) return true; // optional field — blank is allowed
+    return /drive\.google\.com|docs\.google\.com/.test(url);
+  }
+
   /* ── Insurance Providers ──────────────────────────────── */
   let _insuranceItems = [];
 
@@ -2617,7 +2795,7 @@
     if (!tbody) return;
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#9CA3AF;padding:32px;">Loading…</td></tr>';
     const data = await apiFetch('/api/insurance?show_all=true');
-    if (!data) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#E53935;padding:32px;">Cannot connect to API</td></tr>'; return; }
+    if (!data) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#E53935;padding:32px;">Something went wrong. Please refresh the page.</td></tr>'; return; }
     _insuranceItems = data;
     if (!data.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#9CA3AF;padding:32px;">No providers yet. Click "+ Add Provider" to create one.</td></tr>'; return; }
     tbody.innerHTML = data.map(p => `
@@ -2661,7 +2839,14 @@
     const logo  = document.getElementById('insurance-logo').value.trim();
     const order = parseInt(document.getElementById('insurance-order').value) || 0;
     const active = document.getElementById('insurance-active').checked;
+    const logoErrEl = document.getElementById('insurance-logo-error');
     if (!name) { toast('Please enter provider name', 'error'); return; }
+    if (!isDriveLink(logo)) {
+      logoErrEl.style.display = 'block';
+      toast('Logo must be a Google Drive link', 'error');
+      return;
+    }
+    logoErrEl.style.display = 'none';
     const btn = document.getElementById('insurance-save-btn');
     btn.disabled = true; btn.textContent = 'Saving…';
     const body = { name, logo_drive_link: logo || null, order, active };
@@ -2685,10 +2870,97 @@
     else toast('Failed to delete', 'error');
   }
 
+  /* ── Partners ──────────────────────────────────────────── */
+  let _partnerItems = [];
+
+  async function loadPartners() {
+    const tbody = document.getElementById('partners-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#9CA3AF;padding:32px;">Loading…</td></tr>';
+    const data = await apiFetch('/api/partners?show_all=true');
+    if (!data) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#E53935;padding:32px;">Something went wrong. Please refresh the page.</td></tr>'; return; }
+    _partnerItems = data;
+    if (!data.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#9CA3AF;padding:32px;">No partners yet. Click "+ Add Partner" to create one.</td></tr>'; return; }
+    tbody.innerHTML = data.map(p => `
+      <tr>
+        <td>${p.logo_url ? `<img src="${p.logo_url}" alt="${p.name}" style="height:36px;max-width:80px;object-fit:contain;border-radius:4px;background:#f8fafc;padding:2px;" onerror="this.style.display='none'" />` : '<span style="color:#9CA3AF;font-size:12px;">No logo</span>'}</td>
+        <td style="font-weight:500;">${p.name}</td>
+        <td>${p.order}</td>
+        <td><span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:${p.active ? 'rgba(0,200,83,0.12)' : 'rgba(148,163,184,0.15)'};color:${p.active ? '#00843D' : '#64748B'};">${p.active ? 'Active' : 'Inactive'}</span></td>
+        <td>
+          <button onclick="editPartner('${p.id}')" style="background:none;border:1px solid #CBD5E1;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;color:#374151;margin-right:6px;">Edit</button>
+          <button onclick="deletePartner('${p.id}')" style="background:none;border:1px solid #FCA5A5;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;color:#DC2626;">Delete</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  function openPartnerModal() {
+    document.getElementById('partner-id').value = '';
+    document.getElementById('partner-name').value = '';
+    document.getElementById('partner-logo').value = '';
+    document.getElementById('partner-order').value = 0;
+    document.getElementById('partner-active').checked = true;
+    document.getElementById('partner-logo-error').style.display = 'none';
+    document.getElementById('partner-modal-title').textContent = 'Add Partner';
+    document.getElementById('modal-partner').classList.add('open');
+  }
+
+  function editPartner(id) {
+    const p = _partnerItems.find(x => x.id === id);
+    if (!p) return;
+    document.getElementById('partner-id').value = p.id;
+    document.getElementById('partner-name').value = p.name;
+    document.getElementById('partner-logo').value = p.logo_drive_link || '';
+    document.getElementById('partner-order').value = p.order;
+    document.getElementById('partner-active').checked = p.active;
+    document.getElementById('partner-logo-error').style.display = 'none';
+    document.getElementById('partner-modal-title').textContent = 'Edit Partner';
+    document.getElementById('modal-partner').classList.add('open');
+  }
+
+  async function savePartner() {
+    const id     = document.getElementById('partner-id').value;
+    const name   = document.getElementById('partner-name').value.trim();
+    const logo   = document.getElementById('partner-logo').value.trim();
+    const order  = parseInt(document.getElementById('partner-order').value) || 0;
+    const active = document.getElementById('partner-active').checked;
+    const logoErrEl = document.getElementById('partner-logo-error');
+    if (!name) { toast('Please enter partner name', 'error'); return; }
+    if (!isDriveLink(logo)) {
+      logoErrEl.style.display = 'block';
+      toast('Logo must be a Google Drive link', 'error');
+      return;
+    }
+    logoErrEl.style.display = 'none';
+    const btn = document.getElementById('partner-save-btn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    const body = { name, logo_drive_link: logo || null, order, active };
+    const result = id
+      ? await apiFetch(`/api/partners/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
+      : await apiFetch('/api/partners',        { method: 'POST',  body: JSON.stringify(body) });
+    btn.disabled = false; btn.textContent = 'Save Partner';
+    if (result && result.success !== false) {
+      closeModal('partner');
+      loadPartners();
+      toast(id ? 'Partner updated' : 'Partner added', 'success');
+    } else {
+      toast('Failed to save partner', 'error');
+    }
+  }
+
+  async function deletePartner(id) {
+    if (!confirm('Delete this partner?')) return;
+    const result = await apiFetch(`/api/partners/${id}`, { method: 'DELETE' });
+    if (result && result.success) { loadPartners(); toast('Partner deleted', 'success'); }
+    else toast('Failed to delete', 'error');
+  }
+
   /* ── Boot ─────────────────────────────────────────────── */
   loadDeptOptions();
   loadStats();
   loadAppointments();
+  loadNotifications();
+  setInterval(loadNotifications, 30000);
 </script>
 </body>
 </html>

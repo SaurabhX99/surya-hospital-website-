@@ -159,7 +159,15 @@
 </div></footer>
 
 <script>
-const API = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || 'http://localhost:8000';
+const API     = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL)  || 'http://localhost:8000';
+const API_KEY = (window.APP_CONFIG && window.APP_CONFIG.PUBLIC_API_KEY) || '';
+async function apiFetch(path) {
+  let pt = sessionStorage.getItem('vm_pt') || '';
+  if (!pt || Date.now() > Number(sessionStorage.getItem('vm_pt_exp') || 0)) {
+    try { const r = await fetch(API + '/api/public-token'); if (r.ok) { const d = await r.json(); pt = d.token; sessionStorage.setItem('vm_pt', pt); sessionStorage.setItem('vm_pt_exp', Date.now() + (d.expires_in - 60) * 1000); } } catch (_) {}
+  }
+  return fetch(API + path, { headers: { 'X-Api-Key': API_KEY, 'X-Page-Token': pt } });
+}
 const CAT_COLORS = { 'Cardiology':'#E53935', 'Nephrology':'#0A4D8C', 'Maternity':'#E91E8C', 'Pediatrics':'#FF8F00', 'General Health':'#00A6A6', 'Orthopaedics':'#673AB7' };
 
 function formatDate(iso) {
@@ -180,7 +188,7 @@ async function loadPost() {
   if (!id) { showError(); return; }
 
   try {
-    const meta = await fetch(`${API}/api/blogs/${id}`).then(r => { if (!r.ok) throw 0; return r.json(); });
+    const meta = await apiFetch(`/api/blogs/${id}`).then(r => { if (!r.ok) throw 0; return r.json(); });
 
     // Populate hero
     document.title = `${meta.title} | Vedansh Medicare`;
@@ -214,7 +222,7 @@ async function loadPost() {
 
     // Fetch content via backend proxy (no CORS issues)
     if (!meta.drive_link) { showError(); return; }
-    const contentRes = await fetch(`${API}/api/blogs/${id}/content`);
+    const contentRes = await apiFetch(`/api/blogs/${id}/content`);
     if (!contentRes.ok) { showError(); return; }
     const contentType = contentRes.headers.get('content-type') || '';
     const raw = await contentRes.text();

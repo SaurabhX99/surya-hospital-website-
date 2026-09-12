@@ -9,6 +9,7 @@ import contextvars
 import os
 import re
 import secrets
+import pyotp
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
@@ -17,7 +18,7 @@ import certifi
 import httpx
 from bson import ObjectId
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -25,6 +26,8 @@ from pymongo import MongoClient, DESCENDING
 from pymongo.errors import DuplicateKeyError
 
 load_dotenv()
+
+from security import apply_security, require_public_access, issue_page_token, rate_limit
 
 # ── Tenant & upload config ──────────────────────────────────────────
 TENANT_NAME = os.getenv("TENANT_NAME", "vedansh_medicare").strip()
@@ -58,6 +61,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Apply all four security layers (API key, origin allowlist, page token, rate limiting).
+apply_security(app)
+
 # ── MongoDB ────────────────────────────────────────────────────────
 _client = MongoClient(
     os.getenv("MONGO_URI", ""),
@@ -75,6 +81,7 @@ _testcol   = _mdb["testimonials"]
 _usercol   = _mdb["admin_users"]
 _offercol  = _mdb["offers"]
 _inscol    = _mdb["insurance_providers"]
+_partnercol = _mdb["partners"]
 
 # ── Tenant middleware — resolves tenant from auth token per request ──
 @app.middleware("http")
@@ -178,6 +185,20 @@ class InsuranceIn(BaseModel):
 
 
 class InsuranceUpdate(BaseModel):
+    name: Optional[str] = None
+    logo_drive_link: Optional[str] = None
+    active: Optional[bool] = None
+    order: Optional[int] = None
+
+
+class PartnerIn(BaseModel):
+    name: str
+    logo_drive_link: Optional[str] = None
+    active: bool = True
+    order: int = 0
+
+
+class PartnerUpdate(BaseModel):
     name: Optional[str] = None
     logo_drive_link: Optional[str] = None
     active: Optional[bool] = None
@@ -294,6 +315,11 @@ class LoginIn(BaseModel):
     password: str
 
 
+class MFAVerifyIn(BaseModel):
+    pre_token: str
+    code: str
+
+
 # ── Auth Helpers ────────────────────────────────────────────────────
 def _get_bearer(request: Request) -> str:
     return request.headers.get("Authorization", "").removeprefix("Bearer ").strip()
@@ -382,8 +408,16 @@ def root():
     return {"status": "ok", "docs": "/docs"}
 
 
+@app.get("/api/public-token")
+def get_page_token(request: Request, _: None = Depends(rate_limit(20, 60))):
+    """Issue a short-lived page token for public website API access (Layer 3)."""
+    return issue_page_token()
+
+
 @app.post("/api/appointments", status_code=201)
-def create_appointment(body: AppointmentIn):
+def create_appointment(request: Request, body: AppointmentIn,
+                       _auth: None = Depends(require_public_access),
+                       _rl:   None = Depends(rate_limit(10, 60))):
     doc = {
         "tenant_name":    _tenant(),
         "name":           body.name,
@@ -489,7 +523,7 @@ def update_status(appt_id: str, body: StatusIn):
 
 # ── Doctor Routes ───────────────────────────────────────────────────
 @app.get("/api/doctors")
-def list_doctors(featured: Optional[bool] = None, show_all: bool = False):
+def list_doctors(featured: Optional[bool] = None, show_all: bool = False, _: None = Depends(require_public_access)):
     try:
         query = _tq() if show_all else _tq({"active": True})
         if featured is not None:
@@ -568,7 +602,7 @@ def _fmt_department(doc: dict) -> dict:
 
 
 @app.get("/api/departments")
-def list_departments(show_all: bool = False):
+def list_departments(show_all: bool = False, _: None = Depends(require_public_access)):
     try:
         query = _tq() if show_all else _tq({"active": True})
         docs = list(_deptcol.find(query).sort("order", 1))
@@ -662,7 +696,7 @@ def _fmt_blog(doc: dict) -> dict:
 
 
 @app.get("/api/blogs")
-def list_blogs(show_all: bool = False):
+def list_blogs(show_all: bool = False, _: None = Depends(require_public_access)):
     try:
         query = _tq() if show_all else _tq({"published": True})
         docs = list(_bcol.find(query).sort("created_at", DESCENDING))
@@ -673,7 +707,7 @@ def list_blogs(show_all: bool = False):
 
 
 @app.get("/api/blogs/{blog_id}")
-def get_blog(blog_id: str):
+def get_blog(blog_id: str, _: None = Depends(require_public_access)):
     try:
         doc = _bcol.find_one(_tq({"_id": ObjectId(blog_id)}))
     except Exception:
@@ -727,7 +761,7 @@ def update_blog(blog_id: str, body: BlogUpdate):
 
 
 @app.get("/api/blogs/{blog_id}/content")
-async def get_blog_content(blog_id: str):
+async def get_blog_content(blog_id: str, _: None = Depends(require_public_access)):
     """Proxy the blog article content from Google Drive."""
     try:
         oid = ObjectId(blog_id)
@@ -763,14 +797,16 @@ def _fmt_testimonial(doc: dict) -> dict:
 
 
 @app.get("/api/testimonials")
-def list_testimonials(show_all: bool = False):
+def list_testimonials(show_all: bool = False, _: None = Depends(require_public_access)):
     q = _tq() if show_all else _tq({"approved": True})
     docs = list(_testcol.find(q).sort("created_at", DESCENDING))
     return [_fmt_testimonial(d) for d in docs]
 
 
 @app.post("/api/testimonials", status_code=201)
-def create_testimonial(body: TestimonialIn):
+def create_testimonial(request: Request, body: TestimonialIn,
+                       _auth: None = Depends(require_public_access),
+                       _rl:   None = Depends(rate_limit(5, 60))):
     doc = body.model_dump()
     doc["approved"]    = False          # always pending until admin approves
     doc["tenant_name"] = _tenant()
@@ -833,7 +869,7 @@ def _fmt_media(doc: dict) -> dict:
 
 
 @app.get("/api/media")
-def list_media(gallery: bool = False):
+def list_media(gallery: bool = False, _: None = Depends(require_public_access)):
     q = _tq({"show_in_gallery": True}) if gallery else _tq()
     docs = list(_mediacol.find(q).sort("order", 1))
     return [_fmt_media(d) for d in docs]
@@ -876,7 +912,7 @@ def delete_media(media_id: str):
 
 
 @app.get("/api/gallery-config")
-def get_gallery_config():
+def get_gallery_config(_: None = Depends(require_public_access)):
     doc = _gcfgcol.find_one(_tq())
     if not doc:
         return {"autoplay": True, "interval": 5000, "transition": "fade", "show_captions": True}
@@ -984,7 +1020,7 @@ def _fmt_offer(doc: dict) -> dict:
 
 
 @app.get("/api/offers")
-def list_offers(show_all: bool = False):
+def list_offers(show_all: bool = False, _: None = Depends(require_public_access)):
     q = _tq() if show_all else _tq({"active": True})
     docs = list(_offercol.find(q).sort("order", 1))
     return [_fmt_offer(d) for d in docs]
@@ -1042,7 +1078,7 @@ def _fmt_insurance(doc: dict) -> dict:
 
 
 @app.get("/api/insurance")
-def list_insurance(show_all: bool = False):
+def list_insurance(show_all: bool = False, _: None = Depends(require_public_access)):
     q = _tq() if show_all else _tq({"active": True})
     docs = list(_inscol.find(q).sort("order", 1))
     return [_fmt_insurance(d) for d in docs]
@@ -1050,6 +1086,7 @@ def list_insurance(show_all: bool = False):
 
 @app.post("/api/insurance", status_code=201)
 def create_insurance(body: InsuranceIn):
+    _validate_drive_link(body.logo_drive_link)
     doc = body.model_dump()
     doc["tenant_name"] = _tenant()
     doc["created_at"]  = datetime.now(timezone.utc)
@@ -1066,6 +1103,7 @@ def update_insurance(ins_id: str, body: InsuranceUpdate):
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
     if not updates:
         raise HTTPException(400, "No fields to update")
+    _validate_drive_link(updates.get("logo_drive_link"))
     result = _inscol.update_one(_tq({"_id": oid}), {"$set": updates})
     if result.matched_count == 0:
         raise HTTPException(404, "Not found")
@@ -1084,6 +1122,74 @@ def delete_insurance(ins_id: str):
     return {"success": True}
 
 
+# ── Partner Routes ────────────────────────────────────────────────────
+_DRIVE_RE = re.compile(r'drive\.google\.com|docs\.google\.com')
+
+
+def _validate_drive_link(url: Optional[str], field: str = "logo_drive_link") -> None:
+    if url and not _DRIVE_RE.search(url):
+        raise HTTPException(400, f"{field} must be a Google Drive or Docs URL")
+
+
+def _fmt_partner(doc: dict) -> dict:
+    doc["id"] = str(doc.pop("_id"))
+    ca = doc.get("created_at")
+    if isinstance(ca, datetime):
+        doc["created_at"] = ca.isoformat()
+    doc.setdefault("active", True)
+    doc.setdefault("order", 0)
+    doc.setdefault("logo_drive_link", None)
+    link = doc.get("logo_drive_link") or ""
+    fid  = _extract_drive_id(link)
+    doc["logo_url"] = f"{BASE_URL}/api/proxy/image?id={fid}" if fid else None
+    return doc
+
+
+@app.get("/api/partners")
+def list_partners(show_all: bool = False, _: None = Depends(require_public_access)):
+    q = _tq() if show_all else _tq({"active": True})
+    docs = list(_partnercol.find(q).sort("order", 1))
+    return [_fmt_partner(d) for d in docs]
+
+
+@app.post("/api/partners", status_code=201)
+def create_partner(body: PartnerIn):
+    _validate_drive_link(body.logo_drive_link)
+    doc = body.model_dump()
+    doc["tenant_name"] = _tenant()
+    doc["created_at"]  = datetime.now(timezone.utc)
+    result = _partnercol.insert_one(doc)
+    return {"success": True, "id": str(result.inserted_id)}
+
+
+@app.patch("/api/partners/{partner_id}")
+def update_partner(partner_id: str, body: PartnerUpdate):
+    try:
+        oid = ObjectId(partner_id)
+    except Exception:
+        raise HTTPException(400, "Invalid id")
+    updates = {k: v for k, v in body.model_dump().items() if v is not None}
+    if not updates:
+        raise HTTPException(400, "No fields to update")
+    _validate_drive_link(updates.get("logo_drive_link"))
+    result = _partnercol.update_one(_tq({"_id": oid}), {"$set": updates})
+    if result.matched_count == 0:
+        raise HTTPException(404, "Not found")
+    return {"success": True}
+
+
+@app.delete("/api/partners/{partner_id}")
+def delete_partner(partner_id: str):
+    try:
+        oid = ObjectId(partner_id)
+    except Exception:
+        raise HTTPException(400, "Invalid id")
+    result = _partnercol.delete_one(_tq({"_id": oid}))
+    if result.deleted_count == 0:
+        raise HTTPException(404, "Not found")
+    return {"success": True}
+
+
 # ── Auth Routes ──────────────────────────────────────────────────────
 @app.post("/api/auth/login")
 def auth_login(body: LoginIn):
@@ -1094,11 +1200,21 @@ def auth_login(body: LoginIn):
     pw_hash = user.get("password_hash")
     if not pw_hash or not bcrypt.checkpw(body.password.encode(), pw_hash):
         raise HTTPException(401, "Invalid email or password")
+
+    # MFA disabled — issue full session token immediately.
+    return _complete_mfa_login(user)
+
+
+def _complete_mfa_login(user: dict) -> dict:
+    """Issue a full session token, enforcing single active session."""
     token      = secrets.token_urlsafe(32)
     expires_at = datetime.now(timezone.utc) + timedelta(minutes=30)
     _usercol.update_one(
         {"_id": user["_id"]},
-        {"$set": {"active_token": token, "token_expires_at": expires_at, "last_login": datetime.now(timezone.utc)}}
+        {
+            "$set":   {"active_token": token, "token_expires_at": expires_at, "last_login": datetime.now(timezone.utc)},
+            "$unset": {"pre_auth_token": "", "pre_auth_expires_at": ""},
+        },
     )
     return {
         "token":         token,
@@ -1109,6 +1225,50 @@ def auth_login(body: LoginIn):
         "tenant_name":   user.get("tenant_name", TENANT_NAME),
         "hospital_name": user.get("hospital_name", "Hospital Admin"),
     }
+
+
+def _resolve_pre_token(pre_token: str) -> dict:
+    """Look up and validate a pre-auth token; raises 401 on failure."""
+    user = _usercol.find_one({"pre_auth_token": pre_token})
+    if not user:
+        raise HTTPException(401, "Invalid or expired session. Please login again.")
+    exp = user.get("pre_auth_expires_at")
+    if not exp:
+        raise HTTPException(401, "Session expired. Please login again.")
+    if exp.tzinfo is None:
+        exp = exp.replace(tzinfo=timezone.utc)
+    if datetime.now(timezone.utc) > exp:
+        raise HTTPException(401, "Session expired. Please login again.")
+    return user
+
+
+@app.post("/api/auth/mfa/verify")
+def mfa_verify(body: MFAVerifyIn):
+    """Step 2 for users who already have TOTP set up."""
+    user = _resolve_pre_token(body.pre_token)
+    totp_secret = user.get("totp_secret")
+    if not totp_secret:
+        raise HTTPException(400, "MFA not configured for this account.")
+    if not pyotp.TOTP(totp_secret).verify(body.code.strip(), valid_window=1):
+        raise HTTPException(401, "Invalid verification code. Please try again.")
+    return _complete_mfa_login(user)
+
+
+@app.post("/api/auth/mfa/setup")
+def mfa_setup_confirm(body: MFAVerifyIn):
+    """Step 2 for first-time setup: confirm TOTP code and activate MFA."""
+    user = _resolve_pre_token(body.pre_token)
+    totp_secret = user.get("totp_secret_pending")
+    if not totp_secret:
+        raise HTTPException(400, "No pending MFA setup found.")
+    if not pyotp.TOTP(totp_secret).verify(body.code.strip(), valid_window=1):
+        raise HTTPException(401, "Invalid verification code. Please try again.")
+    # Promote pending secret to active
+    _usercol.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"totp_secret": totp_secret}, "$unset": {"totp_secret_pending": ""}},
+    )
+    return _complete_mfa_login(user)
 
 
 @app.post("/api/auth/logout")

@@ -8,6 +8,39 @@
   const API_BASE = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || 'http://localhost:8000';
   const data = window.VM && window.VM.data;
 
+  /* ── Security: page token (Layer 3) + API key (Layer 1) ── */
+  let _pt = sessionStorage.getItem('vm_pt') || '';
+
+  async function _initPageToken() {
+    const expiry = Number(sessionStorage.getItem('vm_pt_exp') || 0);
+    if (_pt && Date.now() < expiry) return;
+    try {
+      const r = await fetch(API_BASE + '/api/public-token');
+      if (!r.ok) return;
+      const d = await r.json();
+      _pt = d.token;
+      sessionStorage.setItem('vm_pt', _pt);
+      // Refresh 60 s before actual expiry to avoid edge-case race.
+      sessionStorage.setItem('vm_pt_exp', Date.now() + (d.expires_in - 60) * 1000);
+    } catch (_) {}
+  }
+
+  function _publicHeaders(extra) {
+    return Object.assign({
+      'X-Api-Key':    (window.APP_CONFIG && window.APP_CONFIG.PUBLIC_API_KEY) || '',
+      'X-Page-Token': _pt,
+    }, extra || {});
+  }
+
+  async function _apiFetch(path, opts) {
+    await _initPageToken();
+    const extra = (opts && opts.headers) || {};
+    // Destructure headers out so we don't accidentally override the merged set.
+    // eslint-disable-next-line no-unused-vars
+    const { headers: _h, ...rest } = opts || {};
+    return fetch(API_BASE + path, { headers: _publicHeaders(extra), ...rest });
+  }
+
   /* ── Utility ──────────────────────────────────────────── */
   function $(sel, ctx) { return (ctx || document).querySelector(sel); }
   function $$(sel, ctx) { return Array.from((ctx || document).querySelectorAll(sel)); }
@@ -168,8 +201,8 @@
     let media = [], cfg = {};
     try {
       [media, cfg] = await Promise.all([
-        fetch(API_BASE + '/api/media?gallery=true').then(r => r.json()),
-        fetch(API_BASE + '/api/gallery-config').then(r => r.json()),
+        _apiFetch('/api/media?gallery=true').then(r => r.json()),
+        _apiFetch('/api/gallery-config').then(r => r.json()),
       ]);
     } catch (e) { return; }
 
@@ -443,7 +476,7 @@
     const grid = $('#doctors-grid');
     if (!grid) return;
     try {
-      const res = await fetch(API_BASE + '/api/doctors?featured=true');
+      const res = await _apiFetch('/api/doctors?featured=true');
       const doctors = await res.json();
       if (doctors.length) { _renderDoctorCards(doctors); return; }
     } catch(e) { /* fall through to static data */ }
@@ -459,7 +492,7 @@
 
     let items = [];
     try {
-      const res = await fetch(API_BASE + '/api/testimonials');
+      const res = await _apiFetch('/api/testimonials');
       items = await res.json();
     } catch (e) { /* API offline — hide section */ }
 
@@ -561,19 +594,18 @@
     `).join('');
   }
 
-  /* ── Render: Insurance Partners ───────────────────────── */
+  /* ── Render: Insurance ─────────────────────────────────── */
   async function renderPartners() {
     const track = $('#insurance-track');
     if (!track) return;
 
     let providers = [];
     try {
-      const res = await fetch(API_BASE + '/api/insurance');
+      const res = await _apiFetch('/api/insurance');
       const json = await res.json();
       if (Array.isArray(json) && json.length) providers = json;
     } catch (_) {}
 
-    // Fall back to static list if API returns nothing
     if (!providers.length) {
       const names = (data && data.partners) ? data.partners : [];
       const makeStatic = () => names.map(n => `
@@ -594,6 +626,34 @@
     track.innerHTML = html + html;
   }
 
+  /* ── Render: Partners ──────────────────────────────────── */
+  async function renderCorporatePartners() {
+    const section = document.getElementById('partners');
+    const track   = $('#partners-track');
+    if (!track) return;
+
+    let partners = [];
+    try {
+      const res = await _apiFetch('/api/partners');
+      const json = await res.json();
+      if (Array.isArray(json) && json.length) partners = json;
+    } catch (_) {}
+
+    if (!partners.length) {
+      if (section) section.style.display = 'none';
+      return;
+    }
+
+    const makeCard = (p) => `
+      <div class="partner-logo">
+        ${p.logo_url ? `<img src="${p.logo_url}" alt="${p.name}" loading="lazy" onerror="this.style.display='none'" />` : ''}
+        <span class="partner-logo-name">${p.name}</span>
+      </div>`;
+
+    const html = partners.map(makeCard).join('');
+    track.innerHTML = html + html;
+  }
+
   /* ── Render: Blogs ────────────────────────────────────── */
   async function renderBlogs() {
     const grid    = $('#blogs-grid');
@@ -611,7 +671,7 @@
     const defaultColor = '#0A4D8C';
     let blogs = [];
     try {
-      const res = await fetch(API_BASE + '/api/blogs');
+      const res = await _apiFetch('/api/blogs');
       blogs = await res.json();
     } catch(e) { if (section) section.style.display = 'none'; return; }
     if (!Array.isArray(blogs) || !blogs.length) {
@@ -676,8 +736,8 @@
     if (!sel) return;
     try {
       const [deptRes, docRes] = await Promise.all([
-        fetch(API_BASE + '/api/departments'),
-        fetch(API_BASE + '/api/doctors'),
+        _apiFetch('/api/departments'),
+        _apiFetch('/api/doctors'),
       ]);
       const depts = await deptRes.json();
       _allDoctors = await docRes.json();
@@ -766,7 +826,7 @@
       const message = $('#appt-message') ? $('#appt-message').value         : '';
 
       try {
-        const res  = await fetch(API_BASE + '/api/appointments', {
+        const res  = await _apiFetch('/api/appointments', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
           body:    JSON.stringify({ name, mobile, department: dept || undefined, doctor: doctor || undefined, date, message }),
@@ -920,7 +980,7 @@
     const track = document.getElementById('offers-marquee-track');
     if (!bar || !track) return;
     try {
-      const res    = await fetch(API_BASE + '/api/offers');
+      const res    = await _apiFetch('/api/offers');
       const offers = await res.json();
       if (!Array.isArray(offers) || !offers.length) return;
       const items = offers.map(o => `<span class="offers-marquee-item">${o.text}</span><span class="offers-marquee-sep">★</span>`).join('');
@@ -952,6 +1012,7 @@
     renderTestimonials();
     renderStats();
     renderPartners();
+    renderCorporatePartners();
     renderBlogs();
 
     populateDeptSelect();

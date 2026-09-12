@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -39,7 +40,8 @@
       padding: 52px 44px;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
+      justify-content: center;
+      gap: 48px;
       color: #fff;
       position: relative;
       overflow: hidden;
@@ -62,7 +64,7 @@
       border-radius: 50%;
       pointer-events: none;
     }
-    
+
     .login-brand {
       display: flex;
       align-items: center;
@@ -70,14 +72,6 @@
       position: relative;
       z-index: 1;
     }
-    .login-logo {
-      width: 50px; height: 50px;
-      background: rgba(255,255,255,0.18);
-      border-radius: 14px;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
-    .login-logo svg { width: 28px; height: 28px; }
     .login-brand-name {
       font-family: 'Poppins', sans-serif;
       font-size: 20px;
@@ -140,19 +134,24 @@
       justify-content: center;
     }
 
-    .login-right h1 {
+    /* ── Steps ── */
+    .login-step { display: none; }
+    .login-step.active { display: flex; flex-direction: column; }
+
+    .login-step h1 {
       font-family: 'Poppins', sans-serif;
       font-size: 26px;
       font-weight: 700;
       color: #1F2937;
       margin-bottom: 6px;
     }
-    .login-right .subtitle {
+    .login-step .subtitle {
       font-size: 14px;
       color: #9CA3AF;
-      margin-bottom: 36px;
+      margin-bottom: 32px;
     }
 
+    /* ── Form controls ── */
     .form-group { margin-bottom: 20px; }
     .form-label {
       display: block;
@@ -200,31 +199,112 @@
     }
     .toggle-pass svg { width: 18px; height: 18px; }
 
-    .form-footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 24px;
+    /* ── OTP input ── */
+    .otp-input {
+      width: 100%;
+      padding: 14px;
+      font-size: 28px;
+      letter-spacing: 14px;
+      text-align: center;
+      font-family: 'Courier New', monospace;
+      font-weight: 700;
+      color: #1F2937;
+      background: #F8FBFD;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 12px;
+      outline: none;
+      transition: all 0.2s;
     }
-    .remember-label {
+    .otp-input:focus {
+      border-color: #0A4D8C;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(10,77,140,0.1);
+    }
+
+    /* ── QR code ── */
+    .qr-wrapper {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 8px;
+      margin-bottom: 24px;
+      gap: 16px;
+    }
+    .qr-box {
+      background: #fff;
+      border: 2px solid #E2E8F0;
+      border-radius: 12px;
+      padding: 16px;
+      display: inline-flex;
+    }
+    .manual-key-block {
+      width: 100%;
+      background: #F8FBFD;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+    .manual-key-block p {
+      font-size: 12px;
+      color: #9CA3AF;
+      margin-bottom: 6px;
+    }
+    .manual-key-block code {
+      font-size: 13px;
+      font-family: 'Courier New', monospace;
+      color: #0A4D8C;
+      font-weight: 700;
+      word-break: break-all;
+      letter-spacing: 2px;
+    }
+
+    /* ── Setup instructions ── */
+    .setup-steps {
+      margin-bottom: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .setup-step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
       font-size: 14px;
       color: #4B5563;
-      cursor: pointer;
-      user-select: none;
     }
-    .remember-label input { accent-color: #0A4D8C; width: 16px; height: 16px; cursor: pointer; }
-    .forgot-link {
-      font-size: 14px;
-      color: #0A4D8C;
-      font-weight: 600;
-      text-decoration: none;
+    .setup-step-num {
+      width: 24px;
+      height: 24px;
+      background: #0A4D8C;
+      color: #fff;
+      border-radius: 50%;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
     }
-    .forgot-link:hover { text-decoration: underline; }
 
-    .btn-login {
+    /* ── Back link ── */
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #6B7280;
+      cursor: pointer;
+      margin-bottom: 24px;
+      background: none;
+      border: none;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+    }
+    .back-link:hover { color: #0A4D8C; }
+    .back-link svg { width: 16px; height: 16px; }
+
+    /* ── Buttons ── */
+    .btn-primary {
       width: 100%;
       padding: 14px;
       background: #0A4D8C;
@@ -243,44 +323,37 @@
       box-shadow: 0 4px 16px rgba(10,77,140,0.3);
       letter-spacing: 0.01em;
     }
-    .btn-login:hover:not(:disabled) {
+    .btn-primary:hover:not(:disabled) {
       background: #073A6B;
       box-shadow: 0 6px 24px rgba(10,77,140,0.4);
       transform: translateY(-1px);
     }
-    .btn-login:active { transform: translateY(0); }
-    .btn-login:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
-    .btn-login svg { width: 18px; height: 18px; }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
+    .btn-primary svg { width: 18px; height: 18px; }
 
-    .login-error {
+    /* ── Alerts ── */
+    .alert {
       margin-top: 16px;
       padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      display: none;
+      align-items: center;
+      gap: 8px;
+    }
+    .alert svg { width: 18px; height: 18px; flex-shrink: 0; }
+    .alert-error {
       background: rgba(229,57,53,0.07);
       border: 1.5px solid rgba(229,57,53,0.3);
-      border-radius: 10px;
-      font-size: 14px;
       color: #E53935;
-      display: none;
-      align-items: center;
-      gap: 8px;
     }
-    .login-error svg { width: 18px; height: 18px; flex-shrink: 0; }
-
-    .login-notice {
+    .alert-warning {
       margin-bottom: 20px;
-      padding: 12px 16px;
       background: rgba(245,158,11,0.08);
       border: 1.5px solid rgba(245,158,11,0.35);
-      border-radius: 10px;
-      font-size: 14px;
       color: #B45309;
-      display: none;
-      align-items: center;
-      gap: 8px;
     }
-    .login-notice svg { width: 18px; height: 18px; flex-shrink: 0; }
-
-
 
     @keyframes spin { to { transform: rotate(360deg); } }
     .spin { animation: spin 1s linear infinite; }
@@ -298,7 +371,7 @@
       }
       .login-hero h2 { font-size: 22px; }
       .login-right { padding: 36px 28px; }
-      .login-right h1 { font-size: 22px; }
+      .login-step h1 { font-size: 22px; }
     }
   </style>
 </head>
@@ -309,7 +382,7 @@
   <!-- ── Left Panel ── -->
   <div class="login-left">
     <div class="login-brand">
-      <img src="../images/logo.png" alt="Vedansh Medicare" class="site-logo-img" style="height:56px;border-radius:0;padding:0;background:none;filter:none;" />
+      <img src="../images/logo.png" alt="Vedansh Medicare" style="height:56px;border-radius:0;padding:0;background:none;filter:none;" />
       <div>
         <span class="login-brand-name">Vedansh Medicare</span>
         <span class="login-brand-sub">Admin Portal</span>
@@ -321,113 +394,189 @@
       <p>One powerful dashboard to control appointments, doctors, content, and everything that matters.</p>
     </div>
 
-    <div class="login-features">
-      <div class="login-feature">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-        </svg>
-        Secure JWT Authentication
-      </div>
-      <div class="login-feature">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-        </svg>
-        Role-Based Access Control
-      </div>
-      <div class="login-feature">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-        </svg>
-        Real-Time Analytics &amp; Reports
-      </div>
-    </div>
   </div>
 
   <!-- ── Right Panel ── -->
   <div class="login-right">
-    <h1>Welcome back 👋</h1>
-    <p class="subtitle">Sign in to your admin account to continue</p>
 
-    <div class="login-notice" id="login-notice">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-      <span id="login-notice-msg">You have been logged out.</span>
+    <!-- ══ Step 1: Email + Password ══ -->
+    <div class="login-step active" id="step-1">
+      <h1>Welcome Back</h1>
+      <p class="subtitle">Sign in to your admin account</p>
+
+      <div class="alert alert-warning" id="login-notice">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        <span id="login-notice-msg"></span>
+      </div>
+
+      <form id="creds-form" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="email">Email Address</label>
+          <div class="input-wrap">
+            <span class="input-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+              </svg>
+            </span>
+            <input type="email" id="email" name="email" class="form-control"
+              placeholder="admin@vedanshmedicare.com"
+              autocomplete="email" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <div class="input-wrap">
+            <span class="input-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7 11V7a5 5 0 0110 0v4"/>
+              </svg>
+            </span>
+            <input type="password" id="password" name="password" class="form-control"
+              placeholder="Enter your password"
+              autocomplete="current-password" required />
+            <button type="button" class="toggle-pass" id="toggle-pass" aria-label="Toggle password">
+              <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary" id="creds-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+          </svg>
+          Continue
+        </button>
+
+        <div class="alert alert-error" id="creds-error">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span id="creds-error-msg">Invalid email or password. Please try again.</span>
+        </div>
+      </form>
     </div>
 
-    <form id="login-form" novalidate>
-      <div class="form-group">
-        <label class="form-label" for="email">Email Address</label>
-        <div class="input-wrap">
-          <span class="input-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-            </svg>
-          </span>
-          <input type="email" id="email" name="email" class="form-control"
-            placeholder="admin@vedanshmedicare.com"
-            autocomplete="email" required />
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label" for="password">Password</label>
-        <div class="input-wrap">
-          <span class="input-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-              <path stroke-linecap="round" stroke-linejoin="round" d="M7 11V7a5 5 0 0110 0v4"/>
-            </svg>
-          </span>
-          <input type="password" id="password" name="password" class="form-control"
-            placeholder="Enter your password"
-            autocomplete="current-password" required />
-          <button type="button" class="toggle-pass" id="toggle-pass" aria-label="Toggle password">
-            <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-              <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <div class="form-footer">
-        <label class="remember-label">
-          <input type="checkbox" id="remember" />
-          Remember me
-        </label>
-        <a href="#" class="forgot-link">Forgot password?</a>
-      </div>
-
-      <button type="submit" class="btn-login" id="login-btn">
+    <!-- ══ Step 2a: First-time MFA Setup ══ -->
+    <div class="login-step" id="step-setup">
+      <button class="back-link" id="back-from-setup">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
         </svg>
-        Sign In
+        Back
       </button>
 
-      <div class="login-error" id="login-error">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="12" y1="8" x2="12" y2="12"/>
-          <line x1="12" y1="16" x2="12.01" y2="16"/>
-        </svg>
-        Invalid email or password. Please try again.
+      <h1>Set Up Authenticator</h1>
+      <p class="subtitle">One-time setup required to secure your account</p>
+
+      <div class="setup-steps">
+        <div class="setup-step-item">
+          <span class="setup-step-num">1</span>
+          <span>Install <strong>Google Authenticator</strong> or <strong>Authy</strong> on your phone</span>
+        </div>
+        <div class="setup-step-item">
+          <span class="setup-step-num">2</span>
+          <span>Tap "Add account" and scan the QR code below</span>
+        </div>
+        <div class="setup-step-item">
+          <span class="setup-step-num">3</span>
+          <span>Enter the 6-digit code shown in the app to confirm</span>
+        </div>
       </div>
-    </form>
 
-  </div>
+      <div class="qr-wrapper">
+        <div class="qr-box">
+          <div id="qr-code"></div>
+        </div>
+        <div class="manual-key-block" style="width:100%">
+          <p>Can't scan? Enter this key manually in your app:</p>
+          <code id="totp-secret-display"></code>
+        </div>
+      </div>
 
-</div>
+      <form id="setup-form" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="setup-otp">Verification Code</label>
+          <input type="text" id="setup-otp" class="otp-input"
+            placeholder="000000" maxlength="6"
+            inputmode="numeric" autocomplete="one-time-code" />
+        </div>
+
+        <button type="submit" class="btn-primary" id="setup-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          Verify &amp; Activate
+        </button>
+
+        <div class="alert alert-error" id="setup-error">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span id="setup-error-msg">Invalid code. Please try again.</span>
+        </div>
+      </form>
+    </div>
+
+    <!-- ══ Step 2b: MFA Verify (returning users) ══ -->
+    <div class="login-step" id="step-verify">
+      <button class="back-link" id="back-from-verify">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+        </svg>
+        Back
+      </button>
+
+      <h1>Two-Factor Verification</h1>
+      <p class="subtitle">Enter the 6-digit code from your authenticator app</p>
+
+      <form id="verify-form" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="verify-otp">Verification Code</label>
+          <input type="text" id="verify-otp" class="otp-input"
+            placeholder="000000" maxlength="6"
+            inputmode="numeric" autocomplete="one-time-code" />
+        </div>
+
+        <button type="submit" class="btn-primary" id="verify-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+          </svg>
+          Verify
+        </button>
+
+        <div class="alert alert-error" id="verify-error">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span id="verify-error-msg">Invalid code. Please try again.</span>
+        </div>
+      </form>
+    </div>
+
+  </div><!-- /.login-right -->
+
+</div><!-- /.login-wrapper -->
 
 <script src="../_config.js"></script>
 <script>
-  const API = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || 'http://localhost:8000';
-  const SIGN_IN_HTML = `
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="18" height="18">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
-    </svg>
-    Sign In`;
+  const API     = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL)  || 'http://localhost:8000';
+  const API_KEY = (window.APP_CONFIG && window.APP_CONFIG.PUBLIC_API_KEY) || '';
 
-  /* ── Show logout reason if redirected from dashboard ── */
+  /* ── State ── */
+  let preToken = null;
+
+  /* ── Step management ── */
+  function showStep(id) {
+    document.querySelectorAll('.login-step').forEach(el => el.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  /* ── Show logout/session notice ── */
   (function () {
     const reason = sessionStorage.getItem('vm_logout_reason');
     if (!reason) return;
@@ -448,48 +597,163 @@
     const icon = document.getElementById('eye-icon');
     if (pwd.type === 'password') {
       pwd.type = 'text';
-      icon.innerHTML = `
-        <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>`;
+      icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>`;
     } else {
       pwd.type = 'password';
-      icon.innerHTML = `
-        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-        <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>`;
+      icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>`;
     }
   });
 
-  /* ── Login Submit ── */
-  document.getElementById('login-form').addEventListener('submit', async function (e) {
+  /* ── Spinner helper ── */
+  const SPIN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="18" height="18" class="spin"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>`;
+
+  function setBusy(btn, label) {
+    btn.disabled = true;
+    btn.innerHTML = `${SPIN_SVG} ${label}`;
+  }
+  function setIdle(btn, html) {
+    btn.disabled = false;
+    btn.innerHTML = html;
+  }
+
+  /* ── Session complete: store token and redirect ── */
+  function completeLogin(data) {
+    sessionStorage.setItem('vm_token', JSON.stringify(data));
+    window.location.href = 'dashboard.html';
+  }
+
+  /* ── Step 1: Credentials ── */
+  const CREDS_BTN_HTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg> Continue`;
+
+  document.getElementById('creds-form').addEventListener('submit', async function (e) {
     e.preventDefault();
     const email    = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
-    const btn      = document.getElementById('login-btn');
-    const errEl    = document.getElementById('login-error');
+    const btn      = document.getElementById('creds-btn');
+    const errEl    = document.getElementById('creds-error');
+    const errMsg   = document.getElementById('creds-error-msg');
 
     errEl.style.display = 'none';
     document.getElementById('login-notice').style.display = 'none';
-    btn.disabled = true;
-    btn.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="18" height="18" class="spin">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-      </svg>
-      Signing in…`;
+    setBusy(btn, 'Checking…');
 
     try {
       const res = await fetch(`${API}/api/auth/login`, {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Api-Key': API_KEY },
         body:    JSON.stringify({ email, password }),
       });
-      if (!res.ok) throw new Error('invalid');
       const data = await res.json();
-      sessionStorage.setItem('vm_token', JSON.stringify(data));
-      window.location.href = 'dashboard.html';
-    } catch (_) {
-      btn.disabled = false;
-      btn.innerHTML = SIGN_IN_HTML;
+      if (!res.ok) throw new Error(data.detail || 'Invalid credentials');
+
+      if (data.token) {
+        completeLogin(data);
+      } else if (data.step === 'mfa_setup') {
+        preToken = data.pre_token;
+        renderQRCode(data.totp_uri);
+        showStep('step-setup');
+        setTimeout(() => document.getElementById('setup-otp').focus(), 100);
+      } else {
+        preToken = data.pre_token;
+        showStep('step-verify');
+        setTimeout(() => document.getElementById('verify-otp').focus(), 100);
+      }
+    } catch (err) {
+      errMsg.textContent = (err instanceof TypeError) ? 'Something went wrong. Please try again later.' : (err.message || 'Invalid email or password. Please try again.');
       errEl.style.display = 'flex';
+    } finally {
+      setIdle(btn, CREDS_BTN_HTML);
     }
+  });
+
+  /* ── QR Code rendering ── */
+  function renderQRCode(totpUri) {
+    const container = document.getElementById('qr-code');
+    container.innerHTML = '';
+    new QRCode(container, { text: totpUri, width: 180, height: 180, correctLevel: QRCode.CorrectLevel.M });
+    const secret = (totpUri.match(/secret=([^&]+)/) || [])[1] || '';
+    document.getElementById('totp-secret-display').textContent = secret.replace(/(.{4})/g, '$1 ').trim();
+  }
+
+  /* ── Step 2a: MFA Setup confirm ── */
+  const SETUP_BTN_HTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Verify &amp; Activate`;
+
+  document.getElementById('setup-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const code   = document.getElementById('setup-otp').value.replace(/\s/g, '');
+    const btn    = document.getElementById('setup-btn');
+    const errEl  = document.getElementById('setup-error');
+    const errMsg = document.getElementById('setup-error-msg');
+
+    errEl.style.display = 'none';
+    setBusy(btn, 'Verifying…');
+
+    try {
+      const res = await fetch(`${API}/api/auth/mfa/setup`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Api-Key': API_KEY },
+        body:    JSON.stringify({ pre_token: preToken, code }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Invalid code');
+      completeLogin(data);
+    } catch (err) {
+      errMsg.textContent = (err instanceof TypeError) ? 'Something went wrong. Please try again later.' : (err.message || 'Invalid code. Please try again.');
+      errEl.style.display = 'flex';
+      setIdle(btn, SETUP_BTN_HTML);
+    }
+  });
+
+  /* ── Step 2b: MFA Verify ── */
+  const VERIFY_BTN_HTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg> Verify`;
+
+  document.getElementById('verify-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const code   = document.getElementById('verify-otp').value.replace(/\s/g, '');
+    const btn    = document.getElementById('verify-btn');
+    const errEl  = document.getElementById('verify-error');
+    const errMsg = document.getElementById('verify-error-msg');
+
+    errEl.style.display = 'none';
+    setBusy(btn, 'Verifying…');
+
+    try {
+      const res = await fetch(`${API}/api/auth/mfa/verify`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Api-Key': API_KEY },
+        body:    JSON.stringify({ pre_token: preToken, code }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Invalid code');
+      completeLogin(data);
+    } catch (err) {
+      errMsg.textContent = (err instanceof TypeError) ? 'Something went wrong. Please try again later.' : (err.message || 'Invalid code. Please try again.');
+      errEl.style.display = 'flex';
+      setIdle(btn, VERIFY_BTN_HTML);
+    }
+  });
+
+  /* ── Back buttons — return to step 1 ── */
+  ['back-from-setup', 'back-from-verify'].forEach(id => {
+    document.getElementById(id).addEventListener('click', function () {
+      preToken = null;
+      document.getElementById('setup-otp').value = '';
+      document.getElementById('verify-otp').value = '';
+      document.getElementById('setup-error').style.display = 'none';
+      document.getElementById('verify-error').style.display = 'none';
+      showStep('step-1');
+    });
+  });
+
+  /* ── Auto-submit OTP when 6 digits entered ── */
+  ['setup-otp', 'verify-otp'].forEach(id => {
+    document.getElementById(id).addEventListener('input', function () {
+      const val = this.value.replace(/\D/g, '');
+      this.value = val;
+      if (val.length === 6) {
+        this.closest('form').requestSubmit();
+      }
+    });
   });
 </script>
 </body>

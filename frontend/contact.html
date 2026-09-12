@@ -238,7 +238,15 @@
 <script src="js/shared.js"></script>
 <script>
 (function () {
-  const API_BASE = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || 'http://localhost:8000';
+  const API_BASE = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL)  || 'http://localhost:8000';
+  const _cKEY   = (window.APP_CONFIG && window.APP_CONFIG.PUBLIC_API_KEY) || '';
+  async function _getPageToken() {
+    let pt = sessionStorage.getItem('vm_pt') || '';
+    if (!pt || Date.now() > Number(sessionStorage.getItem('vm_pt_exp') || 0)) {
+      try { const r = await fetch(API_BASE + '/api/public-token'); if (r.ok) { const d = await r.json(); pt = d.token; sessionStorage.setItem('vm_pt', pt); sessionStorage.setItem('vm_pt_exp', Date.now() + (d.expires_in - 60) * 1000); } } catch (_) {}
+    }
+    return pt;
+  }
   const stars     = document.querySelectorAll('#fb-stars .star');
   const ratingIn  = document.getElementById('fb-rating');
   let selected = 5;
@@ -272,9 +280,10 @@
     btn.disabled = true;
 
     try {
+      const pt  = await _getPageToken();
       const res = await fetch(API_BASE + '/api/testimonials', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Api-Key': _cKEY, 'X-Page-Token': pt },
         body: JSON.stringify({ name, text, rating }),
       });
       if (res.ok) {
