@@ -2311,22 +2311,23 @@ body.has-marquee .hero-content {
   z-index: var(--z-modal);
   width: 60px;
   height: 60px;
-  background: #25D366;
+  background: linear-gradient(135deg, #0A4D8C 0%, #00A6A6 100%);
   border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 24px rgba(37,211,102,0.4);
+  box-shadow: 0 4px 24px rgba(10,77,140,0.45);
   cursor: pointer;
   transition: all var(--transition-spring);
+  border: none;
 }
 
 .wa-trigger:hover {
   transform: scale(1.1);
-  box-shadow: 0 8px 32px rgba(37,211,102,0.5);
+  box-shadow: 0 8px 32px rgba(10,77,140,0.55);
 }
 
-.wa-trigger svg { width: 32px; height: 32px; color: #fff; }
+.wa-trigger svg { width: 28px; height: 28px; color: #fff; }
 
 .wa-badge {
   position: absolute;
@@ -2368,7 +2369,7 @@ body.has-marquee .hero-content {
 }
 
 .wa-panel-header {
-  background: #25D366;
+  background: linear-gradient(135deg, #0A4D8C 0%, #00A6A6 100%);
   color: #fff;
   padding: var(--space-4) var(--space-5);
   display: flex;
@@ -2380,10 +2381,11 @@ body.has-marquee .hero-content {
   width: 40px;
   height: 40px;
   border-radius: var(--radius-full);
-  background: rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.18);
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .wa-panel-avatar svg { width: 22px; height: 22px; }
@@ -2401,17 +2403,16 @@ body.has-marquee .hero-content {
   content: '';
   width: 7px;
   height: 7px;
-  background: #fff;
+  background: #4ade80;
   border-radius: 50%;
   display: block;
 }
 
 .wa-chat-area {
   padding: var(--space-4);
-  height: 260px;
+  height: 280px;
   overflow-y: auto;
-  background: #f0f4f0;
-  background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%2300000008' fill-rule='evenodd'%3E%3Cpath d='M0 0h40v40H0z' fill='none'/%3E%3Cpath d='M0 20L20 0l20 20-20 20z' fill='%2300000006'/%3E%3C/g%3E%3C/svg%3E");
+  background: #F0F4FA;
 }
 
 .wa-message {
@@ -2434,12 +2435,14 @@ body.has-marquee .hero-content {
   background: #fff;
   border-bottom-left-radius: 4px;
   box-shadow: var(--shadow-xs);
+  color: #1F2937;
 }
 
 .wa-message-user .wa-bubble {
-  background: #dcf8c6;
+  background: #DBEAFE;
   border-bottom-right-radius: 4px;
   box-shadow: var(--shadow-xs);
+  color: #1e3a5f;
 }
 
 .wa-options {
@@ -2450,19 +2453,21 @@ body.has-marquee .hero-content {
 }
 
 .wa-option-btn {
-  background: var(--color-primary);
-  color: #fff;
+  background: #EFF6FF;
+  color: #0A4D8C;
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-full);
   font-size: var(--text-xs);
   font-weight: var(--font-medium);
   cursor: pointer;
-  border: none;
+  border: 1.5px solid #BFDBFE;
   transition: all var(--transition-fast);
 }
 
 .wa-option-btn:hover {
-  background: var(--color-primary-dark);
+  background: #0A4D8C;
+  color: #fff;
+  border-color: #0A4D8C;
   transform: translateY(-1px);
 }
 
@@ -2471,6 +2476,7 @@ body.has-marquee .hero-content {
   border-top: 1px solid var(--color-border);
   display: flex;
   gap: var(--space-2);
+  background: #fff;
 }
 
 .wa-input {
@@ -2480,14 +2486,15 @@ body.has-marquee .hero-content {
   border-radius: var(--radius-full);
   font-size: var(--text-sm);
   outline: none;
+  background: #F8FBFD;
 }
 
-.wa-input:focus { border-color: #25D366; }
+.wa-input:focus { border-color: #0A4D8C; box-shadow: 0 0 0 3px rgba(10,77,140,0.08); }
 
 .wa-send-btn {
   width: 40px;
   height: 40px;
-  background: #25D366;
+  background: linear-gradient(135deg, #0A4D8C, #00A6A6);
   border-radius: var(--radius-full);
   display: flex;
   align-items: center;
@@ -2496,9 +2503,10 @@ body.has-marquee .hero-content {
   cursor: pointer;
   border: none;
   transition: all var(--transition-fast);
+  flex-shrink: 0;
 }
 
-.wa-send-btn:hover { background: #128C7E; }
+.wa-send-btn:hover { opacity: 0.88; transform: scale(1.05); }
 .wa-send-btn svg { width: 18px; height: 18px; }
 
 /* ── ─────────────────────────────────────────────────────── */

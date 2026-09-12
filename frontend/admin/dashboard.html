@@ -1568,7 +1568,7 @@
     if (!d.token) { _forceLogout('session_expired'); return; }
     try {
       const res = await fetch(`${API}/api/auth/verify`, {
-        headers: { 'Authorization': `Bearer ${d.token}` }
+        headers: _authHeaders()
       });
       if (res.status === 401) {
         const expiry = _getExpiry();
@@ -1593,7 +1593,7 @@
     try {
       const res = await fetch(`${API}/api/auth/refresh`, {
         method:  'POST',
-        headers: { 'Authorization': `Bearer ${d.token}` }
+        headers: _authHeaders()
       });
       if (!res.ok) { _forceLogout('session_expired'); return; }
       const data = await res.json();
@@ -1606,8 +1606,13 @@
     }
   }
 
-  // Poll server every 60 s
-  setInterval(_verifySession, 60_000);
+  // Poll server every 10 s to detect session takeover by another browser quickly
+  setInterval(_verifySession, 10_000);
+
+  // Also verify immediately whenever this tab regains focus
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') _verifySession();
+  });
 
   // Local countdown — runs every second
   setInterval(function () {
@@ -1967,7 +1972,7 @@
     if (d.token) {
       try {
         await fetch(`${API}/api/auth/logout`, {
-          method: 'POST', headers: { 'Authorization': `Bearer ${d.token}` }
+          method: 'POST', headers: _authHeaders()
         });
       } catch (_) {}
     }

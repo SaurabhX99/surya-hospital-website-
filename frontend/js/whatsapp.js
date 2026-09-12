@@ -1,5 +1,5 @@
 /* ============================================================
-   VEDANSH MEDICARE — WhatsApp AI Assistant
+   VEDANSH MEDICARE — Aiva Booking Assistant
    ============================================================ */
 
 (function () {
@@ -10,7 +10,7 @@
   /* ── Flow Definition ──────────────────────────────────── */
   const FLOW = {
     start: {
-      message: 'Hello! 👋 Welcome to *Vedansh Medicare*. How can I assist you today?',
+      message: 'Hello! 👋 I\'m *Surya*, your Booking Assistant at Vedansh Medicare. How can I help you today?',
       options: [
         { label: '📅 Book Appointment',    next: 'book_dept' },
         { label: '👨‍⚕️ Doctor Info',          next: 'doctor_info' },
@@ -50,8 +50,8 @@
     book_confirm: {
       message: '✅ *Appointment request received!* Our team will call you within 30 minutes to confirm.\n\nFor immediate help, call *+91 9650494019*.',
       options: [
-        { label: '🏠 Main Menu', next: 'start' },
-        { label: '📞 Call Now',  action: 'call' },
+        { label: '🏠 Main Menu',  next: 'start' },
+        { label: '📞 Call Now',   action: 'call' },
       ],
     },
     doctor_info: {
@@ -118,21 +118,54 @@
       options: [{ label: '🏠 Main Menu', next: 'start' }],
     },
     faq_book: {
-      message: '📅 You can book an appointment by:\n1. Using this chat assistant\n2. Calling *+91 9650494019*\n3. Filling the form on our website\n4. WhatsApp: *+91 9650494019*',
+      message: '📅 You can book an appointment by:\n1. Using this chat assistant (you\'re already here! 😊)\n2. Calling *+91 9650494019*\n3. Filling the form on our website',
       options: [
         { label: '📅 Book Now',  next: 'book_dept' },
         { label: '🏠 Main Menu', next: 'start' },
       ],
     },
     escalate: {
-      message: '👩‍💼 *Connecting you to our staff...*\n\nPlease call us directly or continue on WhatsApp:\n📞 *+91 9650494019*\n💬 Our team is available Mon–Sat, 8 AM – 8 PM.',
+      message: '👩‍💼 *Connecting you to our team...*\n\nPlease call us directly:\n📞 *+91 9650494019*\n\nOur team is available Mon–Sat, 8 AM – 8 PM.',
       options: [
-        { label: '📞 Call Staff',     action: 'call' },
-        { label: '💬 Open WhatsApp',  action: 'whatsapp' },
-        { label: '🏠 Main Menu',      next: 'start' },
+        { label: '📞 Call Staff',  action: 'call' },
+        { label: '🏠 Main Menu',   next: 'start' },
       ],
     },
   };
+
+  /* ── API helpers ──────────────────────────────────────── */
+  const API_BASE = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || 'http://localhost:8000';
+  const API_KEY  = (window.APP_CONFIG && window.APP_CONFIG.PUBLIC_API_KEY) || '';
+  let _pt = sessionStorage.getItem('vm_pt') || '';
+
+  async function _getPageToken() {
+    const expiry = Number(sessionStorage.getItem('vm_pt_exp') || 0);
+    if (_pt && Date.now() < expiry) return _pt;
+    try {
+      const r = await fetch(API_BASE + '/api/public-token');
+      if (!r.ok) return _pt;
+      const d = await r.json();
+      _pt = d.token;
+      sessionStorage.setItem('vm_pt', _pt);
+      sessionStorage.setItem('vm_pt_exp', Date.now() + (d.expires_in - 60) * 1000);
+    } catch (_) {}
+    return _pt;
+  }
+
+  async function _submitAppointment(data) {
+    const pt = await _getPageToken();
+    const res = await fetch(API_BASE + '/api/appointments', {
+      method:  'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Api-Key':    API_KEY,
+        'X-Page-Token': pt,
+      },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to save appointment');
+    return await res.json();
+  }
 
   /* ── State ────────────────────────────────────────────── */
   const state = {
@@ -236,10 +269,6 @@
       }
       return;
     }
-    if (opt.action === 'whatsapp') {
-      window.open(`https://wa.me/${PHONE}`, '_blank', 'noopener');
-      return;
-    }
     if (opt.dept) {
       state.collected.department = opt.dept;
     }
@@ -254,16 +283,51 @@
 
     const current = FLOW[state.collecting];
     if (current && current.input && current.next) {
-      if (state.collecting === 'book_name')   state.collected.name   = text;
-      if (state.collecting === 'book_mobile') state.collected.mobile = text;
-      if (state.collecting === 'book_date')   state.collected.date   = text;
+      if (state.collecting === 'book_mobile') {
+        const digits = text.replace(/\D/g, '');
+        const valid  = /^[6-9]\d{9}$/.test(digits);
+        if (!valid) {
+          appendMessage('⚠️ Please enter a valid 10-digit Indian mobile number (e.g. 9876543210).', 'bot');
+          input.focus();
+          return;
+        }
+        state.collected.mobile = digits;
+      } else if (state.collecting === 'book_name') {
+        state.collected.name = text;
+      } else if (state.collecting === 'book_date') {
+        state.collected.date = text;
+      }
 
       input.disabled = true;
       input.placeholder = 'Type a message…';
       state.collecting = null;
 
-      setTimeout(() => renderStep(current.next), 400);
+      if (current.next === 'book_confirm') {
+        _bookAppointment();
+      } else {
+        setTimeout(() => renderStep(current.next), 400);
+      }
     }
+  }
+
+  async function _bookAppointment() {
+    typewriterAppend('Booking your appointment…', 'bot', null);
+    try {
+      await _submitAppointment({
+        name:       state.collected.name       || '',
+        mobile:     state.collected.mobile     || '',
+        department: state.collected.department || '',
+        date:       state.collected.date       || '',
+        message:    'Booked via Surya chat assistant',
+      });
+      // Replace static message with a success variant
+      FLOW.book_confirm.message =
+        '✅ *Appointment booked successfully!* Our team will call you within 30 minutes to confirm.\n\nFor immediate help, call *+91 9650494019*.';
+    } catch (_) {
+      FLOW.book_confirm.message =
+        '⚠️ We received your request but could not save it automatically. Please call *+91 9650494019* to confirm your appointment.\n\nSorry for the inconvenience.';
+    }
+    setTimeout(() => renderStep('book_confirm'), 400);
   }
 
   /* ── Toggle Panel ─────────────────────────────────────── */
