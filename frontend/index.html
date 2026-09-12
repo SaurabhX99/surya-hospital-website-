@@ -852,13 +852,52 @@
 <!-- ═══════════════════════════════════════════════════════
      WHATSAPP FLOATING BUTTON
 ═══════════════════════════════════════════════════════ -->
-<button type="button" id="wa-trigger" class="wa-trigger" aria-label="Chat on WhatsApp" aria-expanded="false">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-</button>
+<div style="position:fixed;bottom:var(--space-6);right:var(--space-6);z-index:var(--z-modal);display:flex;flex-direction:column;align-items:flex-end;">
+
+  <!-- Chat panel -->
+  <div id="wa-panel" class="wa-panel">
+    <div class="wa-panel-header">
+      <div class="wa-panel-avatar">
+        <!-- Bot / AI icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="1.8" width="22" height="22">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.75H14.25M12 3.75V6M6.75 9.75A2.25 2.25 0 019 7.5h6a2.25 2.25 0 012.25 2.25v5.25A2.25 2.25 0 0115 17.25H9a2.25 2.25 0 01-2.25-2.25V9.75z"/>
+          <circle cx="9.75" cy="12" r="0.75" fill="white" stroke="none"/>
+          <circle cx="14.25" cy="12" r="0.75" fill="white" stroke="none"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 17.25v1.5a.75.75 0 00.75.75h7.5a.75.75 0 00.75-.75v-1.5"/>
+        </svg>
+      </div>
+      <div style="flex:1">
+        <div class="wa-panel-name">Surya — Booking Assistant</div>
+        <div class="wa-panel-status">Assistant · Always available</div>
+      </div>
+      <button id="wa-close" aria-label="Close chat" style="background:none;border:none;cursor:pointer;color:#fff;display:flex;padding:4px;">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div id="wa-chat" class="wa-chat-area"></div>
+    <div class="wa-input-area">
+      <input id="wa-input" class="wa-input" type="text" placeholder="Type a message…" disabled />
+      <button id="wa-send" class="wa-send-btn" aria-label="Send">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Trigger button -->
+  <button type="button" id="wa-trigger" class="wa-trigger" aria-label="Chat with Booking Assistant" aria-expanded="false">
+    <span class="wa-badge">1</span>
+    <!-- Chat bubble icon -->
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2" width="28" height="28">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3v-3z"/>
+    </svg>
+  </button>
+
+</div>
 
 
 <!-- Scripts -->
 <script src="js/data.js"></script>
 <script src="js/main.js"></script>
+<script src="js/whatsapp.js"></script>
 </body>
 </html>
