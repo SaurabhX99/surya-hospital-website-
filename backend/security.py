@@ -116,18 +116,21 @@ def rate_limit(max_hits: int, window_seconds: int) -> Callable:
 
 # ── Layer 1 + 2: Request middleware ──────────────────────────────────────────
 
-# Paths that bypass both the API key and origin checks:
-#  - /                    health-check
+# Only API paths are protected. Static files and non-API paths are always open.
+# Within /api/, these specific paths bypass security checks:
 #  - /api/public-token    token issuer (would be circular if it required the key)
 #  - /api/proxy/*         browser loads these as <img src> / <video src>;
 #                         the browser cannot send custom headers for those requests
-_OPEN_PATHS    = {"/", "/api/public-token"}
-_OPEN_PREFIXES = ("/api/proxy/",)
+_OPEN_API_PATHS    = {"/api/public-token"}
+_OPEN_API_PREFIXES = ("/api/proxy/",)
 
 
 def _is_open(path: str) -> bool:
     path = path.rstrip("/") or "/"
-    return path in _OPEN_PATHS or any(path.startswith(p) for p in _OPEN_PREFIXES)
+    # Non-API paths (static files, HTML pages) are always open.
+    if not path.startswith("/api"):
+        return True
+    return path in _OPEN_API_PATHS or any(path.startswith(p) for p in _OPEN_API_PREFIXES)
 
 
 def _cors_json(status: int, content: dict, request: Request) -> JSONResponse:

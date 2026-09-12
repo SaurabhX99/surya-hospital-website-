@@ -2,6 +2,6 @@
 // Update API_BASE_URL to your deployed backend URL before going live.
 // For local development leave it as http://localhost:8000
 window.APP_CONFIG = {
-  API_BASE_URL:   'http://localhost:8000',
+  API_BASE_URL:   'https://surya-hospital-website.onrender.com',
   PUBLIC_API_KEY: 'Puj6Vlhm8E06j2kABHOghPPAO8uu9zLnAJXaKwkaIZU',
 };
