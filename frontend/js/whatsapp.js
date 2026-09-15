@@ -22,14 +22,17 @@
       ],
     },
     book_dept: {
-      message: 'Great! Which department do you need an appointment for?',
+      message: 'Which department do you need an appointment for?',
       options: [
-        { label: 'General Medicine',     next: 'book_name', dept: 'General Medicine' },
-        { label: 'Cardiology',           next: 'book_name', dept: 'Cardiology' },
-        { label: 'Gynaecology',          next: 'book_name', dept: 'Obstetrics & Gynaecology' },
-        { label: 'Pediatrics',           next: 'book_name', dept: 'Pediatrics' },
-        { label: 'Orthopaedics',         next: 'book_name', dept: 'Orthopaedics' },
-        { label: 'Other Dept.',          next: 'book_name', dept: 'Other' },
+        { label: 'Cardiology',        next: 'book_name', dept: 'CARDIOLOGY' },
+        { label: 'Gynaecology',       next: 'book_name', dept: 'GYNAECOLOGIST' },
+        { label: 'Paediatrics',       next: 'book_name', dept: 'PAEDIATRIC' },
+        { label: 'Orthopaedic',       next: 'book_name', dept: 'ORTHOPEDIC' },
+        { label: 'Neurology',         next: 'book_name', dept: 'NEURO' },
+        { label: 'ENT',               next: 'book_name', dept: 'ENT' },
+        { label: 'Dermatology',       next: 'book_name', dept: 'DERMATOLOGY' },
+        { label: 'General Surgery',   next: 'book_name', dept: 'GENERAL SURGEON' },
+        { label: 'Other',             next: 'book_name', dept: 'Other' },
       ],
     },
     book_name: {
@@ -55,14 +58,18 @@
       ],
     },
     doctor_info: {
-      message: 'We have specialist doctors across 20+ departments. Which speciality are you looking for?',
+      message: 'Which speciality are you looking for?',
       options: [
-        { label: 'Cardiologist',    next: 'doctor_result', dept: 'Cardiology' },
-        { label: 'Gynaecologist',   next: 'doctor_result', dept: 'Gynaecology' },
-        { label: 'Paediatrician',   next: 'doctor_result', dept: 'Pediatrics' },
-        { label: 'Neurologist',     next: 'doctor_result', dept: 'Neuroscience' },
-        { label: 'Nephrologist',    next: 'doctor_result', dept: 'Nephrology' },
-        { label: 'Other',           next: 'escalate' },
+        { label: 'Cardiologist',     next: 'doctor_result', dept: 'CARDIOLOGY' },
+        { label: 'Gynaecologist',    next: 'doctor_result', dept: 'GYNAECOLOGIST' },
+        { label: 'Paediatrician',    next: 'doctor_result', dept: 'PAEDIATRIC' },
+        { label: 'Neurologist',      next: 'doctor_result', dept: 'NEURO' },
+        { label: 'Orthopaedic',      next: 'doctor_result', dept: 'ORTHOPEDIC' },
+        { label: 'ENT Specialist',   next: 'doctor_result', dept: 'ENT' },
+        { label: 'Dermatologist',    next: 'doctor_result', dept: 'DERMATOLOGY' },
+        { label: 'Ophthalmologist',  next: 'doctor_result', dept: 'OPTHAMOLOGY' },
+        { label: 'General Surgeon',  next: 'doctor_result', dept: 'GENERAL SURGEON' },
+        { label: 'Other',            next: 'escalate' },
       ],
     },
     doctor_result: {
@@ -150,6 +157,45 @@
       sessionStorage.setItem('vm_pt_exp', Date.now() + (d.expires_in - 60) * 1000);
     } catch (_) {}
     return _pt;
+  }
+
+  async function _fetchDoctors(dept) {
+    const pt  = await _getPageToken();
+    const res = await fetch(API_BASE + '/api/doctors', {
+      headers: { 'X-Api-Key': API_KEY, 'X-Page-Token': pt },
+    });
+    if (!res.ok) return [];
+    const all = await res.json();
+    if (!dept) return all;
+    const q = dept.toLowerCase();
+    return all.filter(d => d.department && d.department.toLowerCase() === q);
+  }
+
+  function _titleCase(str) {
+    return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  async function _showDoctorResult() {
+    const dept      = state.collected.department || '';
+    const deptLabel = _titleCase(dept) || 'Specialist';
+    typewriterAppend('Looking up our specialists for you…', 'bot', null);
+    try {
+      const doctors = await _fetchDoctors(dept);
+      if (doctors.length > 0) {
+        const list = doctors
+          .map(d => `👨‍⚕️ *${d.name}*\n🎓 ${d.qualification} · ${d.experience}\n⏰ ${d.timing}`)
+          .join('\n\n');
+        FLOW.doctor_result.message =
+          `Here are our *${deptLabel}* specialists:\n\n${list}\n\n📅 Book an appointment or call *+91 9650494019* to confirm availability.`;
+      } else {
+        FLOW.doctor_result.message =
+          `Our *${deptLabel}* doctors are available Mon–Sat. Please book an appointment or call us to check current availability.\n📞 *+91 9650494019*`;
+      }
+    } catch (_) {
+      FLOW.doctor_result.message =
+        `Our specialists are available Mon–Sat. Please book an appointment or call us directly.\n📞 *+91 9650494019*`;
+    }
+    setTimeout(() => renderStep('doctor_result'), 300);
   }
 
   async function _submitAppointment(data) {
@@ -271,6 +317,11 @@
     }
     if (opt.dept) {
       state.collected.department = opt.dept;
+    }
+
+    if (opt.next === 'doctor_result') {
+      _showDoctorResult();
+      return;
     }
 
     setTimeout(() => renderStep(opt.next), 300);
