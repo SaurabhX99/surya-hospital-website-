@@ -94,6 +94,7 @@ _partnercol = _mdb["partners"]
 _statscol   = _mdb["hero_stats"]
 _smscfgcol  = _mdb["sms_config"]        # stores admin-configured SMS provider settings & template
 _sitecfgcol = _mdb["site_config"]       # stores site-wide settings like hospital phone number
+_smslogcol  = _mdb["sms_logs"]          # append-only audit log of every SMS attempt
 
 # ── Tenant + user middleware — resolves tenant and logged-in user per request ──
 @app.middleware("http")
@@ -610,13 +611,40 @@ def _send_appointment_sms(
 
         # Normalise the patient's mobile to E.164 format before sending
         to = _e164(mobile)
+
+        # Base audit log entry — will be updated with outcome after send attempt
+        log_entry = {
+            "tenant_name":      _tenant(),
+            "appointment_id":   appointment_id,
+            "ref_id":           short_id,
+            "to":               to,
+            "patient_name":     name,
+            "department":       department or "General",
+            "doctor":           doctor or "To be assigned",
+            "date":             date or "To be confirmed",
+            "message":          message,
+            "provider":         provider,
+            "status":           "pending",
+            "error":            None,
+            "sent_at":          datetime.now(timezone.utc),
+        }
+
         try:
             from twilio.rest import Client
             Client(sid, token).messages.create(to=to, from_=from_num, body=message)
             print(f"[SMS-OK] Appointment SMS sent to {to} (ref {short_id})")
+            log_entry["status"] = "success"
         except Exception as e:
             # Log the error but never let an SMS failure block the appointment booking
             print(f"[SMS-ERR] Failed to send to {to}: {e}")
+            log_entry["status"] = "failed"
+            log_entry["error"]  = str(e)
+        finally:
+            # Always write the audit entry regardless of success or failure
+            try:
+                _smslogcol.insert_one(log_entry)
+            except Exception as le:
+                print(f"[SMS-LOG-ERR] Could not write audit log: {le}")
     else:
         print(f"[SMS-CONFIG] Unsupported provider '{provider}' — skipping SMS")
 
@@ -1871,3 +1899,31 @@ def update_admin_user(user_id: str, body: UserUpdateIn, _admin: dict = Depends(_
     updates["updated_by"] = _user_email()
     _usercol.update_one({"_id": oid}, {"$set": updates})
     return {"success": True}
+
+
+# ── SMS Audit Log Route ───────────────────────────────────────────────
+# Returns a paginated list of every SMS attempt for this tenant.
+# SUPER_ADMIN only — contains patient names, phone numbers, message content.
+
+@app.get("/api/sms-logs")
+def list_sms_logs(
+    page: int = 1,
+    limit: int = 50,
+    _admin: dict = Depends(_require_super_admin),
+):
+    """Return paginated SMS audit log for this tenant, newest first."""
+    skip = (page - 1) * limit
+    total = _smslogcol.count_documents(_tq())
+    docs  = list(
+        _smslogcol.find(_tq())
+        .sort("sent_at", DESCENDING)
+        .skip(skip)
+        .limit(limit)
+    )
+    for d in docs:
+        d["id"] = str(d.pop("_id"))
+        d.pop("tenant_name", None)
+        ts = d.get("sent_at")
+        if isinstance(ts, datetime):
+            d["sent_at"] = ts.isoformat()
+    return {"total": total, "page": page, "limit": limit, "logs": docs}

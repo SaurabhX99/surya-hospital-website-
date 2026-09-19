@@ -1044,6 +1044,67 @@
     } catch (_) {}
   }
 
+  /* ── Site Config: replace hardcoded phone numbers dynamically ──────
+   * Fetches /api/site-config for the hospital phone number and updates:
+   *   • All tel: anchor hrefs                (a[href^="tel:"])
+   *   • All WhatsApp wa.me links             (a[href*="wa.me/"])
+   *   • .emergency-contact-number spans      (text content)
+   *   • .footer-emergency-number links       (text content)
+   *   • JSON-LD telephone field              (script[type="application/ld+json"])
+   *
+   * No HTML changes required — works automatically on every page that
+   * already contains phone references using the existing class names.
+   * ------------------------------------------------------------------ */
+  async function renderSiteConfig() {
+    try {
+      const res = await _apiFetch('/api/site-config');
+      if (!res.ok) return;
+      const cfg   = await res.json();
+      const raw   = (cfg && cfg.phone || '').replace(/\D/g, ''); // digits only e.g. "919650494019"
+      if (!raw) return;
+
+      const telHref  = 'tel:+' + raw;
+      const waHref   = 'https://wa.me/' + raw;
+      // Format for display: +91 XXXXXXXXXX
+      const display  = raw.length > 10
+        ? '+' + raw.slice(0, raw.length - 10) + ' ' + raw.slice(-10)
+        : '+' + raw;
+
+      // Update all tel: links — href + any visible text that looks like a phone
+      document.querySelectorAll('a[href^="tel:"]').forEach(function (el) {
+        el.href = telHref;
+        const txt = el.textContent.trim();
+        if (/^[+\d][\d\s\-().+]{6,}$/.test(txt)) el.textContent = display;
+        // Emergency button text like "Emergency: +91 9650494019"
+        if (/Emergency[:\s]+[+\d]/.test(txt)) el.textContent = 'Emergency: ' + display;
+        const al = el.getAttribute('aria-label') || '';
+        if (al) el.setAttribute('aria-label', al.replace(/[+\d][\d\s\-().+]{6,}/, display));
+      });
+
+      // Update WhatsApp links
+      document.querySelectorAll('a[href*="wa.me/"]').forEach(function (el) {
+        el.href = waHref;
+      });
+
+      // Update visible span/link elements with known phone-display classes
+      document.querySelectorAll('.emergency-contact-number').forEach(function (el) {
+        el.textContent = display;
+      });
+      document.querySelectorAll('.footer-emergency-number').forEach(function (el) {
+        // This is an <a> — text only; href already updated above
+        el.textContent = display;
+      });
+
+      // Update JSON-LD telephone field
+      document.querySelectorAll('script[type="application/ld+json"]').forEach(function (s) {
+        try {
+          var ld = JSON.parse(s.textContent);
+          if (ld && ld.telephone) { ld.telephone = '+' + raw; s.textContent = JSON.stringify(ld); }
+        } catch (_) {}
+      });
+    } catch (_) {}
+  }
+
   /* ── Init All ─────────────────────────────────────────── */
   function init() {
     injectSpinKeyframe();
@@ -1063,6 +1124,7 @@
     renderTestimonials();
     renderHeroStats();
     renderStats();
+    renderSiteConfig();
     renderPartners();
     renderCorporatePartners();
     renderBlogs();

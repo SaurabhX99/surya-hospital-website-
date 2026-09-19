@@ -638,6 +638,32 @@
     .media-card-footer .toggle-switch { transform: scale(0.85); transform-origin: left; }
     .media-empty { grid-column: 1/-1; text-align: center; color: #9CA3AF; padding: 48px 20px; }
     .media-empty svg { width: 48px; height: 48px; opacity: 0.25; margin-bottom: 12px; }
+
+    /* ── Global page loader ── */
+    #page-loader {
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(255,255,255,0.75);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s ease;
+      backdrop-filter: blur(2px);
+    }
+    #page-loader.visible { opacity: 1; pointer-events: all; }
+    .loader-ring {
+      width: 44px; height: 44px;
+      border: 4px solid #E2E8F0;
+      border-top-color: #0A4D8C;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* SMS log status badges */
+    .badge-success { background:#F0FDF4; color:#16A34A; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:600; }
+    .badge-failed  { background:#FEF2F2; color:#DC2626; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:600; }
+    .badge-pending { background:#FFFBEB; color:#D97706; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:600; }
+    .log-msg { font-size:12px; color:#4B5563; max-width:320px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; }
+    .log-msg:hover { white-space:normal; overflow:visible; }
   </style>
 </head>
 <body>
@@ -711,7 +737,11 @@
     </button>
 
     <div class="nav-section-label">Settings</div>
-    <!-- SMS Settings & Users — visible to SUPER_ADMIN only; shown via JS after auth -->
+    <!-- SMS Settings, Logs & Users — visible to SUPER_ADMIN only; shown via JS after auth -->
+    <button class="nav-item" data-page="sms-logs" data-superadmin-only style="display:none">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      <span class="nav-label">SMS Logs</span>
+    </button>
     <button class="nav-item" data-page="sms" data-superadmin-only style="display:none">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
       <span class="nav-label">SMS Settings</span>
@@ -792,6 +822,9 @@
     <span>Your session expires in <strong><span id="session-countdown">5:00</span></strong>. Unsaved changes will be lost.</span>
     <button class="session-extend-btn" onclick="extendSession()">Extend Session</button>
   </div>
+
+  <!-- Global page loader spinner — shown during navigation and data fetches -->
+  <div id="page-loader"><div class="loader-ring"></div></div>
 
   <!-- Content -->
   <div class="content-area">
@@ -1404,6 +1437,45 @@
         </div>
       </div>
     </div>
+    <!-- ── SMS LOGS ── -->
+    <div class="page-view" id="page-sms-logs">
+      <div class="page-title-row">
+        <div>
+          <div class="page-title">SMS Audit Log</div>
+          <div class="page-subtitle">Every SMS sent via the appointment booking system</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="sms-log-filter" class="form-control" style="width:140px;height:36px;font-size:13px;" onchange="loadSmsLogs(1)">
+            <option value="">All Statuses</option>
+            <option value="success">Success</option>
+            <option value="failed">Failed</option>
+          </select>
+          <button class="btn-add" onclick="loadSmsLogs(1)">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="15" height="15"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            Refresh
+          </button>
+        </div>
+      </div>
+      <div class="table-card">
+        <table class="data-table">
+          <thead><tr>
+            <th>Sent At</th>
+            <th>Ref ID</th>
+            <th>Patient</th>
+            <th>To Number</th>
+            <th>Department</th>
+            <th>Status</th>
+            <th>Message</th>
+            <th>Error</th>
+          </tr></thead>
+          <tbody id="tbody-sms-logs">
+            <tr><td colspan="8" style="text-align:center;padding:24px;color:#9CA3AF;">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="sms-logs-pagination" style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;align-items:center;"></div>
+    </div>
+
     <div class="page-view" id="page-seo"><div class="page-title-row"><div><div class="page-title">SEO Settings</div><div class="page-subtitle">Meta tags, sitemap, and schema settings</div></div></div><div class="chart-placeholder">Coming soon</div></div>
 
   </div>
@@ -2207,7 +2279,7 @@
     departments:'Departments', blogs:'Blogs', testimonials:'Testimonials',
     homepage:'Homepage CMS', media:'Media Library', users:'Users & Roles', seo:'SEO Settings',
     offers:'Offers Marquee', insurance:'Insurance Providers', partners:'Partners', stats:'Homepage Stats',
-    sms:'SMS Settings'
+    sms:'SMS Settings', 'sms-logs':'SMS Audit Log'
   };
 
   function navigate(page) {
@@ -2231,6 +2303,7 @@
     if (page === 'partners')      loadPartners();
     if (page === 'stats')         { loadHeroStats(); loadSiteConfig(); }
     if (page === 'sms')           loadSmsConfig();
+    if (page === 'sms-logs')      loadSmsLogs(1);
     if (page === 'users')         loadAdminUsers();
   }
 
@@ -3621,6 +3694,94 @@
     } else {
       toast(isEdit ? 'Failed to update user' : 'Failed to create user', 'error');
     }
+  }
+
+  /* ── Global Loader ────────────────────────────────────────────────── */
+  let _loaderTimer = null;
+  function showLoader() {
+    // Slight delay so instant loads don't flicker
+    _loaderTimer = setTimeout(function () {
+      document.getElementById('page-loader').classList.add('visible');
+    }, 120);
+  }
+  function hideLoader() {
+    clearTimeout(_loaderTimer);
+    document.getElementById('page-loader').classList.remove('visible');
+  }
+
+  // Wrap the navigate function to show/hide the loader automatically
+  (function () {
+    const _origNavigate = navigate;
+    window.navigate = function (page) {
+      showLoader();
+      _origNavigate(page);
+      // Hide after a short window — data loads are async so we rely on
+      // individual load functions calling hideLoader() when done
+      setTimeout(hideLoader, 800);
+    };
+    // Re-attach nav button listeners to the wrapped version
+    document.querySelectorAll('.nav-item[data-page]').forEach(function (btn) {
+      btn.onclick = function () { navigate(btn.dataset.page); };
+    });
+  })();
+
+  /* ── SMS Audit Log ────────────────────────────────────────────────
+   * Loads paginated SMS log from GET /api/sms-logs (SUPER_ADMIN only).
+   * Supports status filter and page navigation.
+   * ---------------------------------------------------------------- */
+  async function loadSmsLogs(page) {
+    page = page || 1;
+    const tbody  = document.getElementById('tbody-sms-logs');
+    const pager  = document.getElementById('sms-logs-pagination');
+    const filter = (document.getElementById('sms-log-filter') || {}).value || '';
+    if (!tbody) return;
+
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#9CA3AF;">Loading…</td></tr>';
+    showLoader();
+
+    const qs   = `?page=${page}&limit=50${filter ? '&status=' + filter : ''}`;
+    const data = await apiFetch('/api/sms-logs' + qs);
+    hideLoader();
+
+    if (!data || !Array.isArray(data.logs)) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#EF4444;">Failed to load logs</td></tr>';
+      return;
+    }
+
+    if (data.logs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#9CA3AF;">No SMS logs found</td></tr>';
+      pager.innerHTML = '';
+      return;
+    }
+
+    tbody.innerHTML = data.logs.map(function (l) {
+      const dt     = l.sent_at ? new Date(l.sent_at).toLocaleString() : '—';
+      const badge  = l.status === 'success'
+        ? '<span class="badge-success">Success</span>'
+        : l.status === 'failed'
+          ? '<span class="badge-failed">Failed</span>'
+          : '<span class="badge-pending">Pending</span>';
+      const msg    = (l.message || '').replace(/</g, '&lt;');
+      const err    = l.error ? `<span style="color:#DC2626;font-size:11px;">${l.error.slice(0,80)}</span>` : '—';
+      return `<tr>
+        <td style="font-size:12px;white-space:nowrap;">${dt}</td>
+        <td><code style="font-size:11px;background:#F1F5F9;padding:2px 6px;border-radius:4px;">${l.ref_id || '—'}</code></td>
+        <td>${l.patient_name || '—'}</td>
+        <td style="font-size:12px;">${l.to || '—'}</td>
+        <td>${l.department || '—'}</td>
+        <td>${badge}</td>
+        <td><span class="log-msg" title="${msg}">${msg}</span></td>
+        <td style="max-width:200px;">${err}</td>
+      </tr>`;
+    }).join('');
+
+    // Pagination controls
+    const totalPages = Math.ceil(data.total / data.limit);
+    if (totalPages <= 1) { pager.innerHTML = ''; return; }
+    let pagerHtml = `<span style="font-size:13px;color:#6B7280;">Page ${page} of ${totalPages}</span>`;
+    if (page > 1) pagerHtml += `<button class="btn-cancel" style="padding:4px 14px;" onclick="loadSmsLogs(${page - 1})">← Prev</button>`;
+    if (page < totalPages) pagerHtml += `<button class="btn-save" style="padding:4px 14px;" onclick="loadSmsLogs(${page + 1})">Next →</button>`;
+    pager.innerHTML = pagerHtml;
   }
 
   /* ── Boot ─────────────────────────────────────────────── */
