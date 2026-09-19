@@ -705,9 +705,18 @@
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
       <span class="nav-label">Partners</span>
     </button>
+    <button class="nav-item" data-page="stats">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+      <span class="nav-label">Homepage Stats</span>
+    </button>
 
     <div class="nav-section-label">Settings</div>
-    <button class="nav-item" data-page="users" style="display:none">
+    <!-- SMS Settings & Users — visible to SUPER_ADMIN only; shown via JS after auth -->
+    <button class="nav-item" data-page="sms" data-superadmin-only style="display:none">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+      <span class="nav-label">SMS Settings</span>
+    </button>
+    <button class="nav-item" data-page="users" data-superadmin-only style="display:none">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
       <span class="nav-label">Users &amp; Roles</span>
     </button>
@@ -1157,6 +1166,152 @@
       </div>
     </div>
 
+    <!-- ── SMS SETTINGS ── -->
+    <!-- Settings-style page (single form, not a list/table).
+         Loads current config from /api/sms-config on navigate,
+         saves via PUT /api/sms-config, and tests via POST /api/sms-config/test. -->
+    <div class="page-view" id="page-sms">
+      <div class="page-title-row">
+        <div>
+          <div class="page-title">SMS Settings</div>
+          <div class="page-subtitle">Configure automatic SMS notifications sent to patients when they book an appointment</div>
+        </div>
+        <button class="btn-add" onclick="saveSmsConfig()" id="sms-save-btn">Save Settings</button>
+      </div>
+
+      <!-- Provider Credentials Card -->
+      <div class="card-panel" style="margin-bottom:20px;">
+        <div class="card-panel-header"><span class="card-panel-title">Provider Configuration</span></div>
+        <div style="padding:24px;display:flex;flex-direction:column;gap:18px;">
+
+          <!-- Master enable/disable toggle -->
+          <div style="display:flex;align-items:center;gap:12px;">
+            <label class="toggle-switch"><input type="checkbox" id="sms-enabled" /><span class="toggle-slider"></span></label>
+            <div>
+              <div style="font-size:14px;font-weight:600;color:#1F2937;">Enable SMS Notifications</div>
+              <div style="font-size:12px;color:#9CA3AF;margin-top:2px;">When on, an SMS is sent to the patient's mobile on every appointment booking</div>
+            </div>
+          </div>
+
+          <!-- Provider dropdown — only Twilio supported currently -->
+          <div class="form-group">
+            <label class="form-label">SMS Provider</label>
+            <select id="sms-provider" class="form-control" style="max-width:300px;">
+              <option value="twilio">Twilio</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <!-- Twilio Account SID — masked after saving, like the auth token -->
+            <div class="form-group">
+              <label class="form-label">Account SID <span style="color:#E53935">*</span></label>
+              <input type="password" id="sms-sid" class="form-control" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="new-password" />
+              <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Found on your Twilio Console dashboard. Stored securely — masked after saving</div>
+            </div>
+
+            <!-- Twilio Auth Token — masked in display -->
+            <div class="form-group">
+              <label class="form-label">Auth Token <span style="color:#E53935">*</span></label>
+              <input type="password" id="sms-token" class="form-control" placeholder="Enter auth token (leave unchanged to keep current)" autocomplete="new-password" />
+              <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Stored securely — never shown in plain text after saving</div>
+            </div>
+          </div>
+
+          <!-- From Number — the Twilio number that sends the SMS -->
+          <div class="form-group" style="max-width:300px;">
+            <label class="form-label">From Number <span style="color:#E53935">*</span></label>
+            <input type="text" id="sms-from" class="form-control" placeholder="+911234567890" />
+            <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Your Twilio number in E.164 format (e.g. +911234567890)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Message Template Card -->
+      <div class="card-panel" style="margin-bottom:20px;">
+        <div class="card-panel-header"><span class="card-panel-title">Message Template</span></div>
+        <div style="padding:24px;">
+          <div class="form-group">
+            <label class="form-label">SMS Template <span style="color:#E53935">*</span></label>
+            <!-- Textarea where admin types the SMS template with placeholders -->
+            <textarea id="sms-template" class="form-control" rows="5"
+              placeholder="Dear {name}, your appointment has been confirmed. Ref: {appointment_id}. Dept: {department}. Date: {date}."
+              style="resize:vertical;font-family:monospace;font-size:13px;"></textarea>
+          </div>
+
+          <!-- Placeholder reference guide so admin knows what variables to use -->
+          <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:14px;margin-top:10px;">
+            <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;">Available Placeholders</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              <span style="font-size:11px;background:#EFF6FF;color:#1D4ED8;padding:3px 8px;border-radius:4px;font-family:monospace;">{name}</span>
+              <span style="font-size:11px;background:#EFF6FF;color:#1D4ED8;padding:3px 8px;border-radius:4px;font-family:monospace;">{appointment_id}</span>
+              <span style="font-size:11px;background:#EFF6FF;color:#1D4ED8;padding:3px 8px;border-radius:4px;font-family:monospace;">{department}</span>
+              <span style="font-size:11px;background:#EFF6FF;color:#1D4ED8;padding:3px 8px;border-radius:4px;font-family:monospace;">{doctor}</span>
+              <span style="font-size:11px;background:#EFF6FF;color:#1D4ED8;padding:3px 8px;border-radius:4px;font-family:monospace;">{date}</span>
+              <span style="font-size:11px;background:#EFF6FF;color:#1D4ED8;padding:3px 8px;border-radius:4px;font-family:monospace;">{mobile}</span>
+            </div>
+            <div style="font-size:11px;color:#6B7280;margin-top:8px;">
+              <strong>{appointment_id}</strong> is an 8-character short reference (e.g. A3F2BC91) generated from the booking ID.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Test SMS Card -->
+      <div class="card-panel">
+        <div class="card-panel-header"><span class="card-panel-title">Test SMS</span></div>
+        <div style="padding:24px;">
+          <div style="font-size:13px;color:#6B7280;margin-bottom:14px;">
+            Send a test SMS to verify your credentials and from-number are working correctly. Save your settings first.
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+            <div class="form-group" style="margin-bottom:0;flex:1;min-width:200px;max-width:300px;">
+              <label class="form-label">Test Phone Number</label>
+              <input type="tel" id="sms-test-phone" class="form-control" placeholder="+919876543210" />
+            </div>
+            <button onclick="sendTestSms()" id="sms-test-btn"
+              style="background:#1E3A5F;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;height:40px;white-space:nowrap;">
+              Send Test SMS
+            </button>
+          </div>
+          <div id="sms-test-result" style="margin-top:12px;font-size:13px;display:none;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── HOMEPAGE STATS ── -->
+    <div class="page-view" id="page-stats">
+      <div class="page-title-row">
+        <div><div class="page-title">Homepage Stats</div><div class="page-subtitle">Manage the stat counters and hospital contact number shown on the homepage</div></div>
+        <button class="btn-add" onclick="openHeroStatModal()">+ Add Stat</button>
+      </div>
+
+      <!-- Hospital Contact Number card — saved to site_config collection -->
+      <div class="card-panel" style="margin-bottom:20px;">
+        <div class="card-panel-header"><span class="card-panel-title">Hospital Contact Number</span></div>
+        <div style="padding:20px;">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:200px;max-width:340px;">
+              <label class="form-label">Phone Number</label>
+              <input type="tel" id="site-phone" class="form-control" placeholder="+91 96504 94019" />
+            </div>
+            <button onclick="saveSiteConfig()" id="site-config-save-btn"
+              style="background:#1E3A5F;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;height:40px;white-space:nowrap;margin-top:20px;">
+              Save Number
+            </button>
+          </div>
+          <div style="font-size:11px;color:#9CA3AF;margin-top:6px;">Displayed in the homepage hero section and footer</div>
+        </div>
+      </div>
+
+      <div class="card-panel">
+        <div class="card-panel-header"><span class="card-panel-title">Stats</span></div>
+        <table class="data-table" id="stats-admin-table">
+          <thead><tr><th>Label</th><th>Count</th><th>Suffix</th><th>Icon</th><th>Order</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="stats-admin-tbody"><tr><td colspan="7" style="text-align:center;color:#94A3B8;padding:32px;">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- ── PARTNERS ── -->
     <div class="page-view" id="page-partners">
       <div class="page-title-row">
@@ -1187,7 +1342,68 @@
       </div>
     </div>
 
-    <div class="page-view" id="page-users"><div class="page-title-row"><div><div class="page-title">Users &amp; Roles</div><div class="page-subtitle">Manage admin users and permissions</div></div></div><div class="chart-placeholder">Coming soon</div></div>
+    <!-- ── USERS & ROLES ── -->
+    <div class="page-view" id="page-users">
+      <div class="page-title-row">
+        <div>
+          <div class="page-title">Users &amp; Roles</div>
+          <div class="page-subtitle">Manage admin accounts and their access level</div>
+        </div>
+        <button class="btn-add" onclick="_openAddUser()"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add User</button>
+      </div>
+      <div class="table-card">
+        <table class="data-table">
+          <thead><tr>
+            <th>Email</th>
+            <th>Name</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr></thead>
+          <tbody id="tbody-users">
+            <tr><td colspan="6" style="text-align:center;padding:24px;color:#9CA3AF;">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Add / Edit User Modal -->
+    <div class="modal-overlay" id="modal-user">
+      <div class="modal" style="max-width:480px">
+        <div class="modal-header">
+          <h3 class="modal-title" id="user-modal-title">Add Admin User</h3>
+          <button class="modal-close" onclick="closeModal('user')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="user-edit-id">
+          <div class="form-group">
+            <label class="form-label">Email <span style="color:#EF4444">*</span></label>
+            <input id="user-email" type="email" class="form-control" placeholder="admin@hospital.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Full Name <span style="color:#EF4444">*</span></label>
+            <input id="user-name-input" type="text" class="form-control" placeholder="Dr. Jane Smith">
+          </div>
+          <div class="form-group">
+            <label class="form-label" id="user-password-label">Password <span style="color:#EF4444">*</span></label>
+            <input id="user-password" type="password" class="form-control" placeholder="Min 8 characters">
+            <div id="user-password-hint" style="display:none;font-size:11px;color:#6B7280;margin-top:4px;">Leave blank to keep current password</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Role</label>
+            <select id="user-role-select" class="form-control">
+              <option value="ADMIN">ADMIN</option>
+              <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" onclick="closeModal('user')">Cancel</button>
+          <button class="btn-save" id="user-save-btn" onclick="saveAdminUser()">Create User</button>
+        </div>
+      </div>
+    </div>
     <div class="page-view" id="page-seo"><div class="page-title-row"><div><div class="page-title">SEO Settings</div><div class="page-subtitle">Meta tags, sitemap, and schema settings</div></div></div><div class="chart-placeholder">Coming soon</div></div>
 
   </div>
@@ -1469,6 +1685,63 @@
   </div>
 </div>
 
+<!-- Stats Modal -->
+<div class="modal-overlay" id="modal-stat">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="stat-modal-title">Add Stat</h3>
+      <button class="modal-close" onclick="closeModal('stat')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="hero-stat-id" />
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Label <span style="color:#E53935">*</span></label>
+          <input type="text" id="stat-label" class="form-control" placeholder="e.g. Patients Served" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Count <span style="color:#E53935">*</span></label>
+          <input type="number" id="stat-count" class="form-control" placeholder="e.g. 12000" min="0" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Suffix</label>
+          <input type="text" id="stat-suffix" class="form-control" placeholder="e.g. + or ×7 or %" value="+" />
+          <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Shown after the number (e.g. "12,000+")</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Icon</label>
+          <select id="stat-icon" class="form-control">
+            <option value="patients">Patients</option>
+            <option value="beds">Beds</option>
+            <option value="doctors">Doctors</option>
+            <option value="specialities">Specialities</option>
+            <option value="emergency">Emergency / Clock</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Display Order</label>
+          <input type="number" id="stat-order" class="form-control" value="0" min="0" />
+          <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Lower = shown first</div>
+        </div>
+        <div class="form-group" style="display:flex;flex-direction:column;justify-content:flex-end;">
+          <div style="display:flex;align-items:center;gap:10px;padding-bottom:4px;">
+            <label class="toggle-switch"><input type="checkbox" id="stat-active" checked /><span class="toggle-slider"></span></label>
+            <span style="font-size:13px;color:#1F2937;">Active (show on homepage)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('stat')">Cancel</button>
+      <button class="btn-save" id="stat-save-btn" onclick="saveHeroStat()">Save Stat</button>
+    </div>
+  </div>
+</div>
+
 <!-- Offer Modal -->
 <div class="modal-overlay" id="modal-offer">
   <div class="modal">
@@ -1507,7 +1780,7 @@
 <script>
   /* ── Auth guard ───────────────────────────────────────── */
   const _tokenData = JSON.parse(sessionStorage.getItem('vm_token') || 'null');
-  if (!_tokenData || !_tokenData.token) { window.location.href = 'login.html'; }
+  if (!_tokenData || !_tokenData.token) { window.location.replace('login.html'); }
 
   const admin = _tokenData || {};
 
@@ -1516,6 +1789,11 @@
     ['user-avatar','tb-avatar'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = initials; });
     ['user-name','tb-name'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = admin.name; });
     ['user-role','tb-role'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = admin.role || 'Admin'; });
+  }
+
+  // Show SUPER_ADMIN-only nav items (SMS Settings and Users & Roles)
+  if (admin.role === 'SUPER_ADMIN') {
+    document.querySelectorAll('[data-superadmin-only]').forEach(el => el.style.display = '');
   }
 
   // Show hospital name from token
@@ -1560,7 +1838,7 @@
   function _forceLogout(reason) {
     sessionStorage.removeItem('vm_token');
     sessionStorage.setItem('vm_logout_reason', reason);
-    window.location.href = 'login.html';
+    window.location.replace('login.html');
   }
 
   async function _verifySession() {
@@ -1927,7 +2205,9 @@
   const PAGE_TITLES = {
     dashboard:'Dashboard', appointments:'Appointments', doctors:'Doctors',
     departments:'Departments', blogs:'Blogs', testimonials:'Testimonials',
-    homepage:'Homepage CMS', media:'Media Library', users:'Users & Roles', seo:'SEO Settings'
+    homepage:'Homepage CMS', media:'Media Library', users:'Users & Roles', seo:'SEO Settings',
+    offers:'Offers Marquee', insurance:'Insurance Providers', partners:'Partners', stats:'Homepage Stats',
+    sms:'SMS Settings'
   };
 
   function navigate(page) {
@@ -1949,6 +2229,9 @@
     if (page === 'offers')        loadOffers();
     if (page === 'insurance')     loadInsurance();
     if (page === 'partners')      loadPartners();
+    if (page === 'stats')         { loadHeroStats(); loadSiteConfig(); }
+    if (page === 'sms')           loadSmsConfig();
+    if (page === 'users')         loadAdminUsers();
   }
 
   document.querySelectorAll('.nav-item[data-page]').forEach(btn => {
@@ -1977,7 +2260,7 @@
       } catch (_) {}
     }
     sessionStorage.removeItem('vm_token');
-    window.location.href = 'login.html';
+    window.location.replace('login.html');
   }
 
   /* ── Doctors ──────────────────────────────────────────── */
@@ -2958,6 +3241,386 @@
     const result = await apiFetch(`/api/partners/${id}`, { method: 'DELETE' });
     if (result && result.success) { loadPartners(); toast('Partner deleted', 'success'); }
     else toast('Failed to delete', 'error');
+  }
+
+  /* ── Hero Stats ────────────────────────────────────────── */
+  const _iconLabels = { patients:'Patients', beds:'Beds', doctors:'Doctors', specialities:'Specialities', emergency:'Emergency / Clock' };
+  let _heroStatItems = [];
+
+  async function loadHeroStats() {
+    const tbody = document.getElementById('stats-admin-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#9CA3AF;padding:32px;">Loading…</td></tr>';
+    const data = await apiFetch('/api/hero-stats?show_all=true');
+    if (!data) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#E53935;padding:32px;">Something went wrong. Please refresh the page.</td></tr>'; return; }
+    _heroStatItems = data;
+    if (!data.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#9CA3AF;padding:32px;">No stats yet. Click "+ Add Stat" to create one.</td></tr>'; return; }
+    tbody.innerHTML = data.map(s => `
+      <tr>
+        <td style="font-weight:500;">${esc(s.label)}</td>
+        <td>${s.count.toLocaleString()}</td>
+        <td>${esc(s.suffix)}</td>
+        <td>${_iconLabels[s.icon_key] || s.icon_key}</td>
+        <td>${s.order}</td>
+        <td><span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:${s.active ? 'rgba(0,200,83,0.12)' : 'rgba(148,163,184,0.15)'};color:${s.active ? '#00843D' : '#64748B'};">${s.active ? 'Active' : 'Inactive'}</span></td>
+        <td>
+          <button onclick="editHeroStat('${s.id}')" style="background:none;border:1px solid #CBD5E1;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;color:#374151;margin-right:6px;">Edit</button>
+          <button onclick="deleteHeroStat('${s.id}')" style="background:none;border:1px solid #FCA5A5;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;color:#DC2626;">Delete</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  function openHeroStatModal() {
+    document.getElementById('hero-stat-id').value = '';
+    document.getElementById('stat-label').value = '';
+    document.getElementById('stat-count').value = '';
+    document.getElementById('stat-suffix').value = '+';
+    document.getElementById('stat-icon').value = 'patients';
+    document.getElementById('stat-order').value = 0;
+    document.getElementById('stat-active').checked = true;
+    document.getElementById('stat-modal-title').textContent = 'Add Stat';
+    document.getElementById('modal-stat').classList.add('open');
+  }
+
+  function editHeroStat(id) {
+    const s = _heroStatItems.find(x => x.id === id);
+    if (!s) return;
+    document.getElementById('hero-stat-id').value = s.id;
+    document.getElementById('stat-label').value = s.label;
+    document.getElementById('stat-count').value = s.count;
+    document.getElementById('stat-suffix').value = s.suffix || '+';
+    document.getElementById('stat-icon').value = s.icon_key || 'patients';
+    document.getElementById('stat-order').value = s.order;
+    document.getElementById('stat-active').checked = s.active;
+    document.getElementById('stat-modal-title').textContent = 'Edit Stat';
+    document.getElementById('modal-stat').classList.add('open');
+  }
+
+  async function saveHeroStat() {
+    const id     = document.getElementById('hero-stat-id').value;
+    const label  = document.getElementById('stat-label').value.trim();
+    const count  = parseInt(document.getElementById('stat-count').value);
+    const suffix = document.getElementById('stat-suffix').value.trim();
+    const iconKey = document.getElementById('stat-icon').value;
+    const order  = parseInt(document.getElementById('stat-order').value) || 0;
+    const active = document.getElementById('stat-active').checked;
+    if (!label) { toast('Please enter a label', 'error'); return; }
+    if (isNaN(count) || count < 0) { toast('Please enter a valid count', 'error'); return; }
+    const btn = document.getElementById('stat-save-btn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    const body = { label, count, suffix: suffix || '+', icon_key: iconKey, order, active };
+    const result = id
+      ? await apiFetch(`/api/hero-stats/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
+      : await apiFetch('/api/hero-stats',        { method: 'POST',  body: JSON.stringify(body) });
+    btn.disabled = false; btn.textContent = 'Save Stat';
+    if (result && result.success !== false) {
+      closeModal('stat');
+      loadHeroStats();
+      toast(id ? 'Stat updated' : 'Stat added', 'success');
+    } else {
+      toast('Failed to save stat', 'error');
+    }
+  }
+
+  async function deleteHeroStat(id) {
+    if (!confirm('Delete this stat?')) return;
+    const result = await apiFetch(`/api/hero-stats/${id}`, { method: 'DELETE' });
+    if (result && result.success) { loadHeroStats(); toast('Stat deleted', 'success'); }
+    else toast('Failed to delete', 'error');
+  }
+
+  /* ── Site Config (hospital phone number etc.) ─────────────────────
+   * Stored in the site_config collection as a single document per tenant.
+   * GET /api/site-config is public so the homepage can read it.
+   * PUT /api/site-config is admin-only.
+   * ------------------------------------------------------------------ */
+
+  async function loadSiteConfig() {
+    // apiFetch sends the admin bearer token, but site-config GET is also
+    // accessible with a page token — either works here.
+    const cfg = await apiFetch('/api/site-config');
+    if (cfg && cfg.phone) {
+      document.getElementById('site-phone').value = cfg.phone;
+    }
+  }
+
+  async function saveSiteConfig() {
+    const phone = document.getElementById('site-phone').value.trim();
+    if (!phone) { toast('Please enter a phone number', 'error'); return; }
+
+    const btn = document.getElementById('site-config-save-btn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+
+    const result = await apiFetch('/api/site-config', {
+      method : 'PUT',
+      body   : JSON.stringify({ phone }),
+    });
+
+    btn.disabled = false; btn.textContent = 'Save Number';
+
+    if (result && result.success) {
+      toast('Phone number saved', 'success');
+    } else {
+      toast('Failed to save phone number', 'error');
+    }
+  }
+
+  /* ── SMS Settings ──────────────────────────────────────────────────
+   * Loads config from GET /api/sms-config (admin-only endpoint).
+   * auth_token arrives masked (••••••••) so we track whether the admin
+   * actually changed it — if not, we send the mask back and the backend
+   * keeps the real stored value.
+   * ------------------------------------------------------------------ */
+
+  // Track whether each sensitive field still holds the server-side mask ("••••••••").
+  // When masked, we send the placeholder back on save so the backend knows
+  // to preserve the real stored value rather than overwriting it with dots.
+  let _smsSidMasked   = false;
+  let _smsTokenMasked = false;
+
+  async function loadSmsConfig() {
+    // Fetch current SMS config from the admin-only API
+    const cfg = await apiFetch('/api/sms-config');
+
+    if (!cfg) {
+      // No config yet — leave the form at defaults (fine for first-time setup)
+      console.warn('[SMS] No SMS config returned — may not be set up yet');
+      return;
+    }
+
+    // Populate non-sensitive fields directly
+    document.getElementById('sms-enabled').checked  = !!cfg.enabled;
+    document.getElementById('sms-provider').value   = cfg.provider   || 'twilio';
+    document.getElementById('sms-from').value       = cfg.from_number || '';
+    document.getElementById('sms-template').value   = cfg.template   || '';
+
+    // Account SID arrives as "••••••••" from the server — fill + mark masked
+    if (cfg.account_sid) {
+      document.getElementById('sms-sid').value = cfg.account_sid; // "••••••••"
+      _smsSidMasked = true;
+    } else {
+      document.getElementById('sms-sid').value = '';
+      _smsSidMasked = false;
+    }
+
+    // Auth Token arrives as "••••••••" from the server — fill + mark masked
+    if (cfg.auth_token) {
+      document.getElementById('sms-token').value = cfg.auth_token; // "••••••••"
+      _smsTokenMasked = true;
+    } else {
+      document.getElementById('sms-token').value = '';
+      _smsTokenMasked = false;
+    }
+
+    // Once the admin starts typing in a masked field, clear the mask flag
+    // so the new value gets sent to the backend on save
+    document.getElementById('sms-sid').addEventListener('input', () => {
+      _smsSidMasked = false;
+    }, { once: true });
+    document.getElementById('sms-token').addEventListener('input', () => {
+      _smsTokenMasked = false;
+    }, { once: true });
+  }
+
+  async function saveSmsConfig() {
+    // Read every field from the form
+    const enabled  = document.getElementById('sms-enabled').checked;
+    const provider = document.getElementById('sms-provider').value;
+    const sid      = document.getElementById('sms-sid').value.trim();
+    const tokenVal = document.getElementById('sms-token').value.trim();
+    const fromNum  = document.getElementById('sms-from').value.trim();
+    const template = document.getElementById('sms-template').value.trim();
+
+    // Basic validation — only enforce when SMS is being enabled
+    if (enabled) {
+      if (!sid)      { toast('Please enter the Twilio Account SID',  'error'); return; }
+      if (!fromNum)  { toast('Please enter the From Number',         'error'); return; }
+      if (!template) { toast('Please enter a message template',      'error'); return; }
+    }
+
+    const btn = document.getElementById('sms-save-btn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+
+    // For each sensitive field, decide what payload to send:
+    //   • Field still holds server mask + admin didn't type → send mask
+    //     so the backend knows to preserve the real stored value.
+    //   • Admin typed a new value → send it (will overwrite in DB).
+    //   • Field is empty → send empty string (clears the credential).
+    const sidPayload   = _smsSidMasked   ? '••••••••' : sid;
+    const authTokenPayload = _smsTokenMasked ? '••••••••' : tokenVal;
+
+    const body = {
+      enabled,
+      provider,
+      account_sid : sidPayload,
+      auth_token  : authTokenPayload,
+      from_number : fromNum,
+      template,
+    };
+
+    const result = await apiFetch('/api/sms-config', {
+      method : 'PUT',
+      body   : JSON.stringify(body),
+    });
+
+    btn.disabled = false; btn.textContent = 'Save Settings';
+
+    if (result && result.success) {
+      toast('SMS settings saved', 'success');
+      // Reload to re-apply the mask on the token field
+      loadSmsConfig();
+    } else {
+      toast('Failed to save SMS settings', 'error');
+    }
+  }
+
+  async function sendTestSms() {
+    // Read the test phone number entered by the admin
+    const phone = document.getElementById('sms-test-phone').value.trim();
+    if (!phone) { toast('Please enter a phone number to test', 'error'); return; }
+
+    const btn       = document.getElementById('sms-test-btn');
+    const resultEl  = document.getElementById('sms-test-result');
+
+    btn.disabled = true; btn.textContent = 'Sending…';
+    resultEl.style.display = 'none';
+
+    const result = await apiFetch('/api/sms-config/test', {
+      method : 'POST',
+      body   : JSON.stringify({ phone }),
+    });
+
+    btn.disabled = false; btn.textContent = 'Send Test SMS';
+
+    if (result && result.success) {
+      // Show a green confirmation below the button
+      resultEl.style.display  = 'block';
+      resultEl.style.color    = '#00843D';
+      resultEl.textContent    = `✓ ${result.message || 'Test SMS sent successfully'}`;
+      toast('Test SMS sent!', 'success');
+    } else {
+      // Show the specific error from Twilio (or a fallback message if result is null)
+      const errDetail = (result && result.error) ? result.error : 'SMS failed — check your credentials and try again.';
+      resultEl.style.display  = 'block';
+      resultEl.style.color    = '#DC2626';
+      resultEl.textContent    = `✗ ${errDetail}`;
+      toast('Test SMS failed', 'error');
+    }
+  }
+
+  /* ── Admin User Management (SUPER_ADMIN only) ─────────────────────
+   * GET  /api/admin/users               → list all users for this tenant
+   * POST /api/admin/users               → create a new admin user
+   * PATCH /api/admin/users/{id}/status  → toggle active/inactive
+   * ------------------------------------------------------------------ */
+
+  async function loadAdminUsers() {
+    const tbody = document.getElementById('tbody-users');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#9CA3AF;">Loading…</td></tr>';
+    const users = await apiFetch('/api/admin/users');
+    if (!users || !Array.isArray(users)) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#EF4444;">Failed to load users</td></tr>';
+      return;
+    }
+    if (users.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#9CA3AF;">No users found</td></tr>';
+      return;
+    }
+    tbody.innerHTML = users.map(u => {
+      const isMe = u.email === admin.email;
+      const active = u.active !== false;
+      const created = u.created_at ? new Date(u.created_at).toLocaleDateString() : '—';
+      const toggleLabel = active ? 'Deactivate' : 'Activate';
+      const toggleStyle = active
+        ? 'background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;'
+        : 'background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;';
+      const actionBtns = isMe
+        ? `<button onclick="openEditUser('${u.id}','${u.email.replace(/'/g,"\\'")}','${(u.name||'').replace(/'/g,"\\'")}','${u.role||'ADMIN'}')" style="font-size:12px;padding:4px 12px;border-radius:6px;cursor:pointer;background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;">Edit</button>
+           <span style="color:#9CA3AF;font-size:12px;margin-left:4px;">You</span>`
+        : `<button onclick="openEditUser('${u.id}','${u.email.replace(/'/g,"\\'")}','${(u.name||'').replace(/'/g,"\\'")}','${u.role||'ADMIN'}')" style="font-size:12px;padding:4px 12px;border-radius:6px;cursor:pointer;background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;">Edit</button>
+           <button onclick="toggleAdminUser('${u.id}')" style="font-size:12px;padding:4px 12px;border-radius:6px;cursor:pointer;margin-left:4px;${toggleStyle}">${toggleLabel}</button>`;
+      return `<tr>
+        <td>${u.email}</td>
+        <td>${u.name || '—'}</td>
+        <td><span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;background:${u.role==='SUPER_ADMIN'?'#FEF3C7':'#EFF6FF'};color:${u.role==='SUPER_ADMIN'?'#92400E':'#1D4ED8'}">${u.role || 'ADMIN'}</span></td>
+        <td><span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;background:${active?'#F0FDF4':'#F9FAFB'};color:${active?'#16A34A':'#6B7280'}">${active?'Active':'Inactive'}</span></td>
+        <td>${created}</td>
+        <td style="white-space:nowrap">${actionBtns}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function toggleAdminUser(userId) {
+    if (!confirm('Toggle this user\'s active status?')) return;
+    const result = await apiFetch(`/api/admin/users/${userId}/status`, { method: 'PATCH' });
+    if (result && result.success) {
+      toast(result.active ? 'User activated' : 'User deactivated', 'success');
+      loadAdminUsers();
+    } else {
+      toast('Failed to update user status', 'error');
+    }
+  }
+
+  function openEditUser(id, email, name, role) {
+    document.getElementById('user-edit-id').value        = id;
+    document.getElementById('user-email').value          = email;
+    document.getElementById('user-name-input').value     = name;
+    document.getElementById('user-password').value       = '';
+    document.getElementById('user-role-select').value    = role;
+    document.getElementById('user-modal-title').textContent = 'Edit Admin User';
+    document.getElementById('user-save-btn').textContent    = 'Save Changes';
+    // Password is optional when editing
+    document.getElementById('user-password-label').innerHTML = 'New Password';
+    document.getElementById('user-password-hint').style.display = 'block';
+    document.getElementById('user-password').placeholder = 'Leave blank to keep current';
+    openModal('user');
+  }
+
+  function _openAddUser() {
+    document.getElementById('user-edit-id').value        = '';
+    document.getElementById('user-email').value          = '';
+    document.getElementById('user-name-input').value     = '';
+    document.getElementById('user-password').value       = '';
+    document.getElementById('user-role-select').value    = 'ADMIN';
+    document.getElementById('user-modal-title').textContent = 'Add Admin User';
+    document.getElementById('user-save-btn').textContent    = 'Create User';
+    document.getElementById('user-password-label').innerHTML = 'Password <span style="color:#EF4444">*</span>';
+    document.getElementById('user-password-hint').style.display = 'none';
+    document.getElementById('user-password').placeholder = 'Min 8 characters';
+    openModal('user');
+  }
+
+  async function saveAdminUser() {
+    const id       = document.getElementById('user-edit-id').value;
+    const email    = document.getElementById('user-email').value.trim();
+    const name     = document.getElementById('user-name-input').value.trim();
+    const password = document.getElementById('user-password').value;
+    const role     = document.getElementById('user-role-select').value;
+    const isEdit   = !!id;
+
+    if (!email || !name) { toast('Email and name are required', 'error'); return; }
+    if (!isEdit && !password) { toast('Password is required', 'error'); return; }
+    if (password && password.length < 8) { toast('Password must be at least 8 characters', 'error'); return; }
+
+    const payload = { email, name, role };
+    if (password) payload.password = password;
+
+    let result;
+    if (isEdit) {
+      result = await apiFetch(`/api/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+    } else {
+      payload.password = password;
+      result = await apiFetch('/api/admin/users', { method: 'POST', body: JSON.stringify(payload) });
+    }
+
+    if (result && result.success) {
+      toast(isEdit ? 'User updated successfully' : 'User created successfully', 'success');
+      closeModal('user');
+      loadAdminUsers();
+    } else {
+      toast(isEdit ? 'Failed to update user' : 'Failed to create user', 'error');
+    }
   }
 
   /* ── Boot ─────────────────────────────────────────────── */

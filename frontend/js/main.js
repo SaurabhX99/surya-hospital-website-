@@ -581,17 +581,61 @@
     }, 5000);
   }
 
+  /* ── Icon map for hero stats ──────────────────────────── */
+  const _statIcons = {
+    patients:    `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>`,
+    beds:        `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>`,
+    doctors:     `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>`,
+    specialities:`<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>`,
+    emergency:   `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/></svg>`,
+  };
+
   /* ── Render: Statistics ───────────────────────────────── */
-  function renderStats() {
+  async function renderStats() {
     const grid = $('#stats-grid');
-    if (!grid || !data) return;
-    grid.innerHTML = data.stats.map((s, i) => `
-      <div class="stat-item" data-animate="scale" data-delay="${i * 100}">
-        <div class="stat-icon">${s.icon}</div>
-        <span class="stat-number" data-count="${s.count}" data-suffix="${s.suffix}">0</span>
-        <span class="stat-label">${s.label}</span>
-      </div>
-    `).join('');
+    if (!grid) return;
+
+    let stats = [];
+    try {
+      const res  = await _apiFetch('/api/hero-stats');
+      const json = await res.json();
+      if (Array.isArray(json) && json.length) stats = json;
+    } catch (_) {}
+
+    const items = stats.length ? stats : (data ? data.stats : []);
+    grid.innerHTML = items.map((s, i) => {
+      const icon = s.icon_key ? (_statIcons[s.icon_key] || _statIcons.patients) : (s.icon || '');
+      const count  = s.count  !== undefined ? s.count  : s.count;
+      const suffix = s.suffix !== undefined ? s.suffix : '+';
+      const label  = s.label  || '';
+      return `
+        <div class="stat-item" data-animate="scale" data-delay="${i * 100}">
+          <div class="stat-icon">${icon}</div>
+          <span class="stat-number" data-count="${count}" data-suffix="${suffix}">0</span>
+          <span class="stat-label">${label}</span>
+        </div>`;
+    }).join('');
+  }
+
+  /* ── Render: Hero Trust Indicators ────────────────────── */
+  async function renderHeroStats() {
+    const container = document.querySelector('.hero-trust');
+    if (!container) return;
+
+    let stats = [];
+    try {
+      const res  = await _apiFetch('/api/hero-stats');
+      const json = await res.json();
+      if (Array.isArray(json) && json.length) stats = json;
+    } catch (_) {}
+
+    if (!stats.length) return; // keep hardcoded fallback
+
+    container.innerHTML = stats.map(s => `
+      <div class="trust-stat">
+        <span class="trust-stat-number" data-count="${s.count}" data-suffix="${s.suffix || '+'}">${s.count >= 1000 ? Math.round(s.count / 1000) + 'k' : s.count}${s.suffix || '+'}</span>
+        <span class="trust-stat-label">${s.label}</span>
+      </div>`).join('');
   }
 
   /* ── Render: Insurance ─────────────────────────────────── */
@@ -608,11 +652,14 @@
 
     if (!providers.length) {
       const names = (data && data.partners) ? data.partners : [];
-      const makeStatic = () => names.map(n => `
+      const makeStaticCard = n => `
         <div class="partner-logo">
           <span style="font-size:var(--text-sm);font-weight:var(--font-semibold);color:var(--color-text-secondary);white-space:nowrap;">${n}</span>
-        </div>`).join('');
-      track.innerHTML = makeStatic() + makeStatic();
+        </div>`;
+      let staticItems = [...names];
+      while (staticItems.length < 8 && names.length) staticItems = [...staticItems, ...names];
+      const staticHtml = staticItems.map(makeStaticCard).join('');
+      track.innerHTML = staticHtml + staticHtml;
       return;
     }
 
@@ -622,7 +669,9 @@
         <span class="partner-logo-name">${p.name}</span>
       </div>`;
 
-    const html = providers.map(makeCard).join('');
+    let items = [...providers];
+    while (items.length < 8) items = [...items, ...providers];
+    const html = items.map(makeCard).join('');
     track.innerHTML = html + html;
   }
 
@@ -650,7 +699,9 @@
         <span class="partner-logo-name">${p.name}</span>
       </div>`;
 
-    const html = partners.map(makeCard).join('');
+    let items = [...partners];
+    while (items.length < 8) items = [...items, ...partners];
+    const html = items.map(makeCard).join('');
     track.innerHTML = html + html;
   }
 
@@ -1010,6 +1061,7 @@
     initFacilitiesFilter();
     renderDoctors();
     renderTestimonials();
+    renderHeroStats();
     renderStats();
     renderPartners();
     renderCorporatePartners();

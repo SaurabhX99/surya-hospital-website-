@@ -576,6 +576,13 @@
     document.getElementById(id).classList.add('active');
   }
 
+  /* ── Already authenticated? Skip login and go straight to dashboard ── */
+  /* Use replace() so the login page is removed from the back-stack.     */
+  (function () {
+    const d = JSON.parse(sessionStorage.getItem('vm_token') || 'null');
+    if (d && d.token) { window.location.replace('dashboard.html'); }
+  })();
+
   /* ── Show logout/session notice ── */
   (function () {
     const reason = sessionStorage.getItem('vm_logout_reason');
@@ -617,9 +624,10 @@
   }
 
   /* ── Session complete: store token and redirect ── */
+  /* replace() removes the login page from history so Back never returns to it. */
   function completeLogin(data) {
     sessionStorage.setItem('vm_token', JSON.stringify(data));
-    window.location.href = 'dashboard.html';
+    window.location.replace('dashboard.html');
   }
 
   /* ── Step 1: Credentials ── */

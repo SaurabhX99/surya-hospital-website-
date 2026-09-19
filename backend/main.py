@@ -36,8 +36,17 @@ BASE_URL    = os.getenv("BASE_URL", "http://localhost:8000").rstrip("/")
 # Per-request tenant (set by middleware from auth token; defaults to TENANT_NAME)
 _request_tenant: contextvars.ContextVar[str] = contextvars.ContextVar("_request_tenant")
 
+# Per-request user email — set by middleware when a valid admin token is present.
+# Used by write routes to populate the `updated_by` audit field without needing
+# to change every function signature.
+_request_user_email: contextvars.ContextVar[str] = contextvars.ContextVar("_request_user_email", default="")
+
 def _tenant() -> str:
     return _request_tenant.get(TENANT_NAME)
+
+def _user_email() -> str:
+    """Return the email of the currently authenticated admin, or empty string."""
+    return _request_user_email.get("")
 
 def _tq(extra: dict | None = None) -> dict:
     """Return a base query scoped to the current request's tenant."""
@@ -82,40 +91,76 @@ _usercol   = _mdb["admin_users"]
 _offercol  = _mdb["offers"]
 _inscol    = _mdb["insurance_providers"]
 _partnercol = _mdb["partners"]
+_statscol   = _mdb["hero_stats"]
+_smscfgcol  = _mdb["sms_config"]        # stores admin-configured SMS provider settings & template
+_sitecfgcol = _mdb["site_config"]       # stores site-wide settings like hospital phone number
 
-# ── Tenant middleware — resolves tenant from auth token per request ──
+# ── Tenant + user middleware — resolves tenant and logged-in user per request ──
 @app.middleware("http")
 async def _tenant_middleware(request: Request, call_next):
-    tenant = TENANT_NAME
+    tenant     = TENANT_NAME
+    user_email = ""
+
     token = request.headers.get("Authorization", "").removeprefix("Bearer ").strip()
     if token:
+        # Fetch the fields we need for tenant resolution AND audit logging.
+        # Also fetch `active` so deactivated users are locked out at the middleware level.
         user = _usercol.find_one(
             {"active_token": token},
-            {"tenant_name": 1, "token_expires_at": 1},
+            {"tenant_name": 1, "token_expires_at": 1, "email": 1, "active": 1},
         )
-        if user and user.get("tenant_name"):
-            exp = user.get("token_expires_at")
-            if exp:
-                if exp.tzinfo is None:
-                    exp = exp.replace(tzinfo=timezone.utc)
-                if datetime.now(timezone.utc) <= exp:
-                    tenant = user["tenant_name"]
+        if user:
+            # Deactivated users: clear their stored token immediately so the
+            # next request (without Bearer header) falls back to the public path.
+            if not user.get("active", True):
+                _usercol.update_one({"_id": user["_id"]}, {"$unset": {"active_token": ""}})
+            else:
+                exp = user.get("token_expires_at")
+                if exp:
+                    if exp.tzinfo is None:
+                        exp = exp.replace(tzinfo=timezone.utc)
+                    if datetime.now(timezone.utc) <= exp:
+                        if user.get("tenant_name"):
+                            tenant = user["tenant_name"]
+                        # Store the email in the per-request context var so write
+                        # routes can log it as `updated_by` without extra DB calls.
+                        user_email = user.get("email", "")
+
     _request_tenant.set(tenant)
+    _request_user_email.set(user_email)
     return await call_next(request)
 
-# ── Seed first admin user from env if the collection is empty ──────
+# ── Seed / migrate admin users on startup ──────────────────────────
 _admin_email    = os.getenv("ADMIN_EMAIL", "").strip().lower()
 _admin_password = os.getenv("ADMIN_PASSWORD", "").strip()
+
+# Migrate any legacy "Super Admin" role string to the canonical "SUPER_ADMIN"
+# value used by the new role-based access control system.
+_usercol.update_many({"role": "Super Admin"}, {"$set": {"role": "SUPER_ADMIN"}})
+
+# Back-fill `active: True` for any existing users that predate this field.
+_usercol.update_many({"active": {"$exists": False}}, {"$set": {"active": True}})
+
+# Back-fill tenant_name for any seeded user that was created without it.
+if _admin_email:
+    _usercol.update_one(
+        {"email": _admin_email, "tenant_name": {"$exists": False}},
+        {"$set": {"tenant_name": TENANT_NAME}},
+    )
+
+# Create the first SUPER_ADMIN from env vars if no users exist yet.
 if _admin_email and _admin_password and _usercol.count_documents({}) == 0:
     _pw_hash = bcrypt.hashpw(_admin_password.encode(), bcrypt.gensalt())
     _usercol.insert_one({
-        "email":         _admin_email,
-        "password_hash": _pw_hash,
-        "name":          "Hospital Admin",
-        "role":          "Super Admin",
-        "created_at":    datetime.now(timezone.utc),
+        "email":        _admin_email,
+        "password_hash":_pw_hash,
+        "name":         "Hospital Admin",
+        "role":         "SUPER_ADMIN",   # canonical role for the initial admin
+        "tenant_name":  TENANT_NAME,
+        "active":       True,
+        "created_at":   datetime.now(timezone.utc),
     })
-    print(f"[STARTUP] Created admin user: {_admin_email}")
+    print(f"[STARTUP] Created SUPER_ADMIN user: {_admin_email}")
 
 # Drop ALL non-_id unique indexes on appointments — let MongoDB _id be the only PK.
 for _idx_name, _idx_info in list(_col.index_information().items()):
@@ -203,6 +248,77 @@ class PartnerUpdate(BaseModel):
     logo_drive_link: Optional[str] = None
     active: Optional[bool] = None
     order: Optional[int] = None
+
+
+class StatIn(BaseModel):
+    label: str
+    count: int
+    suffix: str = '+'
+    icon_key: str = 'patients'
+    order: int = 0
+    active: bool = True
+
+
+class StatUpdate(BaseModel):
+    label: Optional[str] = None
+    count: Optional[int] = None
+    suffix: Optional[str] = None
+    icon_key: Optional[str] = None
+    order: Optional[int] = None
+    active: Optional[bool] = None
+
+
+# ── SMS Configuration models ─────────────────────────────────────────
+# All SMS credentials and the message template are stored in MongoDB
+# (not .env) so admins can update them via the portal without a redeploy.
+
+class SmsConfigIn(BaseModel):
+    """Full SMS configuration document saved to the sms_config collection."""
+    enabled: bool = False                   # master on/off switch
+    provider: str = "twilio"               # SMS provider — "twilio" supported today
+    account_sid: Optional[str] = None      # Twilio Account SID (starts with AC…)
+    auth_token: Optional[str] = None       # Twilio Auth Token (sensitive, masked in GET)
+    from_number: Optional[str] = None      # Sender number in E.164 format e.g. +911234567890
+    # Template supports these placeholders:
+    #   {name}           – patient full name
+    #   {mobile}         – patient mobile number
+    #   {department}     – selected department
+    #   {doctor}         – preferred doctor (may be empty)
+    #   {date}           – preferred appointment date
+    #   {appointment_id} – short 8-char uppercase appointment reference
+    template: str = (
+        "Dear {name}, your appointment has been received. "
+        "Ref: {appointment_id}. Dept: {department}. "
+        "Date: {date}. We will call you shortly to confirm."
+    )
+
+
+class SmsTestIn(BaseModel):
+    """Body for the test-SMS endpoint — just a destination phone number."""
+    phone: str   # will be normalised to E.164 before sending
+
+
+class SiteConfigIn(BaseModel):
+    """
+    Site-wide settings stored as a single document per tenant.
+    Currently holds the hospital contact number; extend as needed.
+    """
+    phone: Optional[str] = None   # hospital's public contact number shown on the site
+
+
+class UserCreateIn(BaseModel):
+    """Body for SUPER_ADMIN creating a new admin user."""
+    email:    str
+    name:     str
+    password: str
+    role:     str = "ADMIN"   # ADMIN | SUPER_ADMIN
+
+class UserUpdateIn(BaseModel):
+    """Body for SUPER_ADMIN editing an existing admin user. All fields optional."""
+    email:    Optional[str] = None
+    name:     Optional[str] = None
+    password: Optional[str] = None   # if provided, hash and replace; if omitted, keep existing
+    role:     Optional[str] = None
 
 
 class StatusIn(BaseModel):
@@ -326,11 +442,17 @@ def _get_bearer(request: Request) -> str:
 
 
 def _verify_token(token: str) -> dict | None:
-    """Return user doc if token is valid and not expired, else None."""
+    """
+    Return user doc if token is valid, not expired, and the user is active.
+    Returns None for missing/invalid tokens, expired tokens, or deactivated users.
+    """
     if not token:
         return None
     user = _usercol.find_one({"active_token": token})
     if not user:
+        return None
+    # Block deactivated users — SUPER_ADMIN can toggle this via the Users page.
+    if not user.get("active", True):
         return None
     exp = user.get("token_expires_at")
     if not exp:
@@ -339,6 +461,36 @@ def _verify_token(token: str) -> dict | None:
         exp = exp.replace(tzinfo=timezone.utc)
     if datetime.now(timezone.utc) > exp:
         return None
+    return user
+
+
+def _require_admin(request: Request) -> dict:
+    """
+    FastAPI dependency — allows any authenticated admin user (any role).
+    Raises HTTP 401 if the bearer token is missing, invalid, expired, or the
+    user account has been deactivated by a SUPER_ADMIN.
+    """
+    token = _get_bearer(request)
+    user  = _verify_token(token)
+    if not user:
+        raise HTTPException(401, "Admin authentication required")
+    return user
+
+
+def _require_super_admin(request: Request) -> dict:
+    """
+    FastAPI dependency — allows only users with the SUPER_ADMIN role.
+    Used on privileged routes such as SMS/API credentials management and
+    the user activation/deactivation endpoints.
+    Raises HTTP 403 (not 401) so the frontend can distinguish "not logged in"
+    from "logged in but insufficient permissions".
+    """
+    token = _get_bearer(request)
+    user  = _verify_token(token)
+    if not user:
+        raise HTTPException(401, "Admin authentication required")
+    if user.get("role") != "SUPER_ADMIN":
+        raise HTTPException(403, "This action requires SUPER_ADMIN privileges")
     return user
 
 
@@ -391,6 +543,82 @@ def _notify(name: str, mobile: str, dept: str, date: Optional[str]) -> None:
         _send_whatsapp(to, msg)
     except Exception as e:
         print(f"[WA-ERR]  {e}")
+
+
+def _send_appointment_sms(
+    appointment_id: str,
+    name: str,
+    mobile: str,
+    department: str,
+    doctor: str,
+    date: Optional[str],
+) -> None:
+    """
+    Send a patient confirmation SMS using the admin-configured SMS settings.
+
+    Reads provider credentials and the message template fresh from MongoDB on
+    every call so changes made in the admin portal take effect immediately —
+    no server restart needed.
+
+    Placeholders supported in the template:
+        {name}           – patient full name
+        {mobile}         – patient mobile number
+        {department}     – department selected at booking
+        {doctor}         – preferred doctor (falls back to "To be assigned")
+        {date}           – preferred appointment date (falls back to "To be confirmed")
+        {appointment_id} – first 8 characters of the MongoDB ObjectId, uppercased,
+                           used as a short human-readable reference number
+    """
+    # Fetch the current SMS configuration for this tenant from the database
+    cfg = _smscfgcol.find_one(_tq())
+
+    # Bail out silently if SMS is disabled or not yet configured
+    if not cfg or not cfg.get("enabled"):
+        print(f"[SMS-CONFIG] SMS disabled or not configured — skipping for appointment {appointment_id}")
+        return
+
+    provider = cfg.get("provider", "twilio")
+
+    if provider == "twilio":
+        sid       = cfg.get("account_sid", "").strip()
+        token     = cfg.get("auth_token", "").strip()
+        from_num  = cfg.get("from_number", "").strip()
+        template  = cfg.get("template", "").strip()
+
+        # All four fields are required to send an SMS
+        if not (sid and token and from_num and template):
+            print("[SMS-CONFIG] Twilio credentials incomplete — skipping SMS")
+            return
+
+        # Build the short appointment reference (first 8 chars of ObjectId, uppercase)
+        short_id = appointment_id[:8].upper()
+
+        # Render the template — replace every placeholder with live appointment data
+        try:
+            message = template.format(
+                name           = name,
+                mobile         = mobile,
+                department     = department or "General",
+                doctor         = doctor or "To be assigned",
+                date           = date or "To be confirmed",
+                appointment_id = short_id,
+            )
+        except KeyError as ke:
+            # Unknown placeholder in the template — log and skip to avoid crashing
+            print(f"[SMS-TEMPLATE] Unknown placeholder {ke} in template — skipping SMS")
+            return
+
+        # Normalise the patient's mobile to E.164 format before sending
+        to = _e164(mobile)
+        try:
+            from twilio.rest import Client
+            Client(sid, token).messages.create(to=to, from_=from_num, body=message)
+            print(f"[SMS-OK] Appointment SMS sent to {to} (ref {short_id})")
+        except Exception as e:
+            # Log the error but never let an SMS failure block the appointment booking
+            print(f"[SMS-ERR] Failed to send to {to}: {e}")
+    else:
+        print(f"[SMS-CONFIG] Unsupported provider '{provider}' — skipping SMS")
 
 
 # ── Global exception handler (ensures CORS headers on all errors) ───
@@ -446,7 +674,19 @@ def create_appointment(request: Request, body: AppointmentIn,
         except DuplicateKeyError:
             doc.pop("_id", None)
             result = _col.insert_one(doc)
+    # Legacy WhatsApp notification (env-var-based, kept for backward compatibility)
     _notify(body.name, body.mobile, body.department, body.date)
+
+    # Admin-configured SMS notification — credentials and template live in DB
+    _send_appointment_sms(
+        appointment_id = str(result.inserted_id),
+        name           = body.name,
+        mobile         = body.mobile,
+        department     = body.department or "",
+        doctor         = body.doctor or "",
+        date           = body.date,
+    )
+
     return {"success": True, "id": str(result.inserted_id)}
 
 
@@ -536,11 +776,12 @@ def list_doctors(featured: Optional[bool] = None, show_all: bool = False, _: Non
 
 
 @app.post("/api/doctors", status_code=201)
-def create_doctor(body: DoctorIn):
+def create_doctor(body: DoctorIn, _: None = Depends(_require_admin)):
     try:
         doc = body.model_dump()
         doc["tenant_name"] = _tenant()
         doc["created_at"]  = datetime.now(timezone.utc)
+        doc["updated_by"]  = _user_email()   # audit: who created this record
         result = _dcol.insert_one(doc)
         return {"success": True, "id": str(result.inserted_id)}
     except Exception as e:
@@ -549,7 +790,7 @@ def create_doctor(body: DoctorIn):
 
 
 @app.patch("/api/doctors/{doctor_id}")
-def update_doctor(doctor_id: str, body: DoctorUpdate):
+def update_doctor(doctor_id: str, body: DoctorUpdate, _: None = Depends(_require_admin)):
     try:
         oid = ObjectId(doctor_id)
     except Exception:
@@ -558,6 +799,7 @@ def update_doctor(doctor_id: str, body: DoctorUpdate):
         updates = {k: v for k, v in body.model_dump().items() if v is not None}
         if not updates:
             raise HTTPException(400, "No fields to update")
+        updates["updated_by"] = _user_email()   # audit: who last modified this record
         result = _dcol.update_one(_tq({"_id": oid}), {"$set": updates})
         if result.matched_count == 0:
             raise HTTPException(404, "Not found")
@@ -570,7 +812,7 @@ def update_doctor(doctor_id: str, body: DoctorUpdate):
 
 
 @app.delete("/api/doctors/{doctor_id}")
-def delete_doctor(doctor_id: str):
+def delete_doctor(doctor_id: str, _: None = Depends(_require_admin)):
     try:
         oid = ObjectId(doctor_id)
     except Exception:
@@ -613,11 +855,12 @@ def list_departments(show_all: bool = False, _: None = Depends(require_public_ac
 
 
 @app.post("/api/departments", status_code=201)
-def create_department(body: DepartmentIn):
+def create_department(body: DepartmentIn, _: None = Depends(_require_admin)):
     try:
         doc = body.model_dump()
         doc["tenant_name"] = _tenant()
         doc["created_at"]  = datetime.now(timezone.utc)
+        doc["updated_by"]  = _user_email()
         result = _deptcol.insert_one(doc)
         return {"success": True, "id": str(result.inserted_id)}
     except Exception as e:
@@ -626,7 +869,7 @@ def create_department(body: DepartmentIn):
 
 
 @app.patch("/api/departments/{dept_id}")
-def update_department(dept_id: str, body: DepartmentUpdate):
+def update_department(dept_id: str, body: DepartmentUpdate, _: None = Depends(_require_admin)):
     try:
         oid = ObjectId(dept_id)
     except Exception:
@@ -635,6 +878,7 @@ def update_department(dept_id: str, body: DepartmentUpdate):
         updates = {k: v for k, v in body.model_dump().items() if v is not None}
         if not updates:
             raise HTTPException(400, "No fields to update")
+        updates["updated_by"] = _user_email()
         result = _deptcol.update_one(_tq({"_id": oid}), {"$set": updates})
         if result.matched_count == 0:
             raise HTTPException(404, "Not found")
@@ -647,7 +891,7 @@ def update_department(dept_id: str, body: DepartmentUpdate):
 
 
 @app.delete("/api/departments/{dept_id}")
-def delete_department(dept_id: str):
+def delete_department(dept_id: str, _: None = Depends(_require_admin)):
     try:
         oid = ObjectId(dept_id)
     except Exception:
@@ -718,7 +962,7 @@ def get_blog(blog_id: str, _: None = Depends(require_public_access)):
 
 
 @app.post("/api/blogs", status_code=201)
-def create_blog(body: BlogIn):
+def create_blog(body: BlogIn, _: None = Depends(_require_admin)):
     doc = {
         "tenant_name": _tenant(),
         "title":       body.title,
@@ -730,6 +974,7 @@ def create_blog(body: BlogIn):
         "tags":        body.tags,
         "published":   body.published,
         "created_at":  datetime.now(timezone.utc),
+        "updated_by":  _user_email(),
     }
     try:
         result = _bcol.insert_one(doc)
@@ -740,7 +985,7 @@ def create_blog(body: BlogIn):
 
 
 @app.patch("/api/blogs/{blog_id}")
-def update_blog(blog_id: str, body: BlogUpdate):
+def update_blog(blog_id: str, body: BlogUpdate, _: None = Depends(_require_admin)):
     try:
         oid = ObjectId(blog_id)
     except Exception:
@@ -749,6 +994,7 @@ def update_blog(blog_id: str, body: BlogUpdate):
         updates = {k: v for k, v in body.model_dump().items() if v is not None}
         if not updates:
             raise HTTPException(400, "No fields to update")
+        updates["updated_by"] = _user_email()
         result = _bcol.update_one(_tq({"_id": oid}), {"$set": updates})
         if result.matched_count == 0:
             raise HTTPException(404, "Not found")
@@ -816,7 +1062,7 @@ def create_testimonial(request: Request, body: TestimonialIn,
 
 
 @app.patch("/api/testimonials/{test_id}")
-def update_testimonial(test_id: str, body: TestimonialUpdate):
+def update_testimonial(test_id: str, body: TestimonialUpdate, _: None = Depends(_require_admin)):
     try:
         oid = ObjectId(test_id)
     except Exception:
@@ -824,6 +1070,7 @@ def update_testimonial(test_id: str, body: TestimonialUpdate):
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
     if not updates:
         raise HTTPException(400, "No fields to update")
+    updates["updated_by"] = _user_email()
     result = _testcol.update_one(_tq({"_id": oid}), {"$set": updates})
     if result.matched_count == 0:
         raise HTTPException(404, "Not found")
@@ -876,16 +1123,17 @@ def list_media(gallery: bool = False, _: None = Depends(require_public_access)):
 
 
 @app.post("/api/media", status_code=201)
-def create_media(body: MediaIn):
+def create_media(body: MediaIn, _: None = Depends(_require_admin)):
     doc = body.model_dump()
     doc["tenant_name"] = _tenant()
     doc["created_at"]  = datetime.now(timezone.utc)
+    doc["updated_by"]  = _user_email()
     result = _mediacol.insert_one(doc)
     return {"success": True, "id": str(result.inserted_id)}
 
 
 @app.patch("/api/media/{media_id}")
-def update_media(media_id: str, body: MediaUpdate):
+def update_media(media_id: str, body: MediaUpdate, _: None = Depends(_require_admin)):
     try:
         oid = ObjectId(media_id)
     except Exception:
@@ -893,6 +1141,7 @@ def update_media(media_id: str, body: MediaUpdate):
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
     if not updates:
         raise HTTPException(400, "No fields to update")
+    updates["updated_by"] = _user_email()
     result = _mediacol.update_one(_tq({"_id": oid}), {"$set": updates})
     if result.matched_count == 0:
         raise HTTPException(404, "Not found")
@@ -900,7 +1149,7 @@ def update_media(media_id: str, body: MediaUpdate):
 
 
 @app.delete("/api/media/{media_id}")
-def delete_media(media_id: str):
+def delete_media(media_id: str, _: None = Depends(_require_admin)):
     try:
         oid = ObjectId(media_id)
     except Exception:
@@ -922,8 +1171,9 @@ def get_gallery_config(_: None = Depends(require_public_access)):
 
 
 @app.patch("/api/gallery-config")
-def update_gallery_config(body: GalleryConfigIn):
+def update_gallery_config(body: GalleryConfigIn, _: None = Depends(_require_admin)):
     data = {k: v for k, v in body.model_dump().items() if v is not None}
+    data["updated_by"] = _user_email()
     _gcfgcol.update_one(_tq(), {"$set": data}, upsert=True)
     return {"success": True}
 
@@ -1027,16 +1277,17 @@ def list_offers(show_all: bool = False, _: None = Depends(require_public_access)
 
 
 @app.post("/api/offers", status_code=201)
-def create_offer(body: OfferIn):
+def create_offer(body: OfferIn, _: None = Depends(_require_admin)):
     doc = body.model_dump()
     doc["tenant_name"] = _tenant()
     doc["created_at"]  = datetime.now(timezone.utc)
+    doc["updated_by"]  = _user_email()
     result = _offercol.insert_one(doc)
     return {"success": True, "id": str(result.inserted_id)}
 
 
 @app.patch("/api/offers/{offer_id}")
-def update_offer(offer_id: str, body: OfferUpdate):
+def update_offer(offer_id: str, body: OfferUpdate, _: None = Depends(_require_admin)):
     try:
         oid = ObjectId(offer_id)
     except Exception:
@@ -1044,6 +1295,7 @@ def update_offer(offer_id: str, body: OfferUpdate):
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
     if not updates:
         raise HTTPException(400, "No fields to update")
+    updates["updated_by"] = _user_email()
     result = _offercol.update_one(_tq({"_id": oid}), {"$set": updates})
     if result.matched_count == 0:
         raise HTTPException(404, "Not found")
@@ -1051,7 +1303,7 @@ def update_offer(offer_id: str, body: OfferUpdate):
 
 
 @app.delete("/api/offers/{offer_id}")
-def delete_offer(offer_id: str):
+def delete_offer(offer_id: str, _: None = Depends(_require_admin)):
     try:
         oid = ObjectId(offer_id)
     except Exception:
@@ -1085,17 +1337,18 @@ def list_insurance(show_all: bool = False, _: None = Depends(require_public_acce
 
 
 @app.post("/api/insurance", status_code=201)
-def create_insurance(body: InsuranceIn):
+def create_insurance(body: InsuranceIn, _: None = Depends(_require_admin)):
     _validate_drive_link(body.logo_drive_link)
     doc = body.model_dump()
     doc["tenant_name"] = _tenant()
     doc["created_at"]  = datetime.now(timezone.utc)
+    doc["updated_by"]  = _user_email()
     result = _inscol.insert_one(doc)
     return {"success": True, "id": str(result.inserted_id)}
 
 
 @app.patch("/api/insurance/{ins_id}")
-def update_insurance(ins_id: str, body: InsuranceUpdate):
+def update_insurance(ins_id: str, body: InsuranceUpdate, _: None = Depends(_require_admin)):
     try:
         oid = ObjectId(ins_id)
     except Exception:
@@ -1104,6 +1357,7 @@ def update_insurance(ins_id: str, body: InsuranceUpdate):
     if not updates:
         raise HTTPException(400, "No fields to update")
     _validate_drive_link(updates.get("logo_drive_link"))
+    updates["updated_by"] = _user_email()
     result = _inscol.update_one(_tq({"_id": oid}), {"$set": updates})
     if result.matched_count == 0:
         raise HTTPException(404, "Not found")
@@ -1111,7 +1365,7 @@ def update_insurance(ins_id: str, body: InsuranceUpdate):
 
 
 @app.delete("/api/insurance/{ins_id}")
-def delete_insurance(ins_id: str):
+def delete_insurance(ins_id: str, _: None = Depends(_require_admin)):
     try:
         oid = ObjectId(ins_id)
     except Exception:
@@ -1153,17 +1407,18 @@ def list_partners(show_all: bool = False, _: None = Depends(require_public_acces
 
 
 @app.post("/api/partners", status_code=201)
-def create_partner(body: PartnerIn):
+def create_partner(body: PartnerIn, _: None = Depends(_require_admin)):
     _validate_drive_link(body.logo_drive_link)
     doc = body.model_dump()
     doc["tenant_name"] = _tenant()
     doc["created_at"]  = datetime.now(timezone.utc)
+    doc["updated_by"]  = _user_email()
     result = _partnercol.insert_one(doc)
     return {"success": True, "id": str(result.inserted_id)}
 
 
 @app.patch("/api/partners/{partner_id}")
-def update_partner(partner_id: str, body: PartnerUpdate):
+def update_partner(partner_id: str, body: PartnerUpdate, _: None = Depends(_require_admin)):
     try:
         oid = ObjectId(partner_id)
     except Exception:
@@ -1172,6 +1427,7 @@ def update_partner(partner_id: str, body: PartnerUpdate):
     if not updates:
         raise HTTPException(400, "No fields to update")
     _validate_drive_link(updates.get("logo_drive_link"))
+    updates["updated_by"] = _user_email()
     result = _partnercol.update_one(_tq({"_id": oid}), {"$set": updates})
     if result.matched_count == 0:
         raise HTTPException(404, "Not found")
@@ -1179,7 +1435,7 @@ def update_partner(partner_id: str, body: PartnerUpdate):
 
 
 @app.delete("/api/partners/{partner_id}")
-def delete_partner(partner_id: str):
+def delete_partner(partner_id: str, _: None = Depends(_require_admin)):
     try:
         oid = ObjectId(partner_id)
     except Exception:
@@ -1187,6 +1443,190 @@ def delete_partner(partner_id: str):
     result = _partnercol.delete_one(_tq({"_id": oid}))
     if result.deleted_count == 0:
         raise HTTPException(404, "Not found")
+    return {"success": True}
+
+
+# ── Hero Stats Routes ─────────────────────────────────────────────────
+def _fmt_stat(doc: dict) -> dict:
+    doc["id"] = str(doc.pop("_id"))
+    ca = doc.get("created_at")
+    if isinstance(ca, datetime):
+        doc["created_at"] = ca.isoformat()
+    doc.setdefault("active", True)
+    doc.setdefault("order", 0)
+    doc.setdefault("suffix", "+")
+    doc.setdefault("icon_key", "patients")
+    return doc
+
+
+@app.get("/api/hero-stats")
+def list_hero_stats(show_all: bool = False, _: None = Depends(require_public_access)):
+    q = _tq() if show_all else _tq({"active": True})
+    docs = list(_statscol.find(q).sort("order", 1))
+    return [_fmt_stat(d) for d in docs]
+
+
+@app.post("/api/hero-stats", status_code=201)
+def create_hero_stat(body: StatIn, _: None = Depends(_require_admin)):
+    doc = body.model_dump()
+    doc["tenant_name"] = _tenant()
+    doc["created_at"]  = datetime.now(timezone.utc)
+    doc["updated_by"]  = _user_email()
+    result = _statscol.insert_one(doc)
+    return {"success": True, "id": str(result.inserted_id)}
+
+
+@app.patch("/api/hero-stats/{stat_id}")
+def update_hero_stat(stat_id: str, body: StatUpdate, _: None = Depends(_require_admin)):
+    try:
+        oid = ObjectId(stat_id)
+    except Exception:
+        raise HTTPException(400, "Invalid id")
+    updates = {k: v for k, v in body.model_dump().items() if v is not None}
+    if not updates:
+        raise HTTPException(400, "Nothing to update")
+    updates["updated_by"] = _user_email()
+    _statscol.update_one(_tq({"_id": oid}), {"$set": updates})
+    return {"success": True}
+
+
+@app.delete("/api/hero-stats/{stat_id}")
+def delete_hero_stat(stat_id: str, _: None = Depends(_require_admin)):
+    try:
+        oid = ObjectId(stat_id)
+    except Exception:
+        raise HTTPException(400, "Invalid id")
+    result = _statscol.delete_one(_tq({"_id": oid}))
+    if result.deleted_count == 0:
+        raise HTTPException(404, "Not found")
+    return {"success": True}
+
+
+# ── SMS Config Routes ────────────────────────────────────────────────
+# These routes are admin-only: they require a valid admin bearer token.
+# The auth_token (Twilio credential) is never returned in plain text —
+# the GET endpoint replaces it with a bullet-mask so the admin UI can
+# show that a token is saved without exposing its value.
+
+@app.get("/api/sms-config")
+def get_sms_config(_admin: dict = Depends(_require_super_admin)):
+    """
+    Return the current SMS configuration for this tenant.
+    Both sensitive fields (account_sid and auth_token) are masked before
+    returning so credentials are never exposed to the browser.
+    """
+    cfg = _smscfgcol.find_one(_tq()) or {}
+    # Strip internal MongoDB/tenant fields — frontend doesn't need them
+    cfg.pop("_id", None)
+    cfg.pop("tenant_name", None)
+    # Mask both sensitive credentials — replace with a bullet placeholder.
+    # The frontend tracks whether these are masked and sends the placeholder
+    # back on save so the backend knows to preserve the real stored values.
+    if cfg.get("account_sid"):
+        cfg["account_sid"] = "••••••••"
+    if cfg.get("auth_token"):
+        cfg["auth_token"] = "••••••••"
+    return cfg
+
+
+@app.put("/api/sms-config")
+def save_sms_config(body: SmsConfigIn, _admin: dict = Depends(_require_super_admin)):
+    """
+    Upsert (create or replace) the SMS configuration for this tenant.
+    If the client sends the masked placeholder for auth_token it means
+    the admin didn't change it — we keep the existing DB value instead
+    of overwriting with the placeholder string.
+    """
+    update = body.model_dump()
+
+    # If either sensitive field still holds the mask placeholder it means the
+    # admin didn't change it — fetch the real values from DB and restore them
+    # so we don't overwrite with the placeholder string.
+    needs_existing = (
+        update.get("account_sid") == "••••••••" or
+        update.get("auth_token")  == "••••••••"
+    )
+    if needs_existing:
+        existing = _smscfgcol.find_one(_tq()) or {}
+        if update.get("account_sid") == "••••••••":
+            update["account_sid"] = existing.get("account_sid", "")
+        if update.get("auth_token") == "••••••••":
+            update["auth_token"] = existing.get("auth_token", "")
+
+    _smscfgcol.update_one(
+        _tq(),                                          # filter: match this tenant
+        {"$set": {**update, "tenant_name": _tenant()}}, # update: replace all fields
+        upsert=True,                                    # create doc if none exists yet
+    )
+    return {"success": True}
+
+
+@app.post("/api/sms-config/test")
+def test_sms(body: SmsTestIn, _admin: dict = Depends(_require_super_admin)):
+    """
+    Send a test SMS to the supplied phone number using the saved config.
+    Used by admins to verify credentials and the from-number are correct
+    before going live. Raises HTTP 400/500 with a descriptive message on failure.
+    """
+    cfg = _smscfgcol.find_one(_tq())
+
+    # Allow testing even when SMS is disabled — the admin needs to verify
+    # credentials before enabling it for live patient notifications.
+    if not cfg:
+        raise HTTPException(400, "No SMS configuration found. Please save your settings first.")
+
+    provider = cfg.get("provider", "twilio")
+
+    if provider == "twilio":
+        sid      = cfg.get("account_sid", "").strip()
+        token    = cfg.get("auth_token", "").strip()
+        from_num = cfg.get("from_number", "").strip()
+
+        if not (sid and token and from_num):
+            raise HTTPException(400, "Twilio credentials are incomplete. Please fill Account SID, Auth Token, and From Number.")
+
+        to = _e164(body.phone)
+        try:
+            from twilio.rest import Client
+            Client(sid, token).messages.create(
+                to   = to,
+                from_= from_num,
+                body = "Test SMS from your hospital system. Your SMS configuration is working correctly!",
+            )
+            # Return success details — always 200 so the error detail reaches the frontend
+            return {"success": True, "message": f"Test SMS sent to {to}"}
+        except Exception as e:
+            # Return the real Twilio error as a 200 body so apiFetch doesn't swallow it.
+            # The global exception handler would otherwise replace it with a generic message.
+            err_msg = str(e)
+            print(f"[SMS-TEST-ERR] {err_msg}")
+            return {"success": False, "error": err_msg}
+
+    return {"success": False, "error": f"Unsupported provider: {provider}"}
+
+
+# ── Site Config Routes ────────────────────────────────────────────────
+# Stores site-wide settings like the hospital phone number.
+# GET is public so the homepage can read it; PUT is admin-only.
+
+@app.get("/api/site-config")
+def get_site_config(_: None = Depends(require_public_access)):
+    """Return site-wide config (e.g. hospital phone number) for the current tenant."""
+    cfg = _sitecfgcol.find_one(_tq()) or {}
+    cfg.pop("_id", None)
+    cfg.pop("tenant_name", None)
+    return cfg
+
+
+@app.put("/api/site-config")
+def save_site_config(body: SiteConfigIn, _admin: dict = Depends(_require_admin)):
+    """Upsert site-wide configuration for this tenant."""
+    update = {k: v for k, v in body.model_dump().items() if v is not None}
+    _sitecfgcol.update_one(
+        _tq(),
+        {"$set": {**update, "tenant_name": _tenant()}},
+        upsert=True,
+    )
     return {"success": True}
 
 
@@ -1198,6 +1638,9 @@ def auth_login(body: LoginIn):
     if not user:
         raise HTTPException(401, "Invalid email or password")
     pw_hash = user.get("password_hash")
+    # bcrypt 5.x requires bytes — encode if the stored hash came back as a str
+    if isinstance(pw_hash, str):
+        pw_hash = pw_hash.encode()
     if not pw_hash or not bcrypt.checkpw(body.password.encode(), pw_hash):
         raise HTTPException(401, "Invalid email or password")
 
@@ -1313,7 +1756,7 @@ def auth_refresh(request: Request):
 
 
 @app.delete("/api/blogs/{blog_id}")
-def delete_blog(blog_id: str):
+def delete_blog(blog_id: str, _: None = Depends(_require_admin)):
     try:
         oid = ObjectId(blog_id)
     except Exception:
@@ -1328,3 +1771,103 @@ def delete_blog(blog_id: str):
     except Exception as e:
         print(f"[ERROR] delete_blog: {e}")
         raise HTTPException(503, "Database temporarily unavailable")
+
+
+# ── Admin User Management Routes (SUPER_ADMIN only) ──────────────────
+# Only a SUPER_ADMIN can list, create, and activate/deactivate other admins.
+
+@app.get("/api/admin/users")
+def list_admin_users(_admin: dict = Depends(_require_super_admin)):
+    """Return all admin users for this tenant (passwords excluded)."""
+    docs = list(_usercol.find(
+        _tq(),
+        {"password_hash": 0, "active_token": 0, "token_expires_at": 0, "totp_secret": 0},
+    ))
+    for d in docs:
+        d["id"] = str(d.pop("_id"))
+        ca = d.get("created_at")
+        if isinstance(ca, datetime):
+            d["created_at"] = ca.isoformat()
+    return docs
+
+
+@app.post("/api/admin/users", status_code=201)
+def create_admin_user(body: UserCreateIn, _admin: dict = Depends(_require_super_admin)):
+    """Create a new admin user scoped to the current tenant. SUPER_ADMIN only."""
+    existing = _usercol.find_one(_tq({"email": body.email}))
+    if existing:
+        raise HTTPException(409, "A user with that email already exists")
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(body.password.encode(), salt).decode()
+    doc = {
+        "tenant_name":  _tenant(),
+        "email":        body.email,
+        "name":         body.name,
+        "password_hash": hashed,
+        "role":         body.role or "ADMIN",
+        "active":       True,
+        "created_at":   datetime.now(timezone.utc),
+        "created_by":   _user_email(),
+    }
+    result = _usercol.insert_one(doc)
+    return {"success": True, "id": str(result.inserted_id)}
+
+
+@app.patch("/api/admin/users/{user_id}/status")
+def toggle_admin_user_status(user_id: str, _admin: dict = Depends(_require_super_admin)):
+    """Toggle the active flag for an admin user. SUPER_ADMIN only.
+    A SUPER_ADMIN cannot deactivate themselves to prevent lockout.
+    When a user is deactivated their active_token is cleared immediately,
+    forcing them out of any current session.
+    """
+    try:
+        oid = ObjectId(user_id)
+    except Exception:
+        raise HTTPException(400, "Invalid id")
+    user = _usercol.find_one(_tq({"_id": oid}))
+    if not user:
+        raise HTTPException(404, "User not found")
+    # Prevent SUPER_ADMIN from deactivating themselves
+    if user.get("email") == _admin.get("email"):
+        raise HTTPException(400, "You cannot deactivate your own account")
+    new_active = not user.get("active", True)
+    update: dict = {"$set": {"active": new_active}}
+    # Immediately invalidate the session token when deactivating
+    if not new_active:
+        update["$unset"] = {"active_token": ""}
+    _usercol.update_one({"_id": oid}, update)
+    return {"success": True, "active": new_active}
+
+
+@app.patch("/api/admin/users/{user_id}")
+def update_admin_user(user_id: str, body: UserUpdateIn, _admin: dict = Depends(_require_super_admin)):
+    """Edit an admin user's email, name, password, or role. SUPER_ADMIN only."""
+    try:
+        oid = ObjectId(user_id)
+    except Exception:
+        raise HTTPException(400, "Invalid id")
+    user = _usercol.find_one(_tq({"_id": oid}))
+    if not user:
+        raise HTTPException(404, "User not found")
+    updates: dict = {}
+    if body.email is not None:
+        # Ensure the new email isn't already taken by another user
+        clash = _usercol.find_one(_tq({"email": body.email, "_id": {"$ne": oid}}))
+        if clash:
+            raise HTTPException(409, "That email is already used by another user")
+        updates["email"] = body.email.strip().lower()
+    if body.name is not None:
+        updates["name"] = body.name.strip()
+    if body.role is not None:
+        updates["role"] = body.role
+    if body.password:
+        if len(body.password) < 8:
+            raise HTTPException(400, "Password must be at least 8 characters")
+        updates["password_hash"] = bcrypt.hashpw(body.password.encode(), bcrypt.gensalt()).decode()
+        # Invalidate active session so user must re-login with new password
+        _usercol.update_one({"_id": oid}, {"$unset": {"active_token": ""}})
+    if not updates:
+        raise HTTPException(400, "No fields to update")
+    updates["updated_by"] = _user_email()
+    _usercol.update_one({"_id": oid}, {"$set": updates})
+    return {"success": True}
