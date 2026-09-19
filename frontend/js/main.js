@@ -400,30 +400,97 @@
   }
 
   /* ── Render: Facilities ───────────────────────────────── */
-  function renderFacilities(filter) {
-    const grid = $('#facilities-grid');
-    if (!grid || !data) return;
-    filter = filter || 'all';
-    const items = filter === 'all'
-      ? data.facilities
-      : data.facilities.filter(f => f.category === filter);
+  let _facilitiesData = null; // cached API/static list
 
-    grid.innerHTML = items.map((f, i) => `
-      <div class="facility-card" data-animate="scale" data-delay="${(i % 4) * 100}">
-        <div style="width:100%;height:100%;background:linear-gradient(135deg,${f.color}22,${f.color}55);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;">
-          <div style="width:80px;height:80px;background:${f.color};border-radius:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px ${f.color}66;">
+  function _makeFacilityCard(f, i) {
+    const color = f.color || '#0A4D8C';
+    const desc  = f.desc || f.short_desc || '';
+    return `
+      <div class="facility-card" data-animate="scale" data-delay="${(i % 4) * 100}"
+           style="cursor:pointer;" data-facility-id="${i}"
+           onclick="_showFacilityDetail(${i})">
+        <div style="width:100%;height:100%;background:linear-gradient(135deg,${color}22,${color}55);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;">
+          <div style="width:80px;height:80px;background:${color};border-radius:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px ${color}66;">
             ${svgIcon('<path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>', 40).replace('stroke="currentColor"', 'stroke="white"')}
           </div>
-          <span style="font-family:var(--font-heading);font-size:var(--text-base);font-weight:var(--font-bold);color:${f.color};">${f.name}</span>
+          <span style="font-family:var(--font-heading);font-size:var(--text-base);font-weight:var(--font-bold);color:${color};">${f.name}</span>
         </div>
         <div class="facility-overlay">
           <div class="facility-label">${f.name}</div>
-          <div class="facility-desc-overlay">${f.desc}</div>
+          <div class="facility-desc-overlay">${desc}</div>
         </div>
-      </div>
-    `).join('');
+      </div>`;
+  }
 
+  window._showFacilityDetail = function(idx) {
+    const f = _facilitiesData && _facilitiesData[idx];
+    if (!f) return;
+    const color = f.color || '#0A4D8C';
+    const desc  = f.description || f.desc || f.short_desc || 'No details available.';
+    let modal = document.getElementById('facility-detail-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'facility-detail-modal';
+      modal.style.cssText = 'position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:16px;';
+      modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+      document.body.appendChild(modal);
+    }
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:20px;max-width:480px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.2);overflow:hidden;">
+        <div style="background:linear-gradient(135deg,${color}dd,${color});padding:28px 24px 20px;position:relative;">
+          <button onclick="document.getElementById('facility-detail-modal').remove()"
+            style="position:absolute;top:12px;right:12px;background:rgba(255,255,255,0.25);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+          <div style="width:56px;height:56px;background:rgba(255,255,255,0.25);border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
+            ${svgIcon('<path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>', 28).replace('stroke="currentColor"', 'stroke="white"')}
+          </div>
+          <h3 style="color:#fff;font-family:var(--font-heading);font-size:var(--text-xl);font-weight:var(--font-bold);margin:0;">${f.name}</h3>
+          ${f.short_desc ? `<p style="color:rgba(255,255,255,0.85);font-size:var(--text-sm);margin:6px 0 0;">${f.short_desc}</p>` : ''}
+        </div>
+        <div style="padding:24px;">
+          <p style="color:var(--color-text-secondary);font-size:var(--text-base);line-height:1.7;margin:0;">${desc}</p>
+          <button onclick="document.getElementById('facility-detail-modal').remove()"
+            style="margin-top:20px;background:${color};color:#fff;border:none;border-radius:10px;padding:10px 24px;font-size:var(--text-sm);font-weight:var(--font-semibold);cursor:pointer;">
+            Close
+          </button>
+        </div>
+      </div>`;
+    modal.style.display = 'flex';
+  };
+
+  function _applyFacilityFilter(filter) {
+    if (!_facilitiesData) return;
+    const grid = $('#facilities-grid');
+    if (!grid) return;
+    const items = filter === 'all'
+      ? _facilitiesData
+      : _facilitiesData.filter(f => f.category === filter);
+    grid.innerHTML = items.map(_makeFacilityCard).join('');
     initScrollAnimations();
+  }
+
+  async function renderFacilities(filter) {
+    const grid = $('#facilities-grid');
+    if (!grid) return;
+    filter = filter || 'all';
+
+    if (!_facilitiesData) {
+      try {
+        const res  = await _apiFetch('/api/facilities');
+        const json = await res.json();
+        if (Array.isArray(json) && json.length) {
+          _facilitiesData = json;
+        }
+      } catch (_) {}
+      if (!_facilitiesData && data && data.facilities) {
+        _facilitiesData = data.facilities.map(f => ({
+          ...f, short_desc: f.desc || '', description: f.desc || ''
+        }));
+      }
+    }
+
+    _applyFacilityFilter(filter);
   }
 
   function initFacilitiesFilter() {
@@ -432,7 +499,7 @@
       btn.addEventListener('click', () => {
         filterBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        renderFacilities(btn.dataset.filter);
+        _applyFacilityFilter(btn.dataset.filter);
       });
     });
   }
@@ -615,6 +682,7 @@
           <span class="stat-label">${label}</span>
         </div>`;
     }).join('');
+    initScrollAnimations();
   }
 
   /* ── Render: Hero Trust Indicators ────────────────────── */
@@ -636,6 +704,7 @@
         <span class="trust-stat-number" data-count="${s.count}" data-suffix="${s.suffix || '+'}">${s.count >= 1000 ? Math.round(s.count / 1000) + 'k' : s.count}${s.suffix || '+'}</span>
         <span class="trust-stat-label">${s.label}</span>
       </div>`).join('');
+    initScrollAnimations();
   }
 
   /* ── Render: Insurance ─────────────────────────────────── */

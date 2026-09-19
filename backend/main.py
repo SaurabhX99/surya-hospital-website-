@@ -94,7 +94,9 @@ _partnercol = _mdb["partners"]
 _statscol   = _mdb["hero_stats"]
 _smscfgcol  = _mdb["sms_config"]        # stores admin-configured SMS provider settings & template
 _sitecfgcol = _mdb["site_config"]       # stores site-wide settings like hospital phone number
-_smslogcol  = _mdb["sms_logs"]          # append-only audit log of every SMS attempt
+_smslogcol      = _mdb["sms_logs"]       # append-only audit log of every SMS attempt
+_facilitiescol  = _mdb["facilities"]    # hospital facilities (ICU, OT, etc.)
+_faqcol         = _mdb["faqs"]          # FAQ question/answer pairs shown in chat + site
 
 # ── Tenant + user middleware — resolves tenant and logged-in user per request ──
 @app.middleware("http")
@@ -274,19 +276,24 @@ class StatUpdate(BaseModel):
 # (not .env) so admins can update them via the portal without a redeploy.
 
 class SmsConfigIn(BaseModel):
-    """Full SMS configuration document saved to the sms_config collection."""
-    enabled: bool = False                   # master on/off switch
-    provider: str = "twilio"               # SMS provider — "twilio" supported today
-    account_sid: Optional[str] = None      # Twilio Account SID (starts with AC…)
-    auth_token: Optional[str] = None       # Twilio Auth Token (sensitive, masked in GET)
-    from_number: Optional[str] = None      # Sender number in E.164 format e.g. +911234567890
-    # Template supports these placeholders:
-    #   {name}           – patient full name
-    #   {mobile}         – patient mobile number
-    #   {department}     – selected department
-    #   {doctor}         – preferred doctor (may be empty)
-    #   {date}           – preferred appointment date
-    #   {appointment_id} – short 8-char uppercase appointment reference
+    """Full SMS configuration document saved to the sms_config collection.
+    Supports two providers selectable at runtime:
+      - "twilio"   : uses account_sid + auth_token + from_number
+      - "gupshup"  : uses gupshup_api_key + gupshup_app_name + from_number
+    Sensitive fields (account_sid, auth_token, gupshup_api_key) are masked
+    in the GET response and the mask placeholder is preserved on save if unchanged.
+    """
+    enabled:           bool = False
+    provider:          str  = "twilio"      # "twilio" | "gupshup"
+    # Twilio credentials
+    account_sid:       Optional[str] = None  # Twilio Account SID (AC…), masked in GET
+    auth_token:        Optional[str] = None  # Twilio Auth Token, masked in GET
+    # Gupshup credentials
+    gupshup_api_key:   Optional[str] = None  # Gupshup API key, masked in GET
+    gupshup_app_name:  Optional[str] = None  # Gupshup registered app / sender name
+    # Shared
+    from_number:       Optional[str] = None  # Sender ID or number (E.164 / DLT registered)
+    # Template supports: {name} {mobile} {department} {doctor} {date} {appointment_id}
     template: str = (
         "Dear {name}, your appointment has been received. "
         "Ref: {appointment_id}. Dept: {department}. "
@@ -321,6 +328,36 @@ class UserUpdateIn(BaseModel):
     password: Optional[str] = None   # if provided, hash and replace; if omitted, keep existing
     role:     Optional[str] = None
 
+
+class FacilityIn(BaseModel):
+    name:        str
+    short_desc:  str = ""
+    description: str = ""
+    category:    str = "general"   # critical | surgery | maternity | diagnostics | general
+    color:       str = "#0A4D8C"
+    order:       int  = 0
+    active:      bool = True
+
+class FacilityUpdate(BaseModel):
+    name:        Optional[str]  = None
+    short_desc:  Optional[str]  = None
+    description: Optional[str]  = None
+    category:    Optional[str]  = None
+    color:       Optional[str]  = None
+    order:       Optional[int]  = None
+    active:      Optional[bool] = None
+
+class FaqIn(BaseModel):
+    question: str
+    answer:   str
+    order:    int  = 0
+    active:   bool = True
+
+class FaqUpdate(BaseModel):
+    question: Optional[str]  = None
+    answer:   Optional[str]  = None
+    order:    Optional[int]  = None
+    active:   Optional[bool] = None
 
 class StatusIn(BaseModel):
     status: str
@@ -580,73 +617,102 @@ def _send_appointment_sms(
 
     provider = cfg.get("provider", "twilio")
 
-    if provider == "twilio":
-        sid       = cfg.get("account_sid", "").strip()
-        token     = cfg.get("auth_token", "").strip()
-        from_num  = cfg.get("from_number", "").strip()
-        template  = cfg.get("template", "").strip()
+    template  = cfg.get("template", "").strip()
+    from_num  = cfg.get("from_number", "").strip()
 
-        # All four fields are required to send an SMS
-        if not (sid and token and from_num and template):
-            print("[SMS-CONFIG] Twilio credentials incomplete — skipping SMS")
-            return
+    # Build the short appointment reference (first 8 chars of ObjectId, uppercase)
+    short_id = appointment_id[:8].upper()
 
-        # Build the short appointment reference (first 8 chars of ObjectId, uppercase)
-        short_id = appointment_id[:8].upper()
+    # Render the template with live appointment data
+    try:
+        message = template.format(
+            name           = name,
+            mobile         = mobile,
+            department     = department or "General",
+            doctor         = doctor or "To be assigned",
+            date           = date or "To be confirmed",
+            appointment_id = short_id,
+        )
+    except KeyError as ke:
+        print(f"[SMS-TEMPLATE] Unknown placeholder {ke} in template — skipping SMS")
+        return
 
-        # Render the template — replace every placeholder with live appointment data
-        try:
-            message = template.format(
-                name           = name,
-                mobile         = mobile,
-                department     = department or "General",
-                doctor         = doctor or "To be assigned",
-                date           = date or "To be confirmed",
-                appointment_id = short_id,
-            )
-        except KeyError as ke:
-            # Unknown placeholder in the template — log and skip to avoid crashing
-            print(f"[SMS-TEMPLATE] Unknown placeholder {ke} in template — skipping SMS")
-            return
+    # Normalise the patient's mobile to E.164 / numeric for sending
+    to = _e164(mobile)
 
-        # Normalise the patient's mobile to E.164 format before sending
-        to = _e164(mobile)
+    # Base audit log entry — updated with outcome after the send attempt
+    log_entry = {
+        "tenant_name":    _tenant(),
+        "appointment_id": appointment_id,
+        "ref_id":         short_id,
+        "to":             to,
+        "patient_name":   name,
+        "department":     department or "General",
+        "doctor":         doctor or "To be assigned",
+        "date":           date or "To be confirmed",
+        "message":        message,
+        "provider":       provider,
+        "status":         "pending",
+        "error":          None,
+        "sent_at":        datetime.now(timezone.utc),
+    }
 
-        # Base audit log entry — will be updated with outcome after send attempt
-        log_entry = {
-            "tenant_name":      _tenant(),
-            "appointment_id":   appointment_id,
-            "ref_id":           short_id,
-            "to":               to,
-            "patient_name":     name,
-            "department":       department or "General",
-            "doctor":           doctor or "To be assigned",
-            "date":             date or "To be confirmed",
-            "message":          message,
-            "provider":         provider,
-            "status":           "pending",
-            "error":            None,
-            "sent_at":          datetime.now(timezone.utc),
-        }
-
-        try:
+    try:
+        if provider == "twilio":
+            sid   = cfg.get("account_sid", "").strip()
+            token = cfg.get("auth_token", "").strip()
+            if not (sid and token and from_num and template):
+                print("[SMS-CONFIG] Twilio credentials incomplete — skipping SMS")
+                return
             from twilio.rest import Client
             Client(sid, token).messages.create(to=to, from_=from_num, body=message)
-            print(f"[SMS-OK] Appointment SMS sent to {to} (ref {short_id})")
+            print(f"[SMS-OK] Twilio SMS sent to {to} (ref {short_id})")
             log_entry["status"] = "success"
-        except Exception as e:
-            # Log the error but never let an SMS failure block the appointment booking
-            print(f"[SMS-ERR] Failed to send to {to}: {e}")
-            log_entry["status"] = "failed"
-            log_entry["error"]  = str(e)
-        finally:
-            # Always write the audit entry regardless of success or failure
-            try:
-                _smslogcol.insert_one(log_entry)
-            except Exception as le:
-                print(f"[SMS-LOG-ERR] Could not write audit log: {le}")
-    else:
-        print(f"[SMS-CONFIG] Unsupported provider '{provider}' — skipping SMS")
+
+        elif provider == "gupshup":
+            # Gupshup enterprise SMS API
+            # Docs: https://docs.gupshup.io/docs/send-message-sms
+            gs_api_key  = cfg.get("gupshup_api_key", "").strip()
+            gs_app_name = cfg.get("gupshup_app_name", "").strip()
+            if not (gs_api_key and from_num and template):
+                print("[SMS-CONFIG] Gupshup credentials incomplete — skipping SMS")
+                return
+            # Gupshup expects the destination as digits only (e.g. 919876543210)
+            gs_to = to.lstrip("+")
+            import httpx as _httpx
+            resp = _httpx.post(
+                "https://api.gupshup.io/sm/api/v1/msg",
+                headers={"apikey": gs_api_key, "Content-Type": "application/x-www-form-urlencoded"},
+                data={
+                    "channel":    "sms",
+                    "source":     from_num,
+                    "destination": gs_to,
+                    "message":    message,
+                    "src.name":   gs_app_name or from_num,
+                },
+                timeout=15,
+            )
+            resp.raise_for_status()
+            result_json = resp.json()
+            # Gupshup returns {"status":"submitted"} on success
+            if result_json.get("status") not in ("submitted", "success"):
+                raise RuntimeError(f"Gupshup response: {result_json}")
+            print(f"[SMS-OK] Gupshup SMS sent to {gs_to} (ref {short_id})")
+            log_entry["status"] = "success"
+
+        else:
+            print(f"[SMS-CONFIG] Unsupported provider '{provider}' — skipping SMS")
+            return
+
+    except Exception as e:
+        print(f"[SMS-ERR] Failed to send via {provider} to {to}: {e}")
+        log_entry["status"] = "failed"
+        log_entry["error"]  = str(e)
+    finally:
+        try:
+            _smslogcol.insert_one(log_entry)
+        except Exception as le:
+            print(f"[SMS-LOG-ERR] Could not write audit log: {le}")
 
 
 # ── Global exception handler (ensures CORS headers on all errors) ───
@@ -1530,6 +1596,96 @@ def delete_hero_stat(stat_id: str, _: None = Depends(_require_admin)):
     return {"success": True}
 
 
+# ── Facilities Routes ─────────────────────────────────────────────────
+
+def _fmt_facility(d: dict) -> dict:
+    d["id"] = str(d.pop("_id"))
+    return d
+
+@app.get("/api/facilities")
+def list_facilities(show_all: bool = False, _: None = Depends(require_public_access)):
+    q = _tq() if show_all else _tq({"active": True})
+    docs = list(_facilitiescol.find(q).sort("order", 1))
+    return [_fmt_facility(d) for d in docs]
+
+@app.post("/api/facilities", status_code=201)
+def create_facility(body: FacilityIn, _: None = Depends(_require_admin)):
+    doc = body.model_dump()
+    doc["tenant_name"] = _tenant()
+    doc["updated_by"]  = _user_email()
+    result = _facilitiescol.insert_one(doc)
+    return {"success": True, "id": str(result.inserted_id)}
+
+@app.patch("/api/facilities/{facility_id}")
+def update_facility(facility_id: str, body: FacilityUpdate, _: None = Depends(_require_admin)):
+    try:
+        oid = ObjectId(facility_id)
+    except Exception:
+        raise HTTPException(400, "Invalid id")
+    patch = {k: v for k, v in body.model_dump().items() if v is not None}
+    patch["updated_by"] = _user_email()
+    result = _facilitiescol.update_one(_tq({"_id": oid}), {"$set": patch})
+    if result.matched_count == 0:
+        raise HTTPException(404, "Not found")
+    return {"success": True}
+
+@app.delete("/api/facilities/{facility_id}")
+def delete_facility(facility_id: str, _: None = Depends(_require_admin)):
+    try:
+        oid = ObjectId(facility_id)
+    except Exception:
+        raise HTTPException(400, "Invalid id")
+    result = _facilitiescol.delete_one(_tq({"_id": oid}))
+    if result.deleted_count == 0:
+        raise HTTPException(404, "Not found")
+    return {"success": True}
+
+
+# ── FAQ Routes ────────────────────────────────────────────────────────
+
+def _fmt_faq(d: dict) -> dict:
+    d["id"] = str(d.pop("_id"))
+    return d
+
+@app.get("/api/faqs")
+def list_faqs(show_all: bool = False, _: None = Depends(require_public_access)):
+    q = _tq() if show_all else _tq({"active": True})
+    docs = list(_faqcol.find(q).sort("order", 1))
+    return [_fmt_faq(d) for d in docs]
+
+@app.post("/api/faqs", status_code=201)
+def create_faq(body: FaqIn, _: None = Depends(_require_admin)):
+    doc = body.model_dump()
+    doc["tenant_name"] = _tenant()
+    doc["updated_by"]  = _user_email()
+    result = _faqcol.insert_one(doc)
+    return {"success": True, "id": str(result.inserted_id)}
+
+@app.patch("/api/faqs/{faq_id}")
+def update_faq(faq_id: str, body: FaqUpdate, _: None = Depends(_require_admin)):
+    try:
+        oid = ObjectId(faq_id)
+    except Exception:
+        raise HTTPException(400, "Invalid id")
+    patch = {k: v for k, v in body.model_dump().items() if v is not None}
+    patch["updated_by"] = _user_email()
+    result = _faqcol.update_one(_tq({"_id": oid}), {"$set": patch})
+    if result.matched_count == 0:
+        raise HTTPException(404, "Not found")
+    return {"success": True}
+
+@app.delete("/api/faqs/{faq_id}")
+def delete_faq(faq_id: str, _: None = Depends(_require_admin)):
+    try:
+        oid = ObjectId(faq_id)
+    except Exception:
+        raise HTTPException(400, "Invalid id")
+    result = _faqcol.delete_one(_tq({"_id": oid}))
+    if result.deleted_count == 0:
+        raise HTTPException(404, "Not found")
+    return {"success": True}
+
+
 # ── SMS Config Routes ────────────────────────────────────────────────
 # These routes are admin-only: they require a valid admin bearer token.
 # The auth_token (Twilio credential) is never returned in plain text —
@@ -1547,13 +1703,12 @@ def get_sms_config(_admin: dict = Depends(_require_super_admin)):
     # Strip internal MongoDB/tenant fields — frontend doesn't need them
     cfg.pop("_id", None)
     cfg.pop("tenant_name", None)
-    # Mask both sensitive credentials — replace with a bullet placeholder.
-    # The frontend tracks whether these are masked and sends the placeholder
+    # Mask all sensitive credentials — replace with a bullet placeholder.
+    # The frontend tracks whether each field is masked and sends the placeholder
     # back on save so the backend knows to preserve the real stored values.
-    if cfg.get("account_sid"):
-        cfg["account_sid"] = "••••••••"
-    if cfg.get("auth_token"):
-        cfg["auth_token"] = "••••••••"
+    if cfg.get("account_sid"):     cfg["account_sid"]     = "••••••••"
+    if cfg.get("auth_token"):      cfg["auth_token"]      = "••••••••"
+    if cfg.get("gupshup_api_key"): cfg["gupshup_api_key"] = "••••••••"
     return cfg
 
 
@@ -1567,19 +1722,16 @@ def save_sms_config(body: SmsConfigIn, _admin: dict = Depends(_require_super_adm
     """
     update = body.model_dump()
 
-    # If either sensitive field still holds the mask placeholder it means the
+    # If any sensitive field still holds the mask placeholder it means the
     # admin didn't change it — fetch the real values from DB and restore them
     # so we don't overwrite with the placeholder string.
-    needs_existing = (
-        update.get("account_sid") == "••••••••" or
-        update.get("auth_token")  == "••••••••"
-    )
-    if needs_existing:
+    _MASK = "••••••••"
+    masked_fields = [f for f in ("account_sid", "auth_token", "gupshup_api_key")
+                     if update.get(f) == _MASK]
+    if masked_fields:
         existing = _smscfgcol.find_one(_tq()) or {}
-        if update.get("account_sid") == "••••••••":
-            update["account_sid"] = existing.get("account_sid", "")
-        if update.get("auth_token") == "••••••••":
-            update["auth_token"] = existing.get("auth_token", "")
+        for f in masked_fields:
+            update[f] = existing.get(f, "")
 
     _smscfgcol.update_one(
         _tq(),                                          # filter: match this tenant
@@ -1605,32 +1757,53 @@ def test_sms(body: SmsTestIn, _admin: dict = Depends(_require_super_admin)):
 
     provider = cfg.get("provider", "twilio")
 
-    if provider == "twilio":
-        sid      = cfg.get("account_sid", "").strip()
-        token    = cfg.get("auth_token", "").strip()
-        from_num = cfg.get("from_number", "").strip()
+    from_num = cfg.get("from_number", "").strip()
+    test_body = "Test SMS from your hospital system. Your SMS configuration is working correctly!"
 
-        if not (sid and token and from_num):
-            raise HTTPException(400, "Twilio credentials are incomplete. Please fill Account SID, Auth Token, and From Number.")
-
-        to = _e164(body.phone)
-        try:
+    try:
+        if provider == "twilio":
+            sid   = cfg.get("account_sid", "").strip()
+            token = cfg.get("auth_token", "").strip()
+            if not (sid and token and from_num):
+                return {"success": False, "error": "Twilio credentials incomplete — fill Account SID, Auth Token, and From Number."}
+            to = _e164(body.phone)
             from twilio.rest import Client
-            Client(sid, token).messages.create(
-                to   = to,
-                from_= from_num,
-                body = "Test SMS from your hospital system. Your SMS configuration is working correctly!",
-            )
-            # Return success details — always 200 so the error detail reaches the frontend
-            return {"success": True, "message": f"Test SMS sent to {to}"}
-        except Exception as e:
-            # Return the real Twilio error as a 200 body so apiFetch doesn't swallow it.
-            # The global exception handler would otherwise replace it with a generic message.
-            err_msg = str(e)
-            print(f"[SMS-TEST-ERR] {err_msg}")
-            return {"success": False, "error": err_msg}
+            Client(sid, token).messages.create(to=to, from_=from_num, body=test_body)
+            return {"success": True, "message": f"Test SMS sent via Twilio to {to}"}
 
-    return {"success": False, "error": f"Unsupported provider: {provider}"}
+        elif provider == "gupshup":
+            gs_api_key  = cfg.get("gupshup_api_key", "").strip()
+            gs_app_name = cfg.get("gupshup_app_name", "").strip()
+            if not (gs_api_key and from_num):
+                return {"success": False, "error": "Gupshup credentials incomplete — fill API Key and From Number."}
+            to    = _e164(body.phone)
+            gs_to = to.lstrip("+")
+            import httpx as _httpx
+            resp = _httpx.post(
+                "https://api.gupshup.io/sm/api/v1/msg",
+                headers={"apikey": gs_api_key, "Content-Type": "application/x-www-form-urlencoded"},
+                data={
+                    "channel":    "sms",
+                    "source":     from_num,
+                    "destination": gs_to,
+                    "message":    test_body,
+                    "src.name":   gs_app_name or from_num,
+                },
+                timeout=15,
+            )
+            resp.raise_for_status()
+            result_json = resp.json()
+            if result_json.get("status") not in ("submitted", "success"):
+                return {"success": False, "error": f"Gupshup error: {result_json}"}
+            return {"success": True, "message": f"Test SMS sent via Gupshup to {to}"}
+
+        else:
+            return {"success": False, "error": f"Unsupported provider: {provider}"}
+
+    except Exception as e:
+        err_msg = str(e)
+        print(f"[SMS-TEST-ERR] {err_msg}")
+        return {"success": False, "error": err_msg}
 
 
 # ── Site Config Routes ────────────────────────────────────────────────

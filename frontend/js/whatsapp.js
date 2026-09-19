@@ -159,6 +159,37 @@
     return _pt;
   }
 
+  async function _fetchFaqs() {
+    const pt  = await _getPageToken();
+    try {
+      const res = await fetch(API_BASE + '/api/faqs', {
+        headers: { 'X-Api-Key': API_KEY, 'X-Page-Token': pt },
+      });
+      if (!res.ok) return [];
+      return await res.json();
+    } catch (_) { return []; }
+  }
+
+  async function _loadDynamicFaqs() {
+    const faqs = await _fetchFaqs();
+    if (!faqs || !faqs.length) return; // keep static fallback
+
+    // Build dynamic FAQ options (+ Main Menu at the end)
+    FLOW.faq.options = faqs.map((f, i) => ({
+      label: f.question,
+      next:  'faq_dyn_' + i,
+    }));
+    FLOW.faq.options.push({ label: '🏠 Main Menu', next: 'start' });
+
+    // Register one FLOW step per answer
+    faqs.forEach((f, i) => {
+      FLOW['faq_dyn_' + i] = {
+        message: f.answer,
+        options: [{ label: '🏠 Main Menu', next: 'start' }],
+      };
+    });
+  }
+
   async function _fetchDoctors(dept) {
     const pt  = await _getPageToken();
     const res = await fetch(API_BASE + '/api/doctors', {
@@ -390,7 +421,7 @@
     if (badge) badge.style.display = 'none';
 
     if (chat.children.length === 0) {
-      setTimeout(() => renderStep('start'), 300);
+      _loadDynamicFaqs().then(() => setTimeout(() => renderStep('start'), 300));
     }
   }
 
