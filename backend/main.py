@@ -79,7 +79,7 @@ _client = MongoClient(
     tls=True,
     tlsAllowInvalidCertificates=True,
 )
-_mdb    = _client[os.getenv("DATABASE_NAME", "NIMMS_HOSPITAL").strip()]
+_mdb    = _client[os.getenv("DATABASE_NAME", "").strip()]
 _col     = _mdb["appointments"]
 _dcol    = _mdb["doctors"]
 _deptcol = _mdb["departments"]
