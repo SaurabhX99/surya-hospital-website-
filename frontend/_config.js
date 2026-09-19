@@ -3,5 +3,5 @@
 // For local development leave it as http://localhost:8000
 window.APP_CONFIG = {
   API_BASE_URL: 'https://surya-hospital-website.onrender.com',
-  PUBLIC_API_KEY: 'Puj6Vlhm8E06j2kABHOghPPAO8uu9zLnAJXaKwkaIZU',
+  PUBLIC_API_KEY: 'i4SF2xgEp5U4FnFPxmeA6uiu+JeadCIWR9vV75Gl4Jw=',
 };
