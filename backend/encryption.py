@@ -97,8 +97,9 @@ class _EncryptionMiddleware(BaseHTTPMiddleware):
                     data = json.loads(body)
                     if isinstance(data, dict) and "_enc" in data:
                         decrypted = aes_decrypt(data["_enc"])
-                        # Replace the ASGI receive callable so downstream
-                        # middleware / route handlers see the decrypted body.
+                        # Replace both the cached body AND the receive callable
+                        # so downstream middleware / route handlers see decrypted data.
+                        request._body = decrypted
                         async def _receive():
                             return {"type": "http.request", "body": decrypted}
                         request._receive = _receive
