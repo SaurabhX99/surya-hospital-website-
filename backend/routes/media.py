@@ -111,13 +111,14 @@ def update_gallery_config(body: GalleryConfigIn, _: None = Depends(require_admin
 async def proxy_drive_image(id: str):
     """Proxy a Google Drive image by file ID to avoid CORS / auth walls."""
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
         "Referer": "https://drive.google.com/",
+        "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
     }
     candidates = [
-        f"https://drive.google.com/thumbnail?id={id}&sz=w1200-h900",
-        f"https://lh3.googleusercontent.com/d/{id}",
-        f"https://drive.google.com/uc?export=view&id={id}",
+        f"https://lh3.googleusercontent.com/d/{id}=s1200",
+        f"https://drive.google.com/thumbnail?id={id}&sz=w1200",
+        f"https://drive.google.com/uc?export=download&id={id}&confirm=t",
     ]
     try:
         async with httpx.AsyncClient(follow_redirects=True, timeout=20, headers=headers) as client:
@@ -125,8 +126,12 @@ async def proxy_drive_image(id: str):
                 r = await client.get(url)
                 ct = r.headers.get("content-type", "")
                 if r.status_code == 200 and "image" in ct:
-                    return Response(content=r.content, media_type=ct.split(";")[0])
-                logger.debug("Proxy attempt failed", extra={"url": url, "status_code": r.status_code})
+                    resp_headers = {
+                        "Cache-Control": "public, max-age=86400",
+                        "Access-Control-Allow-Origin": "*",
+                    }
+                    return Response(content=r.content, media_type=ct.split(";")[0], headers=resp_headers)
+                logger.debug("Proxy attempt failed", extra={"url": url, "status_code": r.status_code, "content_type": ct})
         raise HTTPException(502, "Could not fetch image from Drive — ensure the file is shared publicly")
     except HTTPException:
         raise
