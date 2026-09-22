@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 
+from gridfs import GridFS
 from pymongo import MongoClient
 
 # ── Connection ───────────────────────────────────────────────────────
@@ -19,6 +20,9 @@ client = MongoClient(
     tlsAllowInvalidCertificates=True,
 )
 db = client[os.getenv("DATABASE_NAME", "").strip()]
+
+# ── GridFS (file uploads) ────────────────────────────────────────────
+fs = GridFS(db)
 
 # ── Collections ──────────────────────────────────────────────────────
 appointments_col  = db["appointments"]

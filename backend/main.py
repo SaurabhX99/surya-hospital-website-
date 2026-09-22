@@ -167,6 +167,7 @@ from routes.auth import router as auth_router
 from routes.admin_users import router as admin_users_router
 from routes.audit_logs import router as audit_logs_router
 from routes.api_keys import router as api_keys_router
+from routes.uploads import router as uploads_router
 
 app.include_router(appointments_router)
 app.include_router(doctors_router)
@@ -186,5 +187,6 @@ app.include_router(auth_router)
 app.include_router(admin_users_router)
 app.include_router(audit_logs_router)
 app.include_router(api_keys_router)
+app.include_router(uploads_router)
 
 logger.info("Application started", extra={"tenant": TENANT_NAME})

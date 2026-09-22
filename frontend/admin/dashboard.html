@@ -1685,7 +1685,12 @@
         <div class="form-group"><label class="form-label">Experience</label><input type="text" id="doc-exp" class="form-control" placeholder="e.g. 10+ Years" /></div>
         <div class="form-group"><label class="form-label">OPD Timing</label><input type="text" id="doc-timing" class="form-control" placeholder="Mon–Sat, 9 AM – 5 PM" /></div>
       </div>
-      <div class="form-group"><label class="form-label">Doctor Photo URL</label><input type="url" id="doc-photo" class="form-control" placeholder="https://…" /></div>
+      <div class="form-group">
+        <label class="form-label">Doctor Photo</label>
+        <input type="file" id="doc-photo-file" class="form-control" accept="image/*" />
+        <input type="hidden" id="doc-photo" />
+        <div id="doc-photo-preview" style="margin-top:6px;display:none;"><img style="max-height:80px;border-radius:8px;" /><button type="button" onclick="clearFilePreview('doc-photo')" style="margin-left:8px;background:none;border:none;color:#E53935;cursor:pointer;font-size:12px;">Remove</button></div>
+      </div>
       <div class="form-group" style="display:flex;align-items:center;gap:10px;">
         <label class="toggle-switch"><input type="checkbox" id="doc-featured" /><span class="toggle-slider"></span></label>
         <span style="font-size:13px;color:#1F2937;">Show on homepage (Featured)</span>
@@ -1713,7 +1718,12 @@
       </div>
       <div class="form-group"><label class="form-label">Description</label><textarea id="dept-desc" class="form-control" rows="3" placeholder="Brief description of the department and services…"></textarea></div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Icon URL</label><input type="url" id="dept-icon" class="form-control" placeholder="https://… (image or SVG URL)" /></div>
+        <div class="form-group">
+          <label class="form-label">Icon Image</label>
+          <input type="file" id="dept-icon-file" class="form-control" accept="image/*" />
+          <input type="hidden" id="dept-icon" />
+          <div id="dept-icon-preview" style="margin-top:6px;display:none;"><img style="max-height:48px;border-radius:6px;" /><button type="button" onclick="clearFilePreview('dept-icon')" style="margin-left:8px;background:none;border:none;color:#E53935;cursor:pointer;font-size:12px;">Remove</button></div>
+        </div>
         <div class="form-group"><label class="form-label">Display Order</label><input type="number" id="dept-order" class="form-control" placeholder="0" min="0" /></div>
       </div>
       <div class="form-group" style="display:flex;align-items:center;gap:10px;">
@@ -1748,7 +1758,12 @@
       </div>
       <div class="form-group"><label class="form-label">Excerpt</label><textarea id="blog-excerpt" class="form-control" rows="2" placeholder="Short description shown in listing…"></textarea></div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Thumbnail URL</label><input type="url" id="blog-thumbnail" class="form-control" placeholder="https://…" /></div>
+        <div class="form-group">
+          <label class="form-label">Thumbnail Image</label>
+          <input type="file" id="blog-thumbnail-file" class="form-control" accept="image/*" />
+          <input type="hidden" id="blog-thumbnail" />
+          <div id="blog-thumbnail-preview" style="margin-top:6px;display:none;"><img style="max-height:80px;border-radius:8px;" /><button type="button" onclick="clearFilePreview('blog-thumbnail')" style="margin-left:8px;background:none;border:none;color:#E53935;cursor:pointer;font-size:12px;">Remove</button></div>
+        </div>
         <div class="form-group"><label class="form-label">Tags</label><input type="text" id="blog-tags" class="form-control" placeholder="heart, health, tips" /></div>
       </div>
       <!-- Google Drive / Docs link -->
@@ -1825,9 +1840,11 @@
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">Google Drive Share Link <span style="color:#E53935">*</span></label>
-        <input type="url" id="media-drive-link" class="form-control" placeholder="https://drive.google.com/file/d/…/view?usp=sharing" />
-        <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Share the file publicly ("Anyone with link can view"), then paste the link here. Works for images and videos.</div>
+        <label class="form-label">Upload File <span style="color:#E53935">*</span></label>
+        <input type="file" id="media-file-upload" class="form-control" accept="image/*,video/mp4,video/webm" />
+        <input type="hidden" id="media-drive-link" />
+        <div id="media-drive-link-preview" style="margin-top:6px;display:none;"><img style="max-height:80px;border-radius:8px;" /><button type="button" onclick="clearFilePreview('media-drive-link')" style="margin-left:8px;background:none;border:none;color:#E53935;cursor:pointer;font-size:12px;">Remove</button></div>
+        <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Upload an image or video file (max 16 MB).</div>
       </div>
       <div class="form-group">
         <label class="form-label">Alt Text / Caption</label>
@@ -1868,10 +1885,11 @@
         <input type="text" id="insurance-name" class="form-control" placeholder="e.g. Star Health Insurance" />
       </div>
       <div class="form-group">
-        <label class="form-label">Logo — Google Drive Share Link</label>
-        <input type="url" id="insurance-logo" class="form-control" placeholder="https://drive.google.com/file/d/…/view?usp=sharing" />
-        <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Must be a Google Drive link. Share publicly ("Anyone with link can view"), then paste here. Leave blank to show name only.</div>
-        <div class="form-field-error" id="insurance-logo-error" style="display:none;font-size:12px;color:#E53935;margin-top:4px;">Please enter a valid Google Drive link.</div>
+        <label class="form-label">Logo Image</label>
+        <input type="file" id="insurance-logo-file" class="form-control" accept="image/*" />
+        <input type="hidden" id="insurance-logo" />
+        <div id="insurance-logo-preview" style="margin-top:6px;display:none;"><img style="max-height:60px;border-radius:6px;" /><button type="button" onclick="clearFilePreview('insurance-logo')" style="margin-left:8px;background:none;border:none;color:#E53935;cursor:pointer;font-size:12px;">Remove</button></div>
+        <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Upload a logo image. Leave blank to show name only.</div>
       </div>
       <div class="form-row">
         <div class="form-group">
@@ -1908,10 +1926,11 @@
         <input type="text" id="partner-name" class="form-control" placeholder="e.g. Apollo Diagnostics" />
       </div>
       <div class="form-group">
-        <label class="form-label">Logo — Google Drive Share Link</label>
-        <input type="url" id="partner-logo" class="form-control" placeholder="https://drive.google.com/file/d/…/view?usp=sharing" />
-        <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Must be a Google Drive link. Share publicly ("Anyone with link can view"), then paste here. Leave blank to show name only.</div>
-        <div class="form-field-error" id="partner-logo-error" style="display:none;font-size:12px;color:#E53935;margin-top:4px;">Please enter a valid Google Drive link.</div>
+        <label class="form-label">Logo Image</label>
+        <input type="file" id="partner-logo-file" class="form-control" accept="image/*" />
+        <input type="hidden" id="partner-logo" />
+        <div id="partner-logo-preview" style="margin-top:6px;display:none;"><img style="max-height:60px;border-radius:6px;" /><button type="button" onclick="clearFilePreview('partner-logo')" style="margin-left:8px;background:none;border:none;color:#E53935;cursor:pointer;font-size:12px;">Remove</button></div>
+        <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Upload a logo image. Leave blank to show name only.</div>
       </div>
       <div class="form-row">
         <div class="form-group">
@@ -2244,6 +2263,41 @@
       console.error('Request failed:', path);
       return null;
     }
+  }
+
+  /* ── File Upload Helper ──────────────────────────────── */
+  async function uploadFile(fileInput) {
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) return null;
+    const form = new FormData();
+    form.append('file', file);
+    const d = JSON.parse(sessionStorage.getItem('vm_token') || '{}');
+    const key = (window.APP_CONFIG && window.APP_CONFIG.PUBLIC_API_KEY) || '';
+    const headers = {};
+    if (key) headers['X-Api-Key'] = key;
+    if (d.token) headers['Authorization'] = `Bearer ${d.token}`;
+    const res = await fetch(API + '/api/upload', { method: 'POST', headers, body: form });
+    if (!res.ok) { const t = await res.text(); throw new Error(t); }
+    const data = await res.json();
+    return data.url;
+  }
+
+  function showFilePreview(hiddenId, url) {
+    const wrap = document.getElementById(hiddenId + '-preview');
+    if (!wrap) return;
+    const img = wrap.querySelector('img');
+    if (img && url) { img.src = url; wrap.style.display = 'flex'; wrap.style.alignItems = 'center'; }
+  }
+
+  function clearFilePreview(hiddenId) {
+    const hiddenEl = document.getElementById(hiddenId);
+    if (hiddenEl) hiddenEl.value = '';
+    const wrap = document.getElementById(hiddenId + '-preview');
+    if (wrap) wrap.style.display = 'none';
+    // Clear corresponding file input (convention: {hiddenId}-file or special mapping)
+    const fileMap = { 'doc-photo': 'doc-photo-file', 'blog-thumbnail': 'blog-thumbnail-file', 'media-drive-link': 'media-file-upload', 'insurance-logo': 'insurance-logo-file', 'partner-logo': 'partner-logo-file' };
+    const fileEl = document.getElementById(fileMap[hiddenId] || (hiddenId + '-file'));
+    if (fileEl) fileEl.value = '';
   }
 
   /* ── Session Management ───────────────────────────────── */
@@ -2837,6 +2891,8 @@
     document.getElementById('doc-exp').value      = doctor ? doctor.experience : '';
     document.getElementById('doc-timing').value   = doctor ? doctor.timing : '';
     document.getElementById('doc-photo').value    = doctor ? (doctor.photo || '') : '';
+    document.getElementById('doc-photo-file').value = '';
+    if (doctor && doctor.photo_url) { showFilePreview('doc-photo', doctor.photo_url); } else { clearFilePreview('doc-photo'); }
     document.getElementById('doc-featured').checked = doctor ? !!doctor.featured : false;
     const sel = document.getElementById('doc-dept');
     if (doctor && doctor.department) {
@@ -2851,6 +2907,18 @@
 
   async function saveDoctor() {
     const id   = document.getElementById('doc-id').value;
+    const btn = document.getElementById('doc-save-btn');
+
+    // Upload photo if a new file was selected
+    const photoFileEl = document.getElementById('doc-photo-file');
+    let photoUrl = document.getElementById('doc-photo').value.trim() || null;
+    if (photoFileEl.files && photoFileEl.files[0]) {
+      try {
+        btn.textContent = 'Uploading photo…'; btn.disabled = true;
+        photoUrl = await uploadFile(photoFileEl);
+      } catch (e) { toast('Failed to upload photo: ' + e.message, 'error'); btn.textContent = 'Save Doctor'; btn.disabled = false; return; }
+    }
+
     const body = {
       name:          document.getElementById('doc-name').value.trim(),
       qualification: document.getElementById('doc-qual').value.trim(),
@@ -2858,7 +2926,7 @@
       department:    document.getElementById('doc-dept').value,
       experience:    document.getElementById('doc-exp').value.trim(),
       timing:        document.getElementById('doc-timing').value.trim(),
-      photo:         document.getElementById('doc-photo').value.trim() || null,
+      photo:         photoUrl,
       featured:      document.getElementById('doc-featured').checked,
     };
     body.name          = body.name.toUpperCase();
@@ -2980,6 +3048,8 @@
     document.getElementById('dept-name').value    = dept ? dept.name : '';
     document.getElementById('dept-desc').value    = dept ? (dept.description || '') : '';
     document.getElementById('dept-icon').value    = dept ? (dept.icon || '') : '';
+    document.getElementById('dept-icon-file').value = '';
+    if (dept && dept.icon) { showFilePreview('dept-icon', dept.icon); } else { clearFilePreview('dept-icon'); }
     document.getElementById('dept-head').value    = dept ? (dept.head_doctor || '') : '';
     document.getElementById('dept-order').value   = dept ? (dept.order ?? 0) : 0;
     document.getElementById('dept-active').checked = dept ? !!dept.active : true;
@@ -2990,17 +3060,29 @@
     const id   = document.getElementById('dept-id').value;
     const name = document.getElementById('dept-name').value.trim();
     if (!name) { toast('Department name is required', 'error'); return; }
+
+    const btn = document.getElementById('dept-save-btn');
+    btn.textContent = 'Saving…'; btn.disabled = true;
+
+    // Upload icon if a new file was selected
+    const iconFileEl = document.getElementById('dept-icon-file');
+    let iconUrl = document.getElementById('dept-icon').value.trim() || null;
+    if (iconFileEl.files && iconFileEl.files[0]) {
+      try {
+        btn.textContent = 'Uploading icon…';
+        iconUrl = await uploadFile(iconFileEl);
+      } catch (e) { toast('Failed to upload icon: ' + e.message, 'error'); btn.textContent = 'Save Department'; btn.disabled = false; return; }
+    }
+
     const rawHead = document.getElementById('dept-head').value.trim();
     const body = {
       name:        name.toUpperCase(),
       description: document.getElementById('dept-desc').value.trim()  || null,
-      icon:        document.getElementById('dept-icon').value.trim()   || null,
+      icon:        iconUrl,
       head_doctor: rawHead ? rawHead.toUpperCase() : null,
       order:       parseInt(document.getElementById('dept-order').value) || 0,
       active:      document.getElementById('dept-active').checked,
     };
-    const btn = document.getElementById('dept-save-btn');
-    btn.textContent = 'Saving…'; btn.disabled = true;
     let result;
     if (id) {
       result = await apiFetch(`/api/departments/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
@@ -3124,6 +3206,8 @@
     document.getElementById('blog-author').value      = blog ? blog.author : '';
     document.getElementById('blog-excerpt').value     = blog ? (blog.excerpt || '') : '';
     document.getElementById('blog-thumbnail').value   = blog ? (blog.thumbnail || '') : '';
+    document.getElementById('blog-thumbnail-file').value = '';
+    if (blog && blog.thumbnail_url) { showFilePreview('blog-thumbnail', blog.thumbnail_url); } else { clearFilePreview('blog-thumbnail'); }
     document.getElementById('blog-tags').value        = blog ? (blog.tags || '') : '';
     document.getElementById('blog-drive-link').value  = blog ? (blog.drive_link || '') : '';
     document.getElementById('blog-published').checked = blog ? !!blog.published : true;
@@ -3146,11 +3230,21 @@
     const btn = document.getElementById('blog-save-btn');
     btn.textContent = 'Saving…'; btn.disabled = true;
 
+    // Upload thumbnail if a new file was selected
+    const thumbFileEl = document.getElementById('blog-thumbnail-file');
+    let thumbnailUrl = document.getElementById('blog-thumbnail').value.trim() || null;
+    if (thumbFileEl.files && thumbFileEl.files[0]) {
+      try {
+        btn.textContent = 'Uploading thumbnail…';
+        thumbnailUrl = await uploadFile(thumbFileEl);
+      } catch (e) { toast('Failed to upload thumbnail: ' + e.message, 'error'); btn.textContent = id ? 'Save Changes' : 'Save Article'; btn.disabled = false; return; }
+    }
+
     const body = {
       title, author, category,
       drive_link: drive_link || undefined,
       excerpt:    document.getElementById('blog-excerpt').value.trim()   || null,
-      thumbnail:  document.getElementById('blog-thumbnail').value.trim() || null,
+      thumbnail:  thumbnailUrl,
       tags:       document.getElementById('blog-tags').value.trim()      || null,
       published:  document.getElementById('blog-published').checked,
     };
@@ -3447,6 +3541,8 @@
     document.getElementById('media-title').value      = item ? item.title : '';
     document.getElementById('media-type').value       = item ? (item.type || 'image') : 'image';
     document.getElementById('media-drive-link').value = item ? (item.drive_link || '') : '';
+    document.getElementById('media-file-upload').value = '';
+    if (item && item.display_url) { showFilePreview('media-drive-link', item.display_url); } else { const mw = document.getElementById('media-drive-link-preview'); if(mw) mw.style.display='none'; }
     document.getElementById('media-alt').value        = item ? (item.alt || '') : '';
     document.getElementById('media-order').value      = item ? (item.order ?? 0) : 0;
     document.getElementById('media-gallery').checked  = item ? !!item.show_in_gallery : true;
@@ -3456,9 +3552,21 @@
   async function saveMedia() {
     const id    = document.getElementById('media-id').value;
     const title = document.getElementById('media-title').value.trim();
-    const link  = document.getElementById('media-drive-link').value.trim();
     if (!title) { toast('Title is required', 'error'); return; }
-    if (!id && !link) { toast('Google Drive link is required', 'error'); return; }
+
+    const btn = document.getElementById('media-save-btn');
+    btn.textContent = 'Saving…'; btn.disabled = true;
+
+    // Upload file if selected
+    const fileEl = document.getElementById('media-file-upload');
+    let link = document.getElementById('media-drive-link').value.trim();
+    if (fileEl.files && fileEl.files[0]) {
+      try {
+        btn.textContent = 'Uploading file…';
+        link = await uploadFile(fileEl);
+      } catch (e) { toast('Failed to upload file: ' + e.message, 'error'); btn.textContent = id ? 'Save Changes' : 'Save Media'; btn.disabled = false; return; }
+    }
+    if (!id && !link) { toast('Please upload a file', 'error'); btn.textContent = 'Save Media'; btn.disabled = false; return; }
 
     const body = {
       title,
@@ -3469,8 +3577,6 @@
       show_in_gallery: document.getElementById('media-gallery').checked,
     };
 
-    const btn = document.getElementById('media-save-btn');
-    btn.textContent = 'Saving…'; btn.disabled = true;
     const method   = id ? 'PATCH' : 'POST';
     const endpoint = id ? `/api/media/${id}` : '/api/media';
     const result   = await apiFetch(endpoint, { method, body: JSON.stringify(body) });
@@ -3601,12 +3707,6 @@
     else toast('Failed to delete', 'error');
   }
 
-  /* ── Drive Link Validation ────────────────────────────── */
-  function isDriveLink(url) {
-    if (!url) return true; // optional field — blank is allowed
-    return /drive\.google\.com|docs\.google\.com/.test(url);
-  }
-
   /* ── Insurance Providers ──────────────────────────────── */
   let _insuranceItems = [];
 
@@ -3635,6 +3735,8 @@
     document.getElementById('insurance-id').value = '';
     document.getElementById('insurance-name').value = '';
     document.getElementById('insurance-logo').value = '';
+    document.getElementById('insurance-logo-file').value = '';
+    clearFilePreview('insurance-logo');
     document.getElementById('insurance-order').value = 0;
     document.getElementById('insurance-active').checked = true;
     document.getElementById('insurance-modal-title').textContent = 'Add Insurance Provider';
@@ -3647,6 +3749,8 @@
     document.getElementById('insurance-id').value = p.id;
     document.getElementById('insurance-name').value = p.name;
     document.getElementById('insurance-logo').value = p.logo_drive_link || '';
+    document.getElementById('insurance-logo-file').value = '';
+    if (p.logo_url) { showFilePreview('insurance-logo', p.logo_url); } else { clearFilePreview('insurance-logo'); }
     document.getElementById('insurance-order').value = p.order;
     document.getElementById('insurance-active').checked = p.active;
     document.getElementById('insurance-modal-title').textContent = 'Edit Insurance Provider';
@@ -3656,19 +3760,23 @@
   async function saveInsurance() {
     const id    = document.getElementById('insurance-id').value;
     const name  = document.getElementById('insurance-name').value.trim();
-    const logo  = document.getElementById('insurance-logo').value.trim();
     const order = parseInt(document.getElementById('insurance-order').value) || 0;
     const active = document.getElementById('insurance-active').checked;
-    const logoErrEl = document.getElementById('insurance-logo-error');
     if (!name) { toast('Please enter provider name', 'error'); return; }
-    if (!isDriveLink(logo)) {
-      logoErrEl.style.display = 'block';
-      toast('Logo must be a Google Drive link', 'error');
-      return;
-    }
-    logoErrEl.style.display = 'none';
+
     const btn = document.getElementById('insurance-save-btn');
     btn.disabled = true; btn.textContent = 'Saving…';
+
+    // Upload logo if a new file was selected
+    const logoFileEl = document.getElementById('insurance-logo-file');
+    let logo = document.getElementById('insurance-logo').value.trim();
+    if (logoFileEl.files && logoFileEl.files[0]) {
+      try {
+        btn.textContent = 'Uploading logo…';
+        logo = await uploadFile(logoFileEl);
+      } catch (e) { toast('Failed to upload logo: ' + e.message, 'error'); btn.disabled = false; btn.textContent = 'Save Provider'; return; }
+    }
+
     const body = { name, logo_drive_link: logo || null, order, active };
     const result = id
       ? await apiFetch(`/api/insurance/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
@@ -3718,9 +3826,10 @@
     document.getElementById('partner-id').value = '';
     document.getElementById('partner-name').value = '';
     document.getElementById('partner-logo').value = '';
+    document.getElementById('partner-logo-file').value = '';
+    clearFilePreview('partner-logo');
     document.getElementById('partner-order').value = 0;
     document.getElementById('partner-active').checked = true;
-    document.getElementById('partner-logo-error').style.display = 'none';
     document.getElementById('partner-modal-title').textContent = 'Add Partner';
     document.getElementById('modal-partner').classList.add('open');
   }
@@ -3731,9 +3840,10 @@
     document.getElementById('partner-id').value = p.id;
     document.getElementById('partner-name').value = p.name;
     document.getElementById('partner-logo').value = p.logo_drive_link || '';
+    document.getElementById('partner-logo-file').value = '';
+    if (p.logo_url) { showFilePreview('partner-logo', p.logo_url); } else { clearFilePreview('partner-logo'); }
     document.getElementById('partner-order').value = p.order;
     document.getElementById('partner-active').checked = p.active;
-    document.getElementById('partner-logo-error').style.display = 'none';
     document.getElementById('partner-modal-title').textContent = 'Edit Partner';
     document.getElementById('modal-partner').classList.add('open');
   }
@@ -3741,19 +3851,23 @@
   async function savePartner() {
     const id     = document.getElementById('partner-id').value;
     const name   = document.getElementById('partner-name').value.trim();
-    const logo   = document.getElementById('partner-logo').value.trim();
     const order  = parseInt(document.getElementById('partner-order').value) || 0;
     const active = document.getElementById('partner-active').checked;
-    const logoErrEl = document.getElementById('partner-logo-error');
     if (!name) { toast('Please enter partner name', 'error'); return; }
-    if (!isDriveLink(logo)) {
-      logoErrEl.style.display = 'block';
-      toast('Logo must be a Google Drive link', 'error');
-      return;
-    }
-    logoErrEl.style.display = 'none';
+
     const btn = document.getElementById('partner-save-btn');
     btn.disabled = true; btn.textContent = 'Saving…';
+
+    // Upload logo if a new file was selected
+    const logoFileEl = document.getElementById('partner-logo-file');
+    let logo = document.getElementById('partner-logo').value.trim();
+    if (logoFileEl.files && logoFileEl.files[0]) {
+      try {
+        btn.textContent = 'Uploading logo…';
+        logo = await uploadFile(logoFileEl);
+      } catch (e) { toast('Failed to upload logo: ' + e.message, 'error'); btn.disabled = false; btn.textContent = 'Save Partner'; return; }
+    }
+
     const body = { name, logo_drive_link: logo || null, order, active };
     const result = id
       ? await apiFetch(`/api/partners/${id}`, { method: 'PATCH', body: JSON.stringify(body) })

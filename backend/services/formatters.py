@@ -30,9 +30,18 @@ def extract_drive_id(url: str) -> Optional[str]:
 
 
 def gdrive_direct(url: Optional[str]) -> Optional[str]:
-    """Convert Google Drive share URL to a backend proxy URL."""
+    """Convert an image reference to a displayable URL.
+
+    Handles:
+      - GridFS URLs (/api/file/...) — returned as-is (or prefixed with BASE_URL)
+      - Google Drive share URLs     — converted to proxy URL (legacy fallback)
+      - Other URLs                  — returned as-is
+    """
     if not url:
         return url
+    # GridFS file URL — already usable
+    if "/api/file/" in url:
+        return url if url.startswith("http") else f"{BASE_URL}{url}"
     fid = extract_drive_id(url)
     if fid:
         return f"{BASE_URL}/api/proxy/image?id={fid}"
@@ -54,10 +63,10 @@ def drive_content_url(link: str) -> str:
 
 
 def validate_drive_link(url: Optional[str], field: str = "logo_drive_link") -> None:
-    """Raise HTTP 400 if the URL is not a Google Drive link."""
+    """Validate image URL — accepts GridFS URLs or Google Drive links."""
     from fastapi import HTTPException
-    if url and not _DRIVE_RE.search(url):
-        raise HTTPException(400, f"{field} must be a Google Drive or Docs URL")
+    if url and "/api/file/" not in url and not _DRIVE_RE.search(url):
+        raise HTTPException(400, f"{field} must be a valid uploaded file URL or Google Drive link")
 
 
 # ── Document formatters ──────────────────────────────────────────────
@@ -142,12 +151,18 @@ def fmt_media(doc: dict) -> dict:
     if isinstance(ca, datetime):
         doc["created_at"] = ca.isoformat()
     link = doc.get("drive_link", "")
-    fid  = extract_drive_id(link)
-    if doc.get("type") == "video":
-        doc["display_url"] = f"{BASE_URL}/api/proxy/video?id={fid}" if fid else link
+    # GridFS file — use directly
+    if "/api/file/" in link:
+        full = link if link.startswith("http") else f"{BASE_URL}{link}"
+        doc["display_url"] = full
+        doc["thumb_url"] = full
     else:
-        doc["display_url"] = f"{BASE_URL}/api/proxy/image?id={fid}" if fid else link
-    doc["thumb_url"] = f"{BASE_URL}/api/proxy/image?id={fid}" if fid else None
+        fid = extract_drive_id(link)
+        if doc.get("type") == "video":
+            doc["display_url"] = f"{BASE_URL}/api/proxy/video?id={fid}" if fid else link
+        else:
+            doc["display_url"] = f"{BASE_URL}/api/proxy/image?id={fid}" if fid else link
+        doc["thumb_url"] = f"{BASE_URL}/api/proxy/image?id={fid}" if fid else None
     return doc
 
 

@@ -88,7 +88,7 @@ def rate_limit(max_hits: int, window_seconds: int) -> Callable:
 # ── Open paths (bypass security) ────────────────────────────────────────────
 
 _OPEN_API_PATHS    = {"/api/public-token"}
-_OPEN_API_PREFIXES = ("/api/proxy/",)
+_OPEN_API_PREFIXES = ("/api/proxy/", "/api/file/")
 
 
 def _is_open(path: str) -> bool:
