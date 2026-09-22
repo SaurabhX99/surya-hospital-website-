@@ -2731,7 +2731,7 @@
     tbody.innerHTML = list.map(d => `
       <tr data-id="${d.id}">
         <td>
-          ${d.photo ? `<img src="${esc(d.photo)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;margin-right:8px;vertical-align:middle;" onerror="this.style.display='none'" />` : ''}
+          ${d.photo_url ? `<img src="${esc(d.photo_url)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;margin-right:8px;vertical-align:middle;" onerror="this.style.display='none'" />` : ''}
           <strong>${esc(d.name)}</strong>
         </td>
         <td style="font-size:12px;">${esc(d.qualification)}</td>

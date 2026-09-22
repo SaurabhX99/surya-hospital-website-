@@ -26,7 +26,7 @@ from config import (
 from database import appointments_col, users_col
 from encryption import apply_encryption
 from logging_config import setup_logging, get_logger
-from security import apply_security, require_public_access, issue_page_token, rate_limit
+from security import apply_security, require_public_access, issue_page_token, rate_limit, ALLOWED_ORIGINS, IS_PROD
 
 # ── Initialise structured logging ────────────────────────────────────
 setup_logging()
@@ -45,10 +45,10 @@ app = FastAPI(
 # 1. Encryption — innermost, closest to route handlers
 apply_encryption(app)
 
-# 2. CORS
+# 2. CORS — strict in PROD (only whitelisted origins), open in DEV
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS if (IS_PROD and ALLOWED_ORIGINS) else ["*"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -166,6 +166,7 @@ from routes.site_config import router as site_config_router
 from routes.auth import router as auth_router
 from routes.admin_users import router as admin_users_router
 from routes.audit_logs import router as audit_logs_router
+from routes.api_keys import router as api_keys_router
 
 app.include_router(appointments_router)
 app.include_router(doctors_router)
@@ -184,5 +185,6 @@ app.include_router(site_config_router)
 app.include_router(auth_router)
 app.include_router(admin_users_router)
 app.include_router(audit_logs_router)
+app.include_router(api_keys_router)
 
 logger.info("Application started", extra={"tenant": TENANT_NAME})

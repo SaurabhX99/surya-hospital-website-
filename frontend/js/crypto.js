@@ -9,7 +9,8 @@
      1. Encrypt outgoing JSON bodies  → {"_enc": "<base64(IV+CT)>"}
      2. Decrypt incoming JSON envelopes  {"_enc": "..."} → original data
 
-   When the key is NOT set, this script is a complete no-op.
+   When the key is NOT set, this script is a complete no-op —
+   all requests and responses pass through as plain JSON.
    ============================================================ */
 (function () {
   'use strict';
@@ -54,7 +55,6 @@
     var iv = crypto.getRandomValues(new Uint8Array(16));
     var encoded = new TextEncoder().encode(plaintext);
     var ct = await crypto.subtle.encrypt({ name: 'AES-CBC', iv: iv }, key, encoded);
-    // Concat IV + ciphertext
     var result = new Uint8Array(iv.length + ct.byteLength);
     result.set(iv);
     result.set(new Uint8Array(ct), iv.length);
@@ -85,7 +85,6 @@
     if (init && init.body && typeof init.body === 'string') {
       var ct = '';
       var headers = init.headers || {};
-      // Normalise content-type check across Headers, object, and array
       if (headers instanceof Headers) {
         ct = headers.get('Content-Type') || '';
       } else if (typeof headers === 'object' && !Array.isArray(headers)) {
@@ -102,10 +101,8 @@
     var response = await _origFetch.call(this, input, init);
 
     // ── Decrypt incoming JSON response ────────────────────
-    // Clone the original .json() so we can intercept it.
-    // We only decrypt {"_enc":"..."} envelopes on 2xx responses.
     var origJson = response.json.bind(response);
-    var _decrypted = null;   // Cache to allow multiple .json() conceptual reads
+    var _decrypted = null;
     var _jsonCalled = false;
 
     response.json = async function () {

@@ -188,7 +188,7 @@ function renderDoctors(list) {
       <div class="doctor-card-top">
         <div class="doctor-avatar">
           ${svg(ICON_SVG)}
-          ${d.photo ? `<img src="${d.photo}" alt="${d.name}" onerror="this.style.display='none'" />` : ''}
+          ${d.photo_url ? `<img src="${d.photo_url}" alt="${d.name}" onerror="this.style.display='none'" />` : ''}
         </div>
         <div class="doctor-card-name">${d.name}</div>
         <span class="doctor-dept-pill">${d.department}</span>
