@@ -972,13 +972,12 @@
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
             <div class="search-wrap">
               <span class="search-icon-abs"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-              <input type="text" class="search-input" id="appt-search-input" placeholder="Search appointments…" oninput="applyApptFilters()" />
+              <input type="text" class="search-input" id="appt-search-input" placeholder="Search appointments…" oninput="_debouncedLoadAppointments()" />
             </div>
-            <select class="filter-select" id="appt-status-filter" onchange="applyApptFilters()"><option value="">All Status</option><option value="pending">Pending</option><option value="confirmed">Confirmed</option><option value="cancelled">Cancelled</option><option value="completed">Completed</option><option value="rejected">Rejected</option></select>
-            <select class="filter-select" id="appt-sort" onchange="applyApptFilters()">
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-            </select>
+            <select class="filter-select" id="appt-status-filter" onchange="loadAppointments()"><option value="">All Status</option><option value="pending">Pending</option><option value="confirmed">Confirmed</option><option value="cancelled">Cancelled</option><option value="completed">Completed</option><option value="rejected">Rejected</option></select>
+            <select class="filter-select" id="appt-dept-filter" onchange="loadAppointments()"><option value="">All Departments</option></select>
+            <input type="date" class="filter-select" id="appt-date-from" onchange="loadAppointments()" title="From date" style="width:auto;" />
+            <input type="date" class="filter-select" id="appt-date-to" onchange="loadAppointments()" title="To date" style="width:auto;" />
           </div>
         </div>
         <div style="overflow-x:auto">
@@ -1001,6 +1000,7 @@
             </tbody>
           </table>
         </div>
+        <div class="pagination-bar" id="appt-pagination" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-top:1px solid #E2E8F0;font-size:13px;"></div>
       </div>
     </div>
 
@@ -1015,12 +1015,9 @@
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
             <div class="search-wrap">
               <span class="search-icon-abs"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-              <input type="text" class="search-input" id="doc-search-admin" placeholder="Search doctors…" oninput="filterDoctors(this.value)" />
+              <input type="text" class="search-input" id="doc-search-admin" placeholder="Search doctors…" oninput="_debouncedLoadDoctors()" />
             </div>
-            <select class="filter-select" id="doc-sort" onchange="sortDoctors(this.value)">
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-            </select>
+            <select class="filter-select" id="doc-dept-filter" onchange="loadDoctors()"><option value="">All Departments</option></select>
           </div>
         </div>
         <div style="overflow-x:auto">
@@ -1031,6 +1028,7 @@
             </tbody>
           </table>
         </div>
+        <div class="pagination-bar" id="doc-pagination" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-top:1px solid #E2E8F0;font-size:13px;"></div>
       </div>
     </div>
 
@@ -1048,12 +1046,9 @@
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
             <div class="search-wrap">
               <span class="search-icon-abs"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-              <input type="text" class="search-input" id="blog-search" placeholder="Search blogs…" oninput="filterBlogs(this.value)" />
+              <input type="text" class="search-input" id="blog-search" placeholder="Search blogs…" oninput="_debouncedLoadBlogs()" />
             </div>
-            <select class="filter-select" id="blog-sort" onchange="sortBlogs(this.value)">
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-            </select>
+            <select class="filter-select" id="blog-cat-filter" onchange="loadBlogs()"><option value="">All Categories</option></select>
           </div>
         </div>
         <div style="overflow-x:auto">
@@ -1064,6 +1059,7 @@
             </tbody>
           </table>
         </div>
+        <div class="pagination-bar" id="blog-pagination" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-top:1px solid #E2E8F0;font-size:13px;"></div>
       </div>
     </div>
 
@@ -1074,10 +1070,17 @@
       </div>
       <div class="card-panel">
         <div class="card-panel-header">
-          <select class="filter-select" id="test-sort" onchange="sortTestimonials(this.value)">
-            <option value="newest">Newest First</option>
-            <option value="oldest">Oldest First</option>
-          </select>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div class="search-wrap">
+              <span class="search-icon-abs"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+              <input type="text" class="search-input" id="test-search" placeholder="Search testimonials…" oninput="_debouncedLoadTestimonials()" />
+            </div>
+            <select class="filter-select" id="test-approved-filter" onchange="loadTestimonials()">
+              <option value="">All</option>
+              <option value="true">Approved</option>
+              <option value="false">Pending</option>
+            </select>
+          </div>
         </div>
         <div style="overflow-x:auto">
           <table class="data-table">
@@ -1087,6 +1090,7 @@
             </tbody>
           </table>
         </div>
+        <div class="pagination-bar" id="test-pagination" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-top:1px solid #E2E8F0;font-size:13px;"></div>
       </div>
     </div>
 
@@ -1104,12 +1108,8 @@
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
             <div class="search-wrap">
               <span class="search-icon-abs"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-              <input type="text" class="search-input" id="dept-search" placeholder="Search departments…" oninput="filterDepts(this.value)" />
+              <input type="text" class="search-input" id="dept-search" placeholder="Search departments…" oninput="_debouncedLoadDepartments()" />
             </div>
-            <select class="filter-select" id="dept-sort" onchange="sortDepts(this.value)">
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-            </select>
           </div>
         </div>
         <div style="overflow-x:auto">
@@ -1120,6 +1120,7 @@
             </tbody>
           </table>
         </div>
+        <div class="pagination-bar" id="dept-pagination" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-top:1px solid #E2E8F0;font-size:13px;"></div>
       </div>
     </div>
     <div class="page-view" id="page-homepage"><div class="page-title-row"><div><div class="page-title">Homepage CMS</div><div class="page-subtitle">Control hero banners, sections, and content</div></div></div><div class="chart-placeholder">Coming soon</div></div>
@@ -2145,7 +2146,8 @@
   async function loadRecentAppointments() {
     const tbody = document.getElementById('tbody-recent');
     if (!tbody) return;
-    const appts = await apiFetch('/api/appointments');
+    const data = await apiFetch('/api/appointments?page=1&limit=5');
+    const appts = data && data.items ? data.items : (Array.isArray(data) ? data : null);
     if (!appts) {
       tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#E53935;padding:16px;">Something went wrong. Please refresh the page.</td></tr>';
       return;
@@ -2158,7 +2160,7 @@
       <tr>
         <td><strong>${esc(a.name)}</strong><small>${esc(a.mobile)}</small></td>
         <td>${esc(a.department)}</td>
-        <td>${a.preferred_date || '—'}<small style="display:block;color:#9CA3AF;">${a.created_at.slice(0,10)}</small></td>
+        <td>${a.preferred_date || '—'}<small style="display:block;color:#9CA3AF;">${(a.created_at||'').slice(0,10)}</small></td>
         <td><span class="status-badge ${a.status}">${cap(a.status)}</span></td>
       </tr>
     `).join('');
@@ -2166,18 +2168,32 @@
 
   /* ── Full appointments table ──────────────────────────── */
   let _appts = [];
+  let _apptPage = 1;
 
-  async function loadAppointments() {
+  async function loadAppointments(page) {
+    _apptPage = page || 1;
     const tbody = document.getElementById('tbody-appointments');
     if (!tbody) return;
     tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:#9CA3AF;">Loading…</td></tr>';
-    const data = await apiFetch('/api/appointments');
-    if (!data) {
+    const search    = (document.getElementById('appt-search-input')?.value || '').trim();
+    const status    = document.getElementById('appt-status-filter')?.value || '';
+    const dept      = document.getElementById('appt-dept-filter')?.value || '';
+    const dateFrom  = document.getElementById('appt-date-from')?.value || '';
+    const dateTo    = document.getElementById('appt-date-to')?.value || '';
+    let qs = `?page=${_apptPage}&limit=${PAGE_SIZE}`;
+    if (search)   qs += `&search=${encodeURIComponent(search)}`;
+    if (status)   qs += `&status=${encodeURIComponent(status)}`;
+    if (dept)     qs += `&department=${encodeURIComponent(dept)}`;
+    if (dateFrom) qs += `&date_from=${encodeURIComponent(dateFrom)}`;
+    if (dateTo)   qs += `&date_to=${encodeURIComponent(dateTo)}`;
+    const data = await apiFetch('/api/appointments' + qs);
+    if (!data || !data.items) {
       tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:#E53935;">Something went wrong. Please refresh the page.</td></tr>';
       return;
     }
-    _appts = data;
-    applyApptFilters();
+    _appts = data.items;
+    renderTable(_appts);
+    _renderPagination('appt-pagination', data, 'loadAppointments');
     loadStats();
   }
 
@@ -2267,19 +2283,25 @@
     const count = document.getElementById('notif-panel-count');
     if (!badge) return;
 
-    const data = await apiFetch('/api/appointments');
-    if (!data || !Array.isArray(data)) return;
+    // Use stats endpoint for the pending count + fetch recent pending for the dropdown
+    const stats = await apiFetch('/api/appointments/stats');
+    const pendingCount = stats ? (stats.pending || 0) : 0;
 
-    const pending = data.filter(a => a.status === 'pending');
-    if (pending.length) {
-      badge.textContent = pending.length > 99 ? '99+' : pending.length;
+    if (pendingCount > 0) {
+      badge.textContent = pendingCount > 99 ? '99+' : pendingCount;
       badge.classList.remove('hidden');
     } else {
       badge.classList.add('hidden');
     }
 
-    if (count) count.textContent = pending.length ? `${pending.length} new` : '';
+    if (count) count.textContent = pendingCount ? `${pendingCount} new` : '';
     if (list) {
+      if (!pendingCount) {
+        list.innerHTML = '<div class="notif-empty">No new appointments</div>';
+        return;
+      }
+      const data = await apiFetch('/api/appointments?status=pending&page=1&limit=10');
+      const pending = data && data.items ? data.items : (Array.isArray(data) ? data : []);
       list.innerHTML = pending.length ? pending.map(a => `
         <div class="notif-item" onclick="navigate('appointments')">
           <div class="notif-item-name">${esc(a.name)} — ${esc(a.department)}</div>
@@ -2358,7 +2380,7 @@
     });
   }
 
-  /* ── Shared date-sort helper ──────────────────────────── */
+  /* ── Shared helpers ──────────────────────────────────── */
   function sortByDate(arr, order) {
     return [...arr].sort((a, b) => {
       const da = new Date(a.created_at || 0);
@@ -2367,46 +2389,47 @@
     });
   }
 
-  /* ── Search, filter & sort (appointments page) ────────── */
-  function applyApptFilters() {
-    const q      = (document.getElementById('appt-search-input')?.value || '').toLowerCase();
-    const status = (document.getElementById('appt-status-filter')?.value || '').toLowerCase();
-    const order  = document.getElementById('appt-sort')?.value || 'newest';
-    let list = _appts;
-    if (q)      list = list.filter(a => a.name.toLowerCase().includes(q) || a.mobile.includes(q) || a.department.toLowerCase().includes(q));
-    if (status) list = list.filter(a => a.status === status);
-    renderTable(sortByDate(list, order));
+  function _debounce(fn, ms) {
+    let t; return function() { clearTimeout(t); t = setTimeout(fn, ms); };
   }
 
-  document.querySelector('#page-appointments .search-input')?.addEventListener('input', applyApptFilters);
+  var PAGE_SIZE = 20;
 
-  /* ── Sort helpers for each table ──────────────────────── */
-  function sortDoctors(order) {
-    const q = (document.getElementById('doc-search-admin')?.value || '').toLowerCase();
-    let list = q ? _doctors.filter(d =>
-      (d.name || '').toLowerCase().includes(q) ||
-      (d.specialty || '').toLowerCase().includes(q) ||
-      (d.department || '').toLowerCase().includes(q) ||
-      (d.qualification || '').toLowerCase().includes(q)
-    ) : _doctors;
-    renderDoctorsTable(sortByDate(list, order));
+  function _renderPagination(containerId, { total, page, limit }, loadFn) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    const totalPages = Math.ceil(total / limit);
+    if (totalPages <= 1) { el.innerHTML = ''; return; }
+    let html = `<span style="color:#6B7280;">Showing ${(page-1)*limit+1}–${Math.min(page*limit, total)} of ${total}</span>`;
+    html += '<div style="display:flex;gap:6px;align-items:center;">';
+    if (page > 1)
+      html += `<button class="btn-cancel" style="padding:4px 14px;font-size:12px;" onclick="${loadFn}(${page - 1})">← Prev</button>`;
+    // Show page numbers with ellipsis
+    const pages = [];
+    for (let i = 1; i <= totalPages; i++) {
+      if (i === 1 || i === totalPages || (i >= page - 1 && i <= page + 1)) pages.push(i);
+      else if (pages[pages.length - 1] !== '…') pages.push('…');
+    }
+    pages.forEach(p => {
+      if (p === '…') { html += '<span style="color:#9CA3AF;">…</span>'; }
+      else if (p === page) { html += `<button style="padding:4px 10px;font-size:12px;background:#0A4D8C;color:#fff;border:none;border-radius:6px;font-weight:600;">${p}</button>`; }
+      else { html += `<button class="btn-cancel" style="padding:4px 10px;font-size:12px;" onclick="${loadFn}(${p})">${p}</button>`; }
+    });
+    if (page < totalPages)
+      html += `<button class="btn-save" style="padding:4px 14px;font-size:12px;" onclick="${loadFn}(${page + 1})">Next →</button>`;
+    html += '</div>';
+    el.innerHTML = html;
   }
 
-  function sortBlogs(order) {
-    const q = (document.getElementById('blog-search')?.value || '').toLowerCase();
-    let list = q ? _blogs.filter(b => b.title.toLowerCase().includes(q) || (b.author||'').toLowerCase().includes(q) || (b.category||'').toLowerCase().includes(q) || (b.tags||'').toLowerCase().includes(q)) : _blogs;
-    renderBlogsTable(sortByDate(list, order));
-  }
+  /* ── Search debounce callbacks ─────────────────────────── */
+  var _debouncedLoadAppointments = _debounce(() => loadAppointments(), 350);
+  var _debouncedLoadDoctors      = _debounce(() => loadDoctors(), 350);
+  var _debouncedLoadBlogs        = _debounce(() => loadBlogs(), 350);
+  var _debouncedLoadTestimonials = _debounce(() => loadTestimonials(), 350);
+  var _debouncedLoadDepartments  = _debounce(() => loadDepartments(), 350);
 
-  function sortTestimonials(order) {
-    renderTestimonialsTable(sortByDate(_testimonials, order));
-  }
-
-  function sortDepts(order) {
-    const q = (document.getElementById('dept-search')?.value || '').toLowerCase();
-    let list = q ? _depts.filter(d => d.name.toLowerCase().includes(q) || (d.description||'').toLowerCase().includes(q) || (d.head_doctor||'').toLowerCase().includes(q)) : _depts;
-    renderDeptsTable(sortByDate(list, order));
-  }
+  /* applyApptFilters now delegates to server-side load */
+  function applyApptFilters() { _debouncedLoadAppointments(); }
 
   /* ── Toast ────────────────────────────────────────────── */
   function toast(msg, type) {
@@ -2497,17 +2520,25 @@
 
   /* ── Doctors ──────────────────────────────────────────── */
   let _doctors = [];
+  let _docPage = 1;
 
-  async function loadDoctors() {
+  async function loadDoctors(page) {
+    _docPage = page || 1;
     const tbody = document.getElementById('tbody-doctors');
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#9CA3AF;">Loading…</td></tr>';
-    const data = await apiFetch('/api/doctors?show_all=true');
-    if (!data) {
+    const search = (document.getElementById('doc-search-admin')?.value || '').trim();
+    const dept   = document.getElementById('doc-dept-filter')?.value || '';
+    let qs = `?show_all=true&page=${_docPage}&limit=${PAGE_SIZE}`;
+    if (search) qs += `&search=${encodeURIComponent(search)}`;
+    if (dept)   qs += `&department=${encodeURIComponent(dept)}`;
+    const data = await apiFetch('/api/doctors' + qs);
+    if (!data || !data.items) {
       tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#E53935;">Something went wrong. Please refresh the page.</td></tr>';
       return;
     }
-    _doctors = data;
-    renderDoctorsTable(sortByDate(_doctors, 'newest'));
+    _doctors = data.items;
+    renderDoctorsTable(_doctors);
+    _renderPagination('doc-pagination', data, 'loadDoctors');
   }
 
   function renderDoctorsTable(list) {
@@ -2550,17 +2581,7 @@
     `).join('');
   }
 
-  function filterDoctors(q) {
-    const order = document.getElementById('doc-sort')?.value || 'newest';
-    const s = q.toLowerCase();
-    const list = s ? _doctors.filter(d =>
-      (d.name || '').toLowerCase().includes(s) ||
-      (d.specialty || '').toLowerCase().includes(s) ||
-      (d.department || '').toLowerCase().includes(s) ||
-      (d.qualification || '').toLowerCase().includes(s)
-    ) : _doctors;
-    renderDoctorsTable(sortByDate(list, order));
-  }
+  function filterDoctors() { loadDoctors(); }
 
   async function openDoctorModal(doctor) {
     document.getElementById('doctor-modal-title').textContent = doctor ? 'Edit Doctor' : 'Add Doctor';
@@ -2649,18 +2670,24 @@
 
   /* ── Departments ──────────────────────────────────────── */
   let _depts = [];
+  let _deptPage = 1;
 
-  async function loadDepartments() {
+  async function loadDepartments(page) {
+    _deptPage = page || 1;
     const tbody = document.getElementById('tbody-departments');
     if (!tbody) return;
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#9CA3AF;">Loading…</td></tr>';
-    const data = await apiFetch('/api/departments?show_all=true');
-    if (!data) {
+    const search = (document.getElementById('dept-search')?.value || '').trim();
+    let qs = `?show_all=true&page=${_deptPage}&limit=${PAGE_SIZE}`;
+    if (search) qs += `&search=${encodeURIComponent(search)}`;
+    const data = await apiFetch('/api/departments' + qs);
+    if (!data || !data.items) {
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#E53935;">Something went wrong. Please refresh the page.</td></tr>';
       return;
     }
-    _depts = data;
-    renderDeptsTable(sortByDate(_depts, 'newest'));
+    _depts = data.items;
+    renderDeptsTable(_depts);
+    _renderPagination('dept-pagination', data, 'loadDepartments');
   }
 
   function renderDeptsTable(list) {
@@ -2702,12 +2729,7 @@
     `).join('');
   }
 
-  function filterDepts(q) {
-    const order = document.getElementById('dept-sort')?.value || 'newest';
-    const s = q.toLowerCase();
-    const list = s ? _depts.filter(d => d.name.toLowerCase().includes(s) || (d.description||'').toLowerCase().includes(s) || (d.head_doctor||'').toLowerCase().includes(s)) : _depts;
-    renderDeptsTable(sortByDate(list, order));
-  }
+  function filterDepts() { loadDepartments(); }
 
   function openDeptModal(dept) {
     document.getElementById('dept-modal-title').textContent = dept ? 'Edit Department' : 'Add Department';
@@ -2779,18 +2801,26 @@
 
   /* ── Blogs ────────────────────────────────────────────── */
   let _blogs = [];
+  let _blogPage = 1;
 
-  async function loadBlogs() {
+  async function loadBlogs(page) {
+    _blogPage = page || 1;
     const tbody = document.getElementById('tbody-blogs');
     if (!tbody) return;
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#9CA3AF;">Loading…</td></tr>';
-    const data = await apiFetch('/api/blogs?show_all=true');
-    if (!data) {
+    const search   = (document.getElementById('blog-search')?.value || '').trim();
+    const category = document.getElementById('blog-cat-filter')?.value || '';
+    let qs = `?show_all=true&page=${_blogPage}&limit=${PAGE_SIZE}`;
+    if (search)   qs += `&search=${encodeURIComponent(search)}`;
+    if (category) qs += `&category=${encodeURIComponent(category)}`;
+    const data = await apiFetch('/api/blogs' + qs);
+    if (!data || !data.items) {
       tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#E53935;">Something went wrong. Please refresh the page.</td></tr>';
       return;
     }
-    _blogs = data;
-    renderBlogsTable(sortByDate(_blogs, 'newest'));
+    _blogs = data.items;
+    renderBlogsTable(_blogs);
+    _renderPagination('blog-pagination', data, 'loadBlogs');
   }
 
   function renderBlogsTable(list) {
@@ -2841,12 +2871,7 @@
     `).join('');
   }
 
-  function filterBlogs(q) {
-    const order = document.getElementById('blog-sort')?.value || 'newest';
-    const s = q.toLowerCase();
-    const list = s ? _blogs.filter(b => b.title.toLowerCase().includes(s) || (b.author||'').toLowerCase().includes(s) || (b.category||'').toLowerCase().includes(s) || (b.tags||'').toLowerCase().includes(s)) : _blogs;
-    renderBlogsTable(sortByDate(list, order));
-  }
+  function filterBlogs() { loadBlogs(); }
 
   function openBlogModal(blog) {
     document.getElementById('blog-modal-title').textContent = blog ? 'Edit Blog Post' : 'Add Article';
@@ -2926,14 +2951,33 @@
     }
   }
 
-  /* ── Department options (shared across doctor & blog modals) ── */
+  /* ── Department options (shared across doctor & blog modals + filter dropdowns) ── */
   let _deptCache = [];
 
   async function loadDeptOptions() {
     try {
       const data = await apiFetch('/api/departments?show_all=true');
-      _deptCache = Array.isArray(data) ? data : [];
+      _deptCache = Array.isArray(data) ? data : (data && data.items ? data.items : []);
     } catch(e) { _deptCache = []; }
+
+    // Populate filter dropdowns (appointments dept filter, doctors dept filter, blog category filter)
+    [
+      { id: 'appt-dept-filter', label: 'All Departments' },
+      { id: 'doc-dept-filter',  label: 'All Departments' },
+      { id: 'blog-cat-filter',  label: 'All Categories' },
+    ].forEach(({ id, label }) => {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      const current = sel.value;
+      sel.innerHTML = `<option value="">${label}</option>`;
+      _deptCache.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d.name;
+        opt.textContent = d.name;
+        sel.appendChild(opt);
+      });
+      if (current) sel.value = current;
+    });
 
     [document.getElementById('doc-dept'), document.getElementById('blog-category')].forEach(sel => {
       if (!sel) return;
@@ -2968,18 +3012,26 @@
 
   /* ── Testimonials ─────────────────────────────────────── */
   let _testimonials = [];
+  let _testPage = 1;
 
-  async function loadTestimonials() {
+  async function loadTestimonials(page) {
+    _testPage = page || 1;
     const tbody = document.getElementById('tbody-testimonials');
     if (!tbody) return;
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#9CA3AF;">Loading…</td></tr>';
-    const data = await apiFetch('/api/testimonials?show_all=true');
-    if (!data) {
+    const search   = (document.getElementById('test-search')?.value || '').trim();
+    const approved = document.getElementById('test-approved-filter')?.value || '';
+    let qs = `?show_all=true&page=${_testPage}&limit=${PAGE_SIZE}`;
+    if (search)   qs += `&search=${encodeURIComponent(search)}`;
+    if (approved) qs += `&approved=${approved}`;
+    const data = await apiFetch('/api/testimonials' + qs);
+    if (!data || !data.items) {
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#E53935;">Something went wrong. Please refresh the page.</td></tr>';
       return;
     }
-    _testimonials = data;
-    renderTestimonialsTable(sortByDate(_testimonials, 'newest'));
+    _testimonials = data.items;
+    renderTestimonialsTable(_testimonials);
+    _renderPagination('test-pagination', data, 'loadTestimonials');
   }
 
   function renderTestimonialsTable(list) {

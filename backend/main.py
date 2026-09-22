@@ -22,7 +22,7 @@ from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from pymongo import MongoClient, DESCENDING
+from pymongo import MongoClient, ASCENDING, DESCENDING
 from pymongo.errors import DuplicateKeyError
 
 load_dotenv()
@@ -51,6 +51,27 @@ def _user_email() -> str:
 def _tq(extra: dict | None = None) -> dict:
     """Return a base query scoped to the current request's tenant."""
     return {"tenant_name": _tenant(), **(extra or {})}
+
+
+def _paginated(collection, query: dict, *, sort_field: str = "created_at",
+               sort_dir: int = DESCENDING, fmt_fn, page: int | None = None,
+               limit: int = 20):
+    """
+    Return items from *collection* matching *query*.
+
+    If *page* is provided (>=1), return a paginated envelope:
+        {"total": N, "page": P, "limit": L, "items": [...]}
+    Otherwise return a flat list for backward compatibility with the
+    public website which expects a plain JSON array.
+    """
+    cursor = collection.find(query).sort(sort_field, sort_dir)
+    if page is not None:
+        page = max(1, page)
+        total = collection.count_documents(query)
+        cursor = cursor.skip((page - 1) * limit).limit(limit)
+        items = [fmt_fn(d) for d in cursor]
+        return {"total": total, "page": page, "limit": limit, "items": items}
+    return [fmt_fn(d) for d in cursor]
 
 # ── App ────────────────────────────────────────────────────────────
 _docs_enabled = os.getenv("ENABLE_DOCS", "false").lower() == "true"
@@ -797,10 +818,38 @@ def get_stats():
 
 
 @app.get("/api/appointments")
-def list_appointments(status: Optional[str] = None):
-    query = _tq({"status": status} if status else {})
-    docs  = list(_col.find(query).sort("createdAt", DESCENDING))
-    return [_fmt(d) for d in docs]
+def list_appointments(
+    status: Optional[str] = None,
+    search: Optional[str] = None,
+    department: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    page: Optional[int] = None,
+    limit: int = 20,
+):
+    extra: dict = {}
+    if status:
+        extra["status"] = status
+    if department:
+        extra["department"] = {"$regex": department, "$options": "i"}
+    if date_from or date_to:
+        date_filter: dict = {}
+        if date_from:
+            date_filter["$gte"] = date_from
+        if date_to:
+            date_filter["$lte"] = date_to
+        extra["preferred_date"] = date_filter
+    if search:
+        search_or = [
+            {"name": {"$regex": search, "$options": "i"}},
+            {"patientName": {"$regex": search, "$options": "i"}},
+            {"mobile": {"$regex": search}},
+            {"phoneNumber": {"$regex": search}},
+        ]
+        extra["$or"] = search_or
+    query = _tq(extra)
+    return _paginated(_col, query, sort_field="createdAt", sort_dir=DESCENDING,
+                      fmt_fn=_fmt, page=page, limit=limit)
 
 
 @app.get("/api/appointments/{appt_id}")
@@ -857,13 +906,29 @@ def update_status(appt_id: str, body: StatusIn):
 
 # ── Doctor Routes ───────────────────────────────────────────────────
 @app.get("/api/doctors")
-def list_doctors(featured: Optional[bool] = None, show_all: bool = False, _: None = Depends(require_public_access)):
+def list_doctors(
+    featured: Optional[bool] = None,
+    show_all: bool = False,
+    search: Optional[str] = None,
+    department: Optional[str] = None,
+    page: Optional[int] = None,
+    limit: int = 20,
+    _: None = Depends(require_public_access),
+):
     try:
         query = _tq() if show_all else _tq({"active": True})
         if featured is not None:
             query["featured"] = featured
-        docs = list(_dcol.find(query).sort("created_at", DESCENDING))
-        return [_fmt_doctor(d) for d in docs]
+        if department:
+            query["department"] = {"$regex": department, "$options": "i"}
+        if search:
+            query["$or"] = [
+                {"name": {"$regex": search, "$options": "i"}},
+                {"specialty": {"$regex": search, "$options": "i"}},
+                {"qualification": {"$regex": search, "$options": "i"}},
+            ]
+        return _paginated(_dcol, query, sort_field="created_at", sort_dir=DESCENDING,
+                          fmt_fn=_fmt_doctor, page=page, limit=limit)
     except Exception as e:
         print(f"[ERROR] list_doctors: {e}")
         raise HTTPException(503, "Database temporarily unavailable")
@@ -938,11 +1003,23 @@ def _fmt_department(doc: dict) -> dict:
 
 
 @app.get("/api/departments")
-def list_departments(show_all: bool = False, _: None = Depends(require_public_access)):
+def list_departments(
+    show_all: bool = False,
+    search: Optional[str] = None,
+    page: Optional[int] = None,
+    limit: int = 20,
+    _: None = Depends(require_public_access),
+):
     try:
         query = _tq() if show_all else _tq({"active": True})
-        docs = list(_deptcol.find(query).sort("order", 1))
-        return [_fmt_department(d) for d in docs]
+        if search:
+            query["$or"] = [
+                {"name": {"$regex": search, "$options": "i"}},
+                {"description": {"$regex": search, "$options": "i"}},
+                {"head_doctor": {"$regex": search, "$options": "i"}},
+            ]
+        return _paginated(_deptcol, query, sort_field="order", sort_dir=ASCENDING,
+                          fmt_fn=_fmt_department, page=page, limit=limit)
     except Exception as e:
         print(f"[ERROR] list_departments: {e}")
         raise HTTPException(503, "Database temporarily unavailable")
@@ -1034,11 +1111,26 @@ def _fmt_blog(doc: dict) -> dict:
 
 
 @app.get("/api/blogs")
-def list_blogs(show_all: bool = False, _: None = Depends(require_public_access)):
+def list_blogs(
+    show_all: bool = False,
+    search: Optional[str] = None,
+    category: Optional[str] = None,
+    page: Optional[int] = None,
+    limit: int = 20,
+    _: None = Depends(require_public_access),
+):
     try:
         query = _tq() if show_all else _tq({"published": True})
-        docs = list(_bcol.find(query).sort("created_at", DESCENDING))
-        return [_fmt_blog(d) for d in docs]
+        if category:
+            query["category"] = {"$regex": category, "$options": "i"}
+        if search:
+            query["$or"] = [
+                {"title": {"$regex": search, "$options": "i"}},
+                {"author": {"$regex": search, "$options": "i"}},
+                {"tags": {"$regex": search, "$options": "i"}},
+            ]
+        return _paginated(_bcol, query, sort_field="created_at", sort_dir=DESCENDING,
+                          fmt_fn=_fmt_blog, page=page, limit=limit)
     except Exception as e:
         print(f"[ERROR] list_blogs: {e}")
         raise HTTPException(503, "Database temporarily unavailable")
@@ -1137,10 +1229,24 @@ def _fmt_testimonial(doc: dict) -> dict:
 
 
 @app.get("/api/testimonials")
-def list_testimonials(show_all: bool = False, _: None = Depends(require_public_access)):
+def list_testimonials(
+    show_all: bool = False,
+    search: Optional[str] = None,
+    approved: Optional[bool] = None,
+    page: Optional[int] = None,
+    limit: int = 20,
+    _: None = Depends(require_public_access),
+):
     q = _tq() if show_all else _tq({"approved": True})
-    docs = list(_testcol.find(q).sort("created_at", DESCENDING))
-    return [_fmt_testimonial(d) for d in docs]
+    if approved is not None and show_all:
+        q["approved"] = approved
+    if search:
+        q["$or"] = [
+            {"name": {"$regex": search, "$options": "i"}},
+            {"text": {"$regex": search, "$options": "i"}},
+        ]
+    return _paginated(_testcol, q, sort_field="created_at", sort_dir=DESCENDING,
+                      fmt_fn=_fmt_testimonial, page=page, limit=limit)
 
 
 @app.post("/api/testimonials", status_code=201)
@@ -1210,10 +1316,24 @@ def _fmt_media(doc: dict) -> dict:
 
 
 @app.get("/api/media")
-def list_media(gallery: bool = False, _: None = Depends(require_public_access)):
+def list_media(
+    gallery: bool = False,
+    search: Optional[str] = None,
+    type: Optional[str] = None,
+    page: Optional[int] = None,
+    limit: int = 20,
+    _: None = Depends(require_public_access),
+):
     q = _tq({"show_in_gallery": True}) if gallery else _tq()
-    docs = list(_mediacol.find(q).sort("order", 1))
-    return [_fmt_media(d) for d in docs]
+    if type:
+        q["type"] = type
+    if search:
+        q["$or"] = [
+            {"title": {"$regex": search, "$options": "i"}},
+            {"alt": {"$regex": search, "$options": "i"}},
+        ]
+    return _paginated(_mediacol, q, sort_field="order", sort_dir=ASCENDING,
+                      fmt_fn=_fmt_media, page=page, limit=limit)
 
 
 @app.post("/api/media", status_code=201)
@@ -1364,10 +1484,18 @@ def _fmt_offer(doc: dict) -> dict:
 
 
 @app.get("/api/offers")
-def list_offers(show_all: bool = False, _: None = Depends(require_public_access)):
+def list_offers(
+    show_all: bool = False,
+    search: Optional[str] = None,
+    page: Optional[int] = None,
+    limit: int = 20,
+    _: None = Depends(require_public_access),
+):
     q = _tq() if show_all else _tq({"active": True})
-    docs = list(_offercol.find(q).sort("order", 1))
-    return [_fmt_offer(d) for d in docs]
+    if search:
+        q["text"] = {"$regex": search, "$options": "i"}
+    return _paginated(_offercol, q, sort_field="order", sort_dir=ASCENDING,
+                      fmt_fn=_fmt_offer, page=page, limit=limit)
 
 
 @app.post("/api/offers", status_code=201)
@@ -1424,10 +1552,18 @@ def _fmt_insurance(doc: dict) -> dict:
 
 
 @app.get("/api/insurance")
-def list_insurance(show_all: bool = False, _: None = Depends(require_public_access)):
+def list_insurance(
+    show_all: bool = False,
+    search: Optional[str] = None,
+    page: Optional[int] = None,
+    limit: int = 20,
+    _: None = Depends(require_public_access),
+):
     q = _tq() if show_all else _tq({"active": True})
-    docs = list(_inscol.find(q).sort("order", 1))
-    return [_fmt_insurance(d) for d in docs]
+    if search:
+        q["name"] = {"$regex": search, "$options": "i"}
+    return _paginated(_inscol, q, sort_field="order", sort_dir=ASCENDING,
+                      fmt_fn=_fmt_insurance, page=page, limit=limit)
 
 
 @app.post("/api/insurance", status_code=201)
@@ -1494,10 +1630,18 @@ def _fmt_partner(doc: dict) -> dict:
 
 
 @app.get("/api/partners")
-def list_partners(show_all: bool = False, _: None = Depends(require_public_access)):
+def list_partners(
+    show_all: bool = False,
+    search: Optional[str] = None,
+    page: Optional[int] = None,
+    limit: int = 20,
+    _: None = Depends(require_public_access),
+):
     q = _tq() if show_all else _tq({"active": True})
-    docs = list(_partnercol.find(q).sort("order", 1))
-    return [_fmt_partner(d) for d in docs]
+    if search:
+        q["name"] = {"$regex": search, "$options": "i"}
+    return _paginated(_partnercol, q, sort_field="order", sort_dir=ASCENDING,
+                      fmt_fn=_fmt_partner, page=page, limit=limit)
 
 
 @app.post("/api/partners", status_code=201)
@@ -1554,10 +1698,15 @@ def _fmt_stat(doc: dict) -> dict:
 
 
 @app.get("/api/hero-stats")
-def list_hero_stats(show_all: bool = False, _: None = Depends(require_public_access)):
+def list_hero_stats(
+    show_all: bool = False,
+    page: Optional[int] = None,
+    limit: int = 20,
+    _: None = Depends(require_public_access),
+):
     q = _tq() if show_all else _tq({"active": True})
-    docs = list(_statscol.find(q).sort("order", 1))
-    return [_fmt_stat(d) for d in docs]
+    return _paginated(_statscol, q, sort_field="order", sort_dir=ASCENDING,
+                      fmt_fn=_fmt_stat, page=page, limit=limit)
 
 
 @app.post("/api/hero-stats", status_code=201)
@@ -1603,10 +1752,24 @@ def _fmt_facility(d: dict) -> dict:
     return d
 
 @app.get("/api/facilities")
-def list_facilities(show_all: bool = False, _: None = Depends(require_public_access)):
+def list_facilities(
+    show_all: bool = False,
+    search: Optional[str] = None,
+    category: Optional[str] = None,
+    page: Optional[int] = None,
+    limit: int = 20,
+    _: None = Depends(require_public_access),
+):
     q = _tq() if show_all else _tq({"active": True})
-    docs = list(_facilitiescol.find(q).sort("order", 1))
-    return [_fmt_facility(d) for d in docs]
+    if category:
+        q["category"] = category
+    if search:
+        q["$or"] = [
+            {"name": {"$regex": search, "$options": "i"}},
+            {"short_desc": {"$regex": search, "$options": "i"}},
+        ]
+    return _paginated(_facilitiescol, q, sort_field="order", sort_dir=ASCENDING,
+                      fmt_fn=_fmt_facility, page=page, limit=limit)
 
 @app.post("/api/facilities", status_code=201)
 def create_facility(body: FacilityIn, _: None = Depends(_require_admin)):
@@ -1648,10 +1811,21 @@ def _fmt_faq(d: dict) -> dict:
     return d
 
 @app.get("/api/faqs")
-def list_faqs(show_all: bool = False, _: None = Depends(require_public_access)):
+def list_faqs(
+    show_all: bool = False,
+    search: Optional[str] = None,
+    page: Optional[int] = None,
+    limit: int = 20,
+    _: None = Depends(require_public_access),
+):
     q = _tq() if show_all else _tq({"active": True})
-    docs = list(_faqcol.find(q).sort("order", 1))
-    return [_fmt_faq(d) for d in docs]
+    if search:
+        q["$or"] = [
+            {"question": {"$regex": search, "$options": "i"}},
+            {"answer": {"$regex": search, "$options": "i"}},
+        ]
+    return _paginated(_faqcol, q, sort_field="order", sort_dir=ASCENDING,
+                      fmt_fn=_fmt_faq, page=page, limit=limit)
 
 @app.post("/api/faqs", status_code=201)
 def create_faq(body: FaqIn, _: None = Depends(_require_admin)):
@@ -1978,18 +2152,39 @@ def delete_blog(blog_id: str, _: None = Depends(_require_admin)):
 # Only a SUPER_ADMIN can list, create, and activate/deactivate other admins.
 
 @app.get("/api/admin/users")
-def list_admin_users(_admin: dict = Depends(_require_super_admin)):
-    """Return all admin users for this tenant (passwords excluded)."""
-    docs = list(_usercol.find(
-        _tq(),
-        {"password_hash": 0, "active_token": 0, "token_expires_at": 0, "totp_secret": 0},
-    ))
-    for d in docs:
+def list_admin_users(
+    search: Optional[str] = None,
+    role: Optional[str] = None,
+    page: Optional[int] = None,
+    limit: int = 20,
+    _admin: dict = Depends(_require_super_admin),
+):
+    """Return admin users for this tenant (passwords excluded)."""
+    q = _tq()
+    if role:
+        q["role"] = role
+    if search:
+        q["$or"] = [
+            {"name": {"$regex": search, "$options": "i"}},
+            {"email": {"$regex": search, "$options": "i"}},
+        ]
+    projection = {"password_hash": 0, "active_token": 0, "token_expires_at": 0, "totp_secret": 0}
+
+    def _fmt_user(d):
         d["id"] = str(d.pop("_id"))
         ca = d.get("created_at")
         if isinstance(ca, datetime):
             d["created_at"] = ca.isoformat()
-    return docs
+        return d
+
+    cursor = _usercol.find(q, projection).sort("created_at", DESCENDING)
+    if page is not None:
+        page = max(1, page)
+        total = _usercol.count_documents(q)
+        cursor = cursor.skip((page - 1) * limit).limit(limit)
+        items = [_fmt_user(d) for d in cursor]
+        return {"total": total, "page": page, "limit": limit, "items": items}
+    return [_fmt_user(d) for d in cursor]
 
 
 @app.post("/api/admin/users", status_code=201)
@@ -2082,13 +2277,24 @@ def update_admin_user(user_id: str, body: UserUpdateIn, _admin: dict = Depends(_
 def list_sms_logs(
     page: int = 1,
     limit: int = 50,
+    status: Optional[str] = None,
+    search: Optional[str] = None,
     _admin: dict = Depends(_require_super_admin),
 ):
     """Return paginated SMS audit log for this tenant, newest first."""
+    q = _tq()
+    if status:
+        q["status"] = status
+    if search:
+        q["$or"] = [
+            {"patient_name": {"$regex": search, "$options": "i"}},
+            {"to": {"$regex": search}},
+            {"ref_id": {"$regex": search, "$options": "i"}},
+        ]
     skip = (page - 1) * limit
-    total = _smslogcol.count_documents(_tq())
+    total = _smslogcol.count_documents(q)
     docs  = list(
-        _smslogcol.find(_tq())
+        _smslogcol.find(q)
         .sort("sent_at", DESCENDING)
         .skip(skip)
         .limit(limit)
