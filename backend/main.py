@@ -123,6 +123,7 @@ _sitecfgcol = _mdb["site_config"]       # stores site-wide settings like hospita
 _smslogcol      = _mdb["sms_logs"]       # append-only audit log of every SMS attempt
 _facilitiescol  = _mdb["facilities"]    # hospital facilities (ICU, OT, etc.)
 _faqcol         = _mdb["faqs"]          # FAQ question/answer pairs shown in chat + site
+_auditcol       = _mdb["audit_logs"]    # purge/deletion audit trail for SUPER_ADMIN
 
 # ── Tenant + user middleware — resolves tenant and logged-in user per request ──
 @app.middleware("http")
@@ -855,6 +856,106 @@ def list_appointments(
     query = _tq(extra)
     return _paginated(_col, query, sort_field="createdAt", sort_dir=DESCENDING,
                       fmt_fn=_fmt, page=page, limit=limit)
+
+
+# ── Appointment Export & Purge ─────────────────────────────────────
+# NOTE: These must be defined BEFORE /{appt_id} to avoid path conflict.
+
+def _appt_purge_query(date_from: str | None, date_to: str | None, status: str | None) -> dict:
+    """Build a tenant-scoped MongoDB query for appointment purge/export."""
+    extra: dict = {}
+    if status:
+        extra["status"] = status
+    if date_from or date_to:
+        df: dict = {}
+        if date_from:
+            df["$gte"] = date_from
+        if date_to:
+            df["$lte"] = date_to
+        extra["preferred_date"] = df
+    return _tq(extra)
+
+
+class PurgeIn(BaseModel):
+    date_from: Optional[str] = None
+    date_to: Optional[str] = None
+    status: Optional[str] = None
+
+
+@app.get("/api/appointments/export")
+def export_appointments(
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    status: Optional[str] = None,
+    _admin: dict = Depends(_require_admin),
+):
+    """Export matching appointments as an Excel (.xlsx) file."""
+    import io
+    from openpyxl import Workbook
+
+    q = _appt_purge_query(date_from, date_to, status)
+    docs = list(_col.find(q).sort("createdAt", DESCENDING))
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Appointments"
+    headers = ["ID", "Patient", "Mobile", "Department", "Doctor",
+               "Preferred Date", "Time", "Reason", "Status", "Created At"]
+    ws.append(headers)
+    for d in docs:
+        f = _fmt(d)
+        ws.append([
+            f.get("appt_id") or f.get("id", ""),
+            f.get("name", ""),
+            f.get("mobile", ""),
+            f.get("department", ""),
+            f.get("doctor", ""),
+            f.get("preferred_date", ""),
+            f.get("appt_time", ""),
+            f.get("message", ""),
+            f.get("status", ""),
+            f.get("created_at", ""),
+        ])
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    filename = f"appointments_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.xlsx"
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@app.post("/api/appointments/count")
+def count_appointments_for_purge(body: PurgeIn, _admin: dict = Depends(_require_admin)):
+    """Return the number of appointments that match the purge filters (preview)."""
+    q = _appt_purge_query(body.date_from, body.date_to, body.status)
+    return {"count": _col.count_documents(q)}
+
+
+@app.post("/api/appointments/purge")
+def purge_appointments(body: PurgeIn, _admin: dict = Depends(_require_admin)):
+    """Delete appointments matching the given date range and status filters."""
+    q = _appt_purge_query(body.date_from, body.date_to, body.status)
+    count = _col.count_documents(q)
+    result = _col.delete_many(q)
+    # Audit log entry
+    _auditcol.insert_one({
+        "tenant_name": _tenant(),
+        "action":      "purge_appointments",
+        "performed_by": _user_email(),
+        "timestamp":   datetime.now(timezone.utc),
+        "records_deleted": result.deleted_count,
+        "filters": {
+            "date_from": body.date_from,
+            "date_to":   body.date_to,
+            "status":    body.status,
+        },
+    })
+    return {"success": True, "deleted": result.deleted_count}
 
 
 @app.get("/api/appointments/{appt_id}")
@@ -2310,4 +2411,123 @@ def list_sms_logs(
         ts = d.get("sent_at")
         if isinstance(ts, datetime):
             d["sent_at"] = ts.isoformat()
+    return {"total": total, "page": page, "limit": limit, "logs": docs}
+
+
+# ── SMS Log Export & Purge ─────────────────────────────────────────
+
+def _sms_purge_query(date_from: str | None, date_to: str | None, status: str | None) -> dict:
+    """Build a tenant-scoped MongoDB query for SMS log purge/export."""
+    q = _tq()
+    if status:
+        q["status"] = status
+    if date_from or date_to:
+        df: dict = {}
+        if date_from:
+            df["$gte"] = datetime.fromisoformat(date_from).replace(tzinfo=timezone.utc)
+        if date_to:
+            # Include the entire end-of-day
+            df["$lte"] = datetime.fromisoformat(date_to).replace(
+                hour=23, minute=59, second=59, tzinfo=timezone.utc
+            )
+        q["sent_at"] = df
+    return q
+
+
+@app.get("/api/sms-logs/export")
+def export_sms_logs(
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    status: Optional[str] = None,
+    _admin: dict = Depends(_require_super_admin),
+):
+    """Export matching SMS logs as an Excel (.xlsx) file."""
+    import io
+    from openpyxl import Workbook
+
+    q = _sms_purge_query(date_from, date_to, status)
+    docs = list(_smslogcol.find(q).sort("sent_at", DESCENDING))
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "SMS Logs"
+    headers = ["Sent At", "Ref ID", "Patient", "To Number",
+               "Department", "Status", "Message", "Error"]
+    ws.append(headers)
+    for d in docs:
+        ts = d.get("sent_at")
+        ws.append([
+            ts.isoformat() if isinstance(ts, datetime) else str(ts or ""),
+            d.get("ref_id", ""),
+            d.get("patient_name", ""),
+            d.get("to", ""),
+            d.get("department", ""),
+            d.get("status", ""),
+            d.get("message", ""),
+            d.get("error", ""),
+        ])
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    filename = f"sms_logs_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.xlsx"
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@app.post("/api/sms-logs/count")
+def count_sms_logs_for_purge(body: PurgeIn, _admin: dict = Depends(_require_super_admin)):
+    """Return the number of SMS logs that match the purge filters (preview)."""
+    q = _sms_purge_query(body.date_from, body.date_to, body.status)
+    return {"count": _smslogcol.count_documents(q)}
+
+
+@app.post("/api/sms-logs/purge")
+def purge_sms_logs(body: PurgeIn, _admin: dict = Depends(_require_super_admin)):
+    """Delete SMS logs matching the given date range and status filters."""
+    q = _sms_purge_query(body.date_from, body.date_to, body.status)
+    result = _smslogcol.delete_many(q)
+    _auditcol.insert_one({
+        "tenant_name": _tenant(),
+        "action":      "purge_sms_logs",
+        "performed_by": _user_email(),
+        "timestamp":   datetime.now(timezone.utc),
+        "records_deleted": result.deleted_count,
+        "filters": {
+            "date_from": body.date_from,
+            "date_to":   body.date_to,
+            "status":    body.status,
+        },
+    })
+    return {"success": True, "deleted": result.deleted_count}
+
+
+# ── Audit Log Route ────────────────────────────────────────────────
+
+@app.get("/api/audit-logs")
+def list_audit_logs(
+    page: int = 1,
+    limit: int = 50,
+    _admin: dict = Depends(_require_super_admin),
+):
+    """Return paginated audit log entries for this tenant, newest first."""
+    q = _tq()
+    skip = (page - 1) * limit
+    total = _auditcol.count_documents(q)
+    docs = list(
+        _auditcol.find(q)
+        .sort("timestamp", DESCENDING)
+        .skip(skip)
+        .limit(limit)
+    )
+    for d in docs:
+        d["id"] = str(d.pop("_id"))
+        d.pop("tenant_name", None)
+        ts = d.get("timestamp")
+        if isinstance(ts, datetime):
+            d["timestamp"] = ts.isoformat()
     return {"total": total, "page": page, "limit": limit, "logs": docs}

@@ -750,6 +750,10 @@
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
       <span class="nav-label">SMS Logs</span>
     </button>
+    <button class="nav-item" data-page="activity-log" data-superadmin-only style="display:none">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <span class="nav-label">Activity Log</span>
+    </button>
     <button class="nav-item" data-page="sms" data-superadmin-only style="display:none">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
       <span class="nav-label">SMS Settings</span>
@@ -934,26 +938,10 @@
           <div class="card-panel">
             <div class="card-panel-header"><span class="card-panel-title">Recent Activity</span></div>
             <div class="card-panel-body">
-              <div class="activity-list">
+              <div class="activity-list" id="dashboard-activity-list">
                 <div class="activity-item">
-                  <div class="activity-dot" style="background:#00C853;"></div>
-                  <div><div class="activity-text">New appointment by <strong>Rajesh Kumar</strong></div><div class="activity-time">2 minutes ago</div></div>
-                </div>
-                <div class="activity-item">
-                  <div class="activity-dot" style="background:#00A6A6;"></div>
-                  <div><div class="activity-text">Testimonial submitted — pending approval</div><div class="activity-time">18 minutes ago</div></div>
-                </div>
-                <div class="activity-item">
-                  <div class="activity-dot" style="background:#0A4D8C;"></div>
-                  <div><div class="activity-text">Blog published: <strong>"Heart Disease Warning Signs"</strong></div><div class="activity-time">1 hour ago</div></div>
-                </div>
-                <div class="activity-item">
-                  <div class="activity-dot" style="background:#FF8F00;"></div>
-                  <div><div class="activity-text">WhatsApp lead — <strong>Nephrology</strong> inquiry</div><div class="activity-time">3 hours ago</div></div>
-                </div>
-                <div class="activity-item">
-                  <div class="activity-dot" style="background:#E53935;"></div>
-                  <div><div class="activity-text">Appointment cancelled by <strong>Mohit Singh</strong></div><div class="activity-time">5 hours ago</div></div>
+                  <div class="activity-dot" style="background:#9CA3AF;"></div>
+                  <div><div class="activity-text" style="color:#9CA3AF;">Loading recent activity…</div></div>
                 </div>
               </div>
             </div>
@@ -966,6 +954,10 @@
     <div class="page-view active" id="page-appointments">
       <div class="page-title-row">
         <div><div class="page-title">Appointments</div><div class="page-subtitle">Manage all patient appointment requests</div></div>
+        <button class="btn-add" style="background:#DC2626;" onclick="openModal('purge-appt')">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="15" height="15"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          Purge Data
+        </button>
       </div>
       <div class="card-panel">
         <div class="card-panel-header">
@@ -1606,6 +1598,10 @@
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="15" height="15"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
             Refresh
           </button>
+          <button class="btn-add" style="background:#DC2626;" onclick="openModal('purge-sms')">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="15" height="15"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            Purge Data
+          </button>
         </div>
       </div>
       <div class="table-card">
@@ -1629,6 +1625,35 @@
     </div>
 
     <div class="page-view" id="page-seo"><div class="page-title-row"><div><div class="page-title">SEO Settings</div><div class="page-subtitle">Meta tags, sitemap, and schema settings</div></div></div><div class="chart-placeholder">Coming soon</div></div>
+
+    <!-- ── ACTIVITY LOG ── -->
+    <div class="page-view" id="page-activity-log">
+      <div class="page-title-row">
+        <div>
+          <div class="page-title">Activity Log</div>
+          <div class="page-subtitle">Audit trail of data purge operations and administrative actions</div>
+        </div>
+        <button class="btn-add" onclick="loadAuditLogs(1)">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="15" height="15"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          Refresh
+        </button>
+      </div>
+      <div class="table-card">
+        <table class="data-table">
+          <thead><tr>
+            <th>Timestamp</th>
+            <th>Action</th>
+            <th>Performed By</th>
+            <th>Records Deleted</th>
+            <th>Filters Applied</th>
+          </tr></thead>
+          <tbody id="tbody-audit-logs">
+            <tr><td colspan="5" style="text-align:center;padding:24px;color:#9CA3AF;">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="audit-logs-pagination" style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;align-items:center;"></div>
+    </div>
 
   </div>
 </div>
@@ -2000,6 +2025,123 @@
   </div>
 </div>
 
+<!-- Appointment Purge Modal -->
+<div class="modal-overlay" id="modal-purge-appt">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header" style="border-bottom-color:#FEE2E2;">
+      <h3 class="modal-title" style="color:#DC2626;">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="20" height="20" style="vertical-align:text-bottom;margin-right:4px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86l-8.09 14a2 2 0 001.71 3h16.18a2 2 0 001.71-3l-8.09-14a2 2 0 00-3.42 0z"/></svg>
+        Purge Appointments
+      </h3>
+      <button class="modal-close" onclick="closeModal('purge-appt')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:#6B7280;margin-bottom:16px;">Select a date range and/or status to filter the records you want to export or delete.</p>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">From Date</label><input type="date" id="purge-appt-from" class="form-control" onchange="refreshApptCount()" /></div>
+        <div class="form-group"><label class="form-label">To Date</label><input type="date" id="purge-appt-to" class="form-control" onchange="refreshApptCount()" /></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select id="purge-appt-status" class="form-control" onchange="refreshApptCount()">
+          <option value="">All Statuses</option>
+          <option value="pending">Pending</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="cancelled">Cancelled</option>
+          <option value="completed">Completed</option>
+          <option value="rejected">Rejected</option>
+        </select>
+      </div>
+      <!-- Record count preview -->
+      <div id="purge-appt-count-box" style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:12px;font-size:13px;color:#1E40AF;margin-top:8px;display:flex;align-items:center;gap:8px;">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="18" height="18" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg>
+        <span id="purge-appt-count-text">Select filters and click a purge action to see matching records.</span>
+      </div>
+      <!-- Warning -->
+      <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:12px;font-size:12px;color:#991B1B;margin-top:10px;">
+        <strong>This action is permanent and cannot be undone.</strong> All matching appointment records will be permanently removed from the database. We strongly recommend using <strong>"Download & Purge"</strong> to save a backup before deletion.
+      </div>
+      <!-- Consent checkbox -->
+      <label id="purge-appt-consent-row" style="display:none;align-items:center;gap:8px;margin-top:12px;cursor:pointer;font-size:13px;color:#1F2937;">
+        <input type="checkbox" id="purge-appt-consent" style="width:16px;height:16px;accent-color:#DC2626;" onchange="toggleApptPurgeButtons()" />
+        <span>I confirm the permanent deletion of <strong id="purge-appt-consent-count">0</strong> record(s). I understand this cannot be undone.</span>
+      </label>
+    </div>
+    <div class="modal-footer" style="flex-wrap:wrap;gap:8px;">
+      <button class="btn-cancel" onclick="closeModal('purge-appt')">Cancel</button>
+      <button class="btn-save" style="background:#0A4D8C;" onclick="exportApptData()">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Download Excel
+      </button>
+      <button class="btn-save" id="btn-appt-download-purge" style="background:#F59E0B;color:#000;opacity:0.5;pointer-events:none;" onclick="downloadThenPurgeAppt()">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M4 7h16M5 7l1 12a2 2 0 002 2h8a2 2 0 002-2l1-12"/></svg>
+        Download & Purge
+      </button>
+      <button class="btn-save" id="btn-appt-purge-only" style="background:#DC2626;opacity:0.5;pointer-events:none;" onclick="purgeApptData()">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        Purge Only
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- SMS Logs Purge Modal -->
+<div class="modal-overlay" id="modal-purge-sms">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header" style="border-bottom-color:#FEE2E2;">
+      <h3 class="modal-title" style="color:#DC2626;">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="20" height="20" style="vertical-align:text-bottom;margin-right:4px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86l-8.09 14a2 2 0 001.71 3h16.18a2 2 0 001.71-3l-8.09-14a2 2 0 00-3.42 0z"/></svg>
+        Purge SMS Logs
+      </h3>
+      <button class="modal-close" onclick="closeModal('purge-sms')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:#6B7280;margin-bottom:16px;">Select a date range and/or status to filter the records you want to export or delete.</p>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">From Date</label><input type="date" id="purge-sms-from" class="form-control" onchange="refreshSmsCount()" /></div>
+        <div class="form-group"><label class="form-label">To Date</label><input type="date" id="purge-sms-to" class="form-control" onchange="refreshSmsCount()" /></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select id="purge-sms-status" class="form-control" onchange="refreshSmsCount()">
+          <option value="">All Statuses</option>
+          <option value="success">Success</option>
+          <option value="failed">Failed</option>
+        </select>
+      </div>
+      <!-- Record count preview -->
+      <div id="purge-sms-count-box" style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:12px;font-size:13px;color:#1E40AF;margin-top:8px;display:flex;align-items:center;gap:8px;">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="18" height="18" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg>
+        <span id="purge-sms-count-text">Select filters and click a purge action to see matching records.</span>
+      </div>
+      <!-- Warning -->
+      <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:12px;font-size:12px;color:#991B1B;margin-top:10px;">
+        <strong>This action is permanent and cannot be undone.</strong> All matching SMS log records will be permanently removed from the database. We strongly recommend using <strong>"Download & Purge"</strong> to save a backup before deletion.
+      </div>
+      <!-- Consent checkbox -->
+      <label id="purge-sms-consent-row" style="display:none;align-items:center;gap:8px;margin-top:12px;cursor:pointer;font-size:13px;color:#1F2937;">
+        <input type="checkbox" id="purge-sms-consent" style="width:16px;height:16px;accent-color:#DC2626;" onchange="toggleSmsPurgeButtons()" />
+        <span>I confirm the permanent deletion of <strong id="purge-sms-consent-count">0</strong> record(s). I understand this cannot be undone.</span>
+      </label>
+    </div>
+    <div class="modal-footer" style="flex-wrap:wrap;gap:8px;">
+      <button class="btn-cancel" onclick="closeModal('purge-sms')">Cancel</button>
+      <button class="btn-save" style="background:#0A4D8C;" onclick="exportSmsData()">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Download Excel
+      </button>
+      <button class="btn-save" id="btn-sms-download-purge" style="background:#F59E0B;color:#000;opacity:0.5;pointer-events:none;" onclick="downloadThenPurgeSms()">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M4 7h16M5 7l1 12a2 2 0 002 2h8a2 2 0 002-2l1-12"/></svg>
+        Download & Purge
+      </button>
+      <button class="btn-save" id="btn-sms-purge-only" style="background:#DC2626;opacity:0.5;pointer-events:none;" onclick="purgeSmsData()">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        Purge Only
+      </button>
+    </div>
+  </div>
+</div>
+
 <script src="../_config.js"></script>
 <script src="../js/crypto.js"></script>
 <script src="../js/devtools-guard.js"></script>
@@ -2142,6 +2284,38 @@
     const g = id => document.getElementById(id);
     if (g('stat-today'))   g('stat-today').textContent   = s.today;
     if (g('stat-pending')) g('stat-pending').textContent = s.pending;
+  }
+
+  /* ── Recent activity (dashboard widget) ────────────────── */
+  async function loadDashboardActivity() {
+    var el = document.getElementById('dashboard-activity-list');
+    if (!el) return;
+    var data = await apiFetch('/api/audit-logs?page=1&limit=5');
+    if (!data || !data.logs || !data.logs.length) {
+      el.innerHTML = '<div class="activity-item"><div class="activity-dot" style="background:#9CA3AF;"></div><div><div class="activity-text" style="color:#9CA3AF;">No recent activity</div></div></div>';
+      return;
+    }
+    el.innerHTML = data.logs.map(function (l) {
+      var label = _AUDIT_ACTION_LABELS[l.action] || l.action;
+      var color = l.action === 'purge_appointments' ? '#E53935' : '#1E40AF';
+      var ts = l.timestamp ? _timeAgo(new Date(l.timestamp)) : '';
+      return '<div class="activity-item">' +
+        '<div class="activity-dot" style="background:' + color + ';"></div>' +
+        '<div><div class="activity-text"><strong>' + esc(label) + '</strong> — ' +
+        l.records_deleted + ' record(s) deleted by <strong>' + esc(l.performed_by || 'Unknown') + '</strong></div>' +
+        '<div class="activity-time">' + ts + '</div></div></div>';
+    }).join('');
+  }
+
+  function _timeAgo(date) {
+    var s = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (s < 60) return 'Just now';
+    var m = Math.floor(s / 60);
+    if (m < 60) return m + ' minute' + (m > 1 ? 's' : '') + ' ago';
+    var h = Math.floor(m / 60);
+    if (h < 24) return h + ' hour' + (h > 1 ? 's' : '') + ' ago';
+    var d = Math.floor(h / 24);
+    return d + ' day' + (d > 1 ? 's' : '') + ' ago';
   }
 
   /* ── Recent appointments (dashboard widget) ───────────── */
@@ -2461,7 +2635,7 @@
     homepage:'Homepage CMS', media:'Media Library', users:'Users & Roles', seo:'SEO Settings',
     offers:'Offers Marquee', insurance:'Insurance Providers', partners:'Partners', stats:'Homepage Stats',
     facilities:'Facilities', faqs:'FAQs',
-    sms:'SMS Settings', 'sms-logs':'SMS Audit Log'
+    sms:'SMS Settings', 'sms-logs':'SMS Audit Log', 'activity-log':'Activity Log'
   };
 
   function navigate(page) {
@@ -2488,6 +2662,7 @@
     if (page === 'faqs')          loadFaqs();
     if (page === 'sms')           loadSmsConfig();
     if (page === 'sms-logs')      loadSmsLogs(1);
+    if (page === 'activity-log')  loadAuditLogs(1);
     if (page === 'users')         loadAdminUsers();
   }
 
@@ -4112,6 +4287,67 @@
     });
   })();
 
+  /* ── Activity / Audit Log ────────────────────────────────────────
+   * Loads paginated audit log from GET /api/audit-logs (SUPER_ADMIN only).
+   * Shows purge operations with who, when, how many, and filters used.
+   * ---------------------------------------------------------------- */
+  var _AUDIT_ACTION_LABELS = {
+    purge_appointments: 'Purge Appointments',
+    purge_sms_logs:     'Purge SMS Logs',
+  };
+
+  async function loadAuditLogs(page) {
+    page = page || 1;
+    const tbody = document.getElementById('tbody-audit-logs');
+    const pager = document.getElementById('audit-logs-pagination');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:#9CA3AF;">Loading…</td></tr>';
+    showLoader();
+
+    const data = await apiFetch('/api/audit-logs?page=' + page + '&limit=50');
+    hideLoader();
+
+    if (!data || !Array.isArray(data.logs)) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:#EF4444;">Failed to load audit logs</td></tr>';
+      return;
+    }
+    if (data.logs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:#9CA3AF;">No audit log entries yet</td></tr>';
+      if (pager) pager.innerHTML = '';
+      return;
+    }
+
+    tbody.innerHTML = data.logs.map(function (l) {
+      var dt = l.timestamp ? new Date(l.timestamp).toLocaleString() : '—';
+      var action = _AUDIT_ACTION_LABELS[l.action] || l.action;
+      var filters = l.filters || {};
+      var parts = [];
+      if (filters.date_from) parts.push('From: ' + filters.date_from);
+      if (filters.date_to)   parts.push('To: ' + filters.date_to);
+      if (filters.status)    parts.push('Status: ' + filters.status);
+      var filterText = parts.length ? parts.join(', ') : '<span style="color:#9CA3AF;">None (all records)</span>';
+      return '<tr>' +
+        '<td style="font-size:12px;white-space:nowrap;">' + dt + '</td>' +
+        '<td><span style="display:inline-block;padding:2px 10px;border-radius:6px;font-size:12px;font-weight:600;' +
+          (l.action === 'purge_appointments' ? 'background:#FEF3C7;color:#92400E;' : 'background:#DBEAFE;color:#1E40AF;') +
+          '">' + esc(action) + '</span></td>' +
+        '<td>' + esc(l.performed_by || '—') + '</td>' +
+        '<td style="font-weight:600;color:#DC2626;">' + (l.records_deleted || 0) + '</td>' +
+        '<td style="font-size:12px;">' + filterText + '</td>' +
+      '</tr>';
+    }).join('');
+
+    // Pagination
+    if (pager) {
+      var totalPages = Math.ceil(data.total / data.limit);
+      if (totalPages <= 1) { pager.innerHTML = ''; return; }
+      var ph = '<span style="font-size:13px;color:#6B7280;">Page ' + page + ' of ' + totalPages + '</span>';
+      if (page > 1) ph += '<button class="btn-cancel" style="padding:4px 14px;" onclick="loadAuditLogs(' + (page-1) + ')">← Prev</button>';
+      if (page < totalPages) ph += '<button class="btn-save" style="padding:4px 14px;" onclick="loadAuditLogs(' + (page+1) + ')">Next →</button>';
+      pager.innerHTML = ph;
+    }
+  }
+
   /* ── SMS Audit Log ────────────────────────────────────────────────
    * Loads paginated SMS log from GET /api/sms-logs (SUPER_ADMIN only).
    * Supports status filter and page navigation.
@@ -4171,10 +4407,187 @@
     pager.innerHTML = pagerHtml;
   }
 
+  /* ── Purge & Export: Shared helpers ──────────────────── */
+  function _purgeQs(prefix) {
+    const f = document.getElementById(prefix + '-from').value;
+    const t = document.getElementById(prefix + '-to').value;
+    const s = document.getElementById(prefix + '-status').value;
+    let qs = '';
+    if (f) qs += (qs ? '&' : '?') + 'date_from=' + encodeURIComponent(f);
+    if (t) qs += (qs ? '&' : '?') + 'date_to=' + encodeURIComponent(t);
+    if (s) qs += (qs ? '&' : '?') + 'status=' + encodeURIComponent(s);
+    return qs;
+  }
+  function _purgeBody(prefix) {
+    return {
+      date_from: document.getElementById(prefix + '-from').value || null,
+      date_to:   document.getElementById(prefix + '-to').value || null,
+      status:    document.getElementById(prefix + '-status').value || null,
+    };
+  }
+
+  /* ── Purge & Export: Appointments ─────────────────────── */
+  var _apptPurgeCount = 0;
+
+  async function refreshApptCount() {
+    // Reset consent state whenever filters change
+    _apptPurgeCount = 0;
+    document.getElementById('purge-appt-consent').checked = false;
+    document.getElementById('purge-appt-consent-row').style.display = 'none';
+    toggleApptPurgeButtons();
+    const el = document.getElementById('purge-appt-count-text');
+    el.textContent = 'Counting matching records…';
+    try {
+      const data = await apiFetch('/api/appointments/count', {
+        method: 'POST',
+        body: JSON.stringify(_purgeBody('purge-appt')),
+      });
+      if (!data) { el.textContent = 'Could not fetch count.'; return; }
+      _apptPurgeCount = data.count;
+      el.innerHTML = '<strong>' + _apptPurgeCount + '</strong> appointment record(s) match the selected filters.';
+      if (_apptPurgeCount > 0) {
+        document.getElementById('purge-appt-consent-count').textContent = _apptPurgeCount;
+        document.getElementById('purge-appt-consent-row').style.display = 'flex';
+      }
+    } catch (_) { el.textContent = 'Could not fetch count.'; }
+  }
+
+  function toggleApptPurgeButtons() {
+    var ok = document.getElementById('purge-appt-consent').checked && _apptPurgeCount > 0;
+    ['btn-appt-download-purge', 'btn-appt-purge-only'].forEach(function (id) {
+      var b = document.getElementById(id);
+      b.style.opacity = ok ? '1' : '0.5';
+      b.style.pointerEvents = ok ? 'auto' : 'none';
+    });
+  }
+
+  async function exportApptData() {
+    try {
+      const res = await fetch(API + '/api/appointments/export' + _purgeQs('purge-appt'), { headers: _authHeaders() });
+      if (!res.ok) throw new Error(await res.text());
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url;
+      a.download = 'appointments_' + new Date().toISOString().slice(0,10) + '.xlsx';
+      a.click(); URL.revokeObjectURL(url);
+      toast('Appointments exported successfully', 'success');
+    } catch (e) { toast('Export failed: ' + e.message); }
+  }
+
+  async function purgeApptData() {
+    try {
+      const res = await fetch(API + '/api/appointments/purge', {
+        method: 'POST', headers: _authHeaders(),
+        body: JSON.stringify(_purgeBody('purge-appt')),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      toast(data.deleted + ' appointment(s) purged successfully', 'success');
+      closeModal('purge-appt');
+      _resetApptPurgeModal();
+      loadAppointments();
+    } catch (e) { toast('Purge failed: ' + e.message); }
+  }
+
+  async function downloadThenPurgeAppt() {
+    await exportApptData();
+    await purgeApptData();
+  }
+
+  function _resetApptPurgeModal() {
+    _apptPurgeCount = 0;
+    document.getElementById('purge-appt-from').value = '';
+    document.getElementById('purge-appt-to').value = '';
+    document.getElementById('purge-appt-status').value = '';
+    document.getElementById('purge-appt-consent').checked = false;
+    document.getElementById('purge-appt-consent-row').style.display = 'none';
+    document.getElementById('purge-appt-count-text').textContent = 'Select filters and click a purge action to see matching records.';
+    toggleApptPurgeButtons();
+  }
+
+  /* ── Purge & Export: SMS Logs ──────────────────────────── */
+  var _smsPurgeCount = 0;
+
+  async function refreshSmsCount() {
+    _smsPurgeCount = 0;
+    document.getElementById('purge-sms-consent').checked = false;
+    document.getElementById('purge-sms-consent-row').style.display = 'none';
+    toggleSmsPurgeButtons();
+    const el = document.getElementById('purge-sms-count-text');
+    el.textContent = 'Counting matching records…';
+    try {
+      const data = await apiFetch('/api/sms-logs/count', {
+        method: 'POST',
+        body: JSON.stringify(_purgeBody('purge-sms')),
+      });
+      if (!data) { el.textContent = 'Could not fetch count.'; return; }
+      _smsPurgeCount = data.count;
+      el.innerHTML = '<strong>' + _smsPurgeCount + '</strong> SMS log record(s) match the selected filters.';
+      if (_smsPurgeCount > 0) {
+        document.getElementById('purge-sms-consent-count').textContent = _smsPurgeCount;
+        document.getElementById('purge-sms-consent-row').style.display = 'flex';
+      }
+    } catch (_) { el.textContent = 'Could not fetch count.'; }
+  }
+
+  function toggleSmsPurgeButtons() {
+    var ok = document.getElementById('purge-sms-consent').checked && _smsPurgeCount > 0;
+    ['btn-sms-download-purge', 'btn-sms-purge-only'].forEach(function (id) {
+      var b = document.getElementById(id);
+      b.style.opacity = ok ? '1' : '0.5';
+      b.style.pointerEvents = ok ? 'auto' : 'none';
+    });
+  }
+
+  async function exportSmsData() {
+    try {
+      const res = await fetch(API + '/api/sms-logs/export' + _purgeQs('purge-sms'), { headers: _authHeaders() });
+      if (!res.ok) throw new Error(await res.text());
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url;
+      a.download = 'sms_logs_' + new Date().toISOString().slice(0,10) + '.xlsx';
+      a.click(); URL.revokeObjectURL(url);
+      toast('SMS logs exported successfully', 'success');
+    } catch (e) { toast('Export failed: ' + e.message); }
+  }
+
+  async function purgeSmsData() {
+    try {
+      const res = await fetch(API + '/api/sms-logs/purge', {
+        method: 'POST', headers: _authHeaders(),
+        body: JSON.stringify(_purgeBody('purge-sms')),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      toast(data.deleted + ' SMS log(s) purged successfully', 'success');
+      closeModal('purge-sms');
+      _resetSmsPurgeModal();
+      loadSmsLogs(1);
+    } catch (e) { toast('Purge failed: ' + e.message); }
+  }
+
+  async function downloadThenPurgeSms() {
+    await exportSmsData();
+    await purgeSmsData();
+  }
+
+  function _resetSmsPurgeModal() {
+    _smsPurgeCount = 0;
+    document.getElementById('purge-sms-from').value = '';
+    document.getElementById('purge-sms-to').value = '';
+    document.getElementById('purge-sms-status').value = '';
+    document.getElementById('purge-sms-consent').checked = false;
+    document.getElementById('purge-sms-consent-row').style.display = 'none';
+    document.getElementById('purge-sms-count-text').textContent = 'Select filters and click a purge action to see matching records.';
+    toggleSmsPurgeButtons();
+  }
+
   /* ── Boot ─────────────────────────────────────────────── */
   loadDeptOptions();
   loadStats();
   loadAppointments();
+  loadDashboardActivity();
   loadNotifications();
   setInterval(loadNotifications, 30000);
 </script>
