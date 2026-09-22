@@ -2243,7 +2243,9 @@
       });
       if (!res.ok) { _forceLogout('session_expired'); return; }
       const data = await res.json();
-      d.expires_at = data.expires_at;
+      // Server rotates the token on every refresh — store the new one
+      if (data.token)      d.token      = data.token;
+      if (data.expires_at) d.expires_at = data.expires_at;
       sessionStorage.setItem('vm_token', JSON.stringify(d));
       document.getElementById('session-warning-banner').style.display = 'none';
       toast('Session extended by 30 minutes');

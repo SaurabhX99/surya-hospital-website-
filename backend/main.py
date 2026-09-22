@@ -2231,9 +2231,14 @@ def auth_refresh(request: Request):
     user  = _verify_token(token)
     if not user:
         raise HTTPException(401, "Token invalid or expired")
-    new_exp = datetime.now(timezone.utc) + timedelta(minutes=30)
-    _usercol.update_one({"_id": user["_id"]}, {"$set": {"token_expires_at": new_exp}})
-    return {"expires_at": new_exp.isoformat()}
+    # Rotate: issue a completely new token (invalidates the old one)
+    new_token = secrets.token_urlsafe(32)
+    new_exp   = datetime.now(timezone.utc) + timedelta(minutes=30)
+    _usercol.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"active_token": new_token, "token_expires_at": new_exp}},
+    )
+    return {"token": new_token, "expires_at": new_exp.isoformat()}
 
 
 @app.delete("/api/blogs/{blog_id}")
