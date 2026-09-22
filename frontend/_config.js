@@ -15,7 +15,7 @@ window.APP_CONFIG = {
 
   // AES-256-CBC encryption key — must match backend AES_ENCRYPTION_KEY
   // Leave empty to disable encryption (all traffic will be plain JSON).
-  AES_ENCRYPTION_KEY: '/iq6zYN2VBuMBVSmMOp5Jf9pyjB9x5x9JNOm1x2PZyI=',
+  AES_ENCRYPTION_KEY: 'IWJ1XhEdXfj4OyeYLEr/6U2p+3n3oNus5hhCL1oriEg=',
 
   // APP_PROFILE: 'DEV' or 'PROD'
   // PROD: disables browser dev tools, enforces strict origin checks

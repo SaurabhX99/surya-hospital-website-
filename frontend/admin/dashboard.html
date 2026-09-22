@@ -2142,6 +2142,23 @@
   </div>
 </div>
 
+<!-- Logout Confirmation Modal -->
+<div class="modal-overlay" id="modal-logout">
+  <div class="modal" style="max-width:400px;text-align:center;">
+    <div class="modal-body" style="padding:32px 28px 20px;">
+      <div style="width:56px;height:56px;border-radius:50%;background:#FEF2F2;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="#DC2626" stroke-width="2" width="28" height="28"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+      </div>
+      <h3 style="font-family:'Poppins',sans-serif;font-size:18px;font-weight:700;color:#1F2937;margin:0 0 8px;">Sign Out</h3>
+      <p style="font-size:14px;color:#6B7280;margin:0 0 24px;">Are you sure you want to sign out? You'll need to log in again to access the dashboard.</p>
+      <div style="display:flex;gap:12px;justify-content:center;">
+        <button class="btn-cancel" style="flex:1;padding:10px 20px;" onclick="closeModal('logout')">Cancel</button>
+        <button class="btn-save" style="flex:1;padding:10px 20px;background:#DC2626;" onclick="confirmLogout()">Sign Out</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="../_config.js"></script>
 <script src="../js/crypto.js"></script>
 <script src="../js/devtools-guard.js"></script>
@@ -2683,8 +2700,10 @@
   });
 
   /* ── Logout ───────────────────────────────────────────── */
-  async function logout() {
-    if (!confirm('Log out?')) return;
+  function logout() { openModal('logout'); }
+
+  async function confirmLogout() {
+    closeModal('logout');
     const d = JSON.parse(sessionStorage.getItem('vm_token') || '{}');
     if (d.token) {
       try {
