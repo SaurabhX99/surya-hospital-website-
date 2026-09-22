@@ -966,7 +966,7 @@
               <span class="search-icon-abs"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
               <input type="text" class="search-input" id="appt-search-input" placeholder="Search appointments…" oninput="_debouncedLoadAppointments()" />
             </div>
-            <select class="filter-select" id="appt-status-filter" onchange="loadAppointments()"><option value="">All Status</option><option value="pending">Pending</option><option value="confirmed">Confirmed</option><option value="cancelled">Cancelled</option><option value="completed">Completed</option><option value="rejected">Rejected</option></select>
+            <select class="filter-select" id="appt-status-filter" onchange="loadAppointments()"><option value="">All Status</option><option value="pending">Created</option><option value="confirmed">Contacted</option><option value="completed">Completed</option><option value="rejected">Rejected</option></select>
             <select class="filter-select" id="appt-dept-filter" onchange="loadAppointments()"><option value="">All Departments</option></select>
             <input type="date" class="filter-select" id="appt-date-from" onchange="loadAppointments()" title="From date" style="width:auto;" />
             <input type="date" class="filter-select" id="appt-date-to" onchange="loadAppointments()" title="To date" style="width:auto;" />
@@ -2026,6 +2026,39 @@
 </div>
 
 <!-- Appointment Purge Modal -->
+<div class="modal-overlay" id="modal-status-change">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <h3 class="modal-title">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="20" height="20" style="vertical-align:text-bottom;margin-right:4px;"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        Update Status
+      </h3>
+      <button class="modal-close" onclick="closeModal('status-change')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="status-change-id" />
+      <p style="font-size:13px;color:#6B7280;margin-bottom:12px;">Patient: <strong id="status-change-patient"></strong></p>
+      <div class="form-group">
+        <label class="form-label">New Status</label>
+        <select id="status-change-select" class="form-control">
+          <option value="pending">Created</option>
+          <option value="confirmed">Contacted</option>
+          <option value="completed">Completed</option>
+          <option value="rejected">Rejected</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-top:12px;">
+        <label class="form-label">Reason <span style="color:#9CA3AF;font-weight:400;">(optional)</span></label>
+        <textarea id="status-change-reason" class="form-control" rows="3" placeholder="E.g. Patient not reachable, Appointment rescheduled…" style="resize:vertical;"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:10px;padding:16px 24px;border-top:1px solid #E5E7EB;">
+      <button class="btn-cancel" onclick="closeModal('status-change')" style="padding:8px 20px;border:1px solid #D1D5DB;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;">Cancel</button>
+      <button class="btn-add" onclick="confirmStatusChange()" style="padding:8px 20px;">Update Status</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-purge-appt">
   <div class="modal" style="max-width:520px;">
     <div class="modal-header" style="border-bottom-color:#FEE2E2;">
@@ -2045,9 +2078,8 @@
         <label class="form-label">Status</label>
         <select id="purge-appt-status" class="form-control" onchange="refreshApptCount()">
           <option value="">All Statuses</option>
-          <option value="pending">Pending</option>
-          <option value="confirmed">Confirmed</option>
-          <option value="cancelled">Cancelled</option>
+          <option value="pending">Created</option>
+          <option value="confirmed">Contacted</option>
           <option value="completed">Completed</option>
           <option value="rejected">Rejected</option>
         </select>
@@ -2418,7 +2450,7 @@
         <td>
           <button class="status-chip ${a.status}"
                   data-status="${a.status}"
-                  onclick="cycleStatus('${a.id}', this)">
+                  onclick="openStatusModal('${a.id}', '${a.status}', this)">
             ${statusLabel(a.status)}
           </button>
         </td>
@@ -2442,30 +2474,44 @@
     `).join('');
   }
 
-  /* ── Status label & cycle ─────────────────────────────── */
-  const _STATUS_CYCLE  = ['pending', 'confirmed', 'completed'];
-  const _STATUS_LABELS = { pending: 'Created', confirmed: 'Contacted', completed: 'Completed', cancelled: 'Cancelled', rejected: 'Rejected' };
+  /* ── Status label & change modal ──────────────────────── */
+  const _STATUS_LABELS = { pending: 'Created', confirmed: 'Contacted', completed: 'Completed', rejected: 'Rejected' };
+  let _statusBtn = null;
 
   function statusLabel(s) { return _STATUS_LABELS[s] || cap(s); }
 
-  async function cycleStatus(id, btn) {
-    const cur   = _STATUS_CYCLE.includes(btn.dataset.status || '')
-                    ? btn.dataset.status
-                    : (btn.className.match(/\b(pending|confirmed|completed|cancelled|rejected)\b/) || [])[1] || 'pending';
-    const next  = _STATUS_CYCLE[(_STATUS_CYCLE.indexOf(cur) + 1) % _STATUS_CYCLE.length];
+  function openStatusModal(id, currentStatus, btn) {
+    _statusBtn = btn;
+    document.getElementById('status-change-id').value = id;
+    document.getElementById('status-change-select').value = currentStatus;
+    document.getElementById('status-change-reason').value = '';
+    const a = _appts.find(x => x.id === id);
+    document.getElementById('status-change-patient').textContent = a ? a.name : '';
+    openModal('status-change');
+  }
+
+  async function confirmStatusChange() {
+    const id     = document.getElementById('status-change-id').value;
+    const status = document.getElementById('status-change-select').value;
+    const reason = document.getElementById('status-change-reason').value.trim();
+    const payload = { status };
+    if (reason) payload.reason = reason;
     const result = await apiFetch(`/api/appointments/${id}/status`, {
       method: 'PATCH',
-      body: JSON.stringify({ status: next }),
+      body: JSON.stringify(payload),
     });
     if (result && result.success) {
-      btn.className    = `status-chip ${next}`;
-      btn.dataset.status = next;
-      btn.textContent  = statusLabel(next);
+      if (_statusBtn) {
+        _statusBtn.className    = `status-chip ${status}`;
+        _statusBtn.dataset.status = status;
+        _statusBtn.textContent  = statusLabel(status);
+      }
       const a = _appts.find(x => x.id === id);
-      if (a) a.status = next;
+      if (a) a.status = status;
       loadStats();
       loadNotifications();
-      toast(`Status → ${statusLabel(next)}`, 'success');
+      closeModal('status-change');
+      toast(`Status → ${statusLabel(status)}`, 'success');
     } else {
       toast('Failed to update status', 'error');
     }
@@ -2598,20 +2644,19 @@
     let html = `<span style="color:#6B7280;">Showing ${(page-1)*limit+1}–${Math.min(page*limit, total)} of ${total}</span>`;
     html += '<div style="display:flex;gap:6px;align-items:center;">';
     if (page > 1)
-      html += `<button class="btn-cancel" style="padding:4px 14px;font-size:12px;" onclick="${loadFn}(${page - 1})">← Prev</button>`;
-    // Show page numbers with ellipsis
+      html += `<button style="padding:5px 14px;font-size:12px;background:#F1F5F9;color:#374151;border:1px solid #D1D5DB;border-radius:6px;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.2s;" onmouseover="this.style.background='#E2E8F0'" onmouseout="this.style.background='#F1F5F9'" onclick="${loadFn}(${page - 1})">← Prev</button>`;
     const pages = [];
     for (let i = 1; i <= totalPages; i++) {
       if (i === 1 || i === totalPages || (i >= page - 1 && i <= page + 1)) pages.push(i);
       else if (pages[pages.length - 1] !== '…') pages.push('…');
     }
     pages.forEach(p => {
-      if (p === '…') { html += '<span style="color:#9CA3AF;">…</span>'; }
-      else if (p === page) { html += `<button style="padding:4px 10px;font-size:12px;background:#0A4D8C;color:#fff;border:none;border-radius:6px;font-weight:600;">${p}</button>`; }
-      else { html += `<button class="btn-cancel" style="padding:4px 10px;font-size:12px;" onclick="${loadFn}(${p})">${p}</button>`; }
+      if (p === '…') { html += '<span style="color:#9CA3AF;padding:0 2px;">…</span>'; }
+      else if (p === page) { html += `<button style="padding:5px 12px;font-size:12px;background:#0A4D8C;color:#fff;border:2px solid #0A4D8C;border-radius:6px;font-weight:700;cursor:default;box-shadow:0 2px 6px rgba(10,77,140,0.3);">${p}</button>`; }
+      else { html += `<button style="padding:5px 12px;font-size:12px;background:#F8FAFC;color:#374151;border:1px solid #D1D5DB;border-radius:6px;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.2s;" onmouseover="this.style.background='#E2E8F0'" onmouseout="this.style.background='#F8FAFC'" onclick="${loadFn}(${p})">${p}</button>`; }
     });
     if (page < totalPages)
-      html += `<button class="btn-save" style="padding:4px 14px;font-size:12px;" onclick="${loadFn}(${page + 1})">Next →</button>`;
+      html += `<button style="padding:5px 14px;font-size:12px;background:#0A4D8C;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;box-shadow:0 2px 6px rgba(10,77,140,0.25);transition:all 0.2s;" onmouseover="this.style.background='#073A6B'" onmouseout="this.style.background='#0A4D8C'" onclick="${loadFn}(${page + 1})">Next →</button>`;
     html += '</div>';
     el.innerHTML = html;
   }

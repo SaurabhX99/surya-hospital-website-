@@ -79,6 +79,7 @@ def fmt_appointment(doc: dict) -> dict:
         doc["created_at"] = str(ca) if ca else ""
     raw = doc.get("status", "pending")
     doc["status"] = STATUS_MAP.get(raw, raw.lower() if raw else "pending")
+    doc.setdefault("status_reason", None)
     return doc
 
 
@@ -119,6 +120,9 @@ def fmt_blog(doc: dict) -> dict:
     doc.setdefault("tags",       None)
     doc.setdefault("published",  True)
     doc.setdefault("drive_link", None)
+    # thumbnail_url: proxy URL for display (from thumbnail Drive link)
+    thumb = doc.get("thumbnail")
+    doc["thumbnail_url"] = gdrive_direct(thumb) if thumb else None
     return doc
 
 

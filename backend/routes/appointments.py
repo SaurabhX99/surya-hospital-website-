@@ -208,14 +208,17 @@ def get_appointment(appt_id: str):
 
 @router.patch("/{appt_id}/status")
 def update_status(appt_id: str, body: StatusIn):
-    allowed = {"pending", "confirmed", "cancelled", "completed", "rejected"}
+    allowed = {"pending", "confirmed", "completed", "rejected"}
     if body.status not in allowed:
         raise HTTPException(400, f"status must be one of {allowed}")
     try:
         oid = ObjectId(appt_id)
     except Exception:
         raise HTTPException(400, "Invalid id")
-    result = appointments_col.update_one(tq({"_id": oid}), {"$set": {"status": body.status}})
+    update: dict = {"status": body.status}
+    if body.reason:
+        update["status_reason"] = body.reason
+    result = appointments_col.update_one(tq({"_id": oid}), {"$set": update})
     if result.matched_count == 0:
         raise HTTPException(404, "Not found")
     return {"success": True}

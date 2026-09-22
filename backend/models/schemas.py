@@ -20,6 +20,7 @@ class AppointmentIn(BaseModel):
 
 class StatusIn(BaseModel):
     status: str
+    reason: Optional[str] = None
 
 
 class PurgeIn(BaseModel):

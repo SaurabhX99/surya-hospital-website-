@@ -24,16 +24,20 @@
     book_dept: {
       message: 'Which department do you need an appointment for?',
       options: [
-        { label: 'Cardiology',        next: 'book_name', dept: 'CARDIOLOGY' },
-        { label: 'Gynaecology',       next: 'book_name', dept: 'GYNAECOLOGIST' },
-        { label: 'Paediatrics',       next: 'book_name', dept: 'PAEDIATRIC' },
-        { label: 'Orthopaedic',       next: 'book_name', dept: 'ORTHOPEDIC' },
-        { label: 'Neurology',         next: 'book_name', dept: 'NEURO' },
-        { label: 'ENT',               next: 'book_name', dept: 'ENT' },
-        { label: 'Dermatology',       next: 'book_name', dept: 'DERMATOLOGY' },
-        { label: 'General Surgery',   next: 'book_name', dept: 'GENERAL SURGEON' },
+        { label: 'Cardiology',        next: 'book_doctor', dept: 'CARDIOLOGY' },
+        { label: 'Gynaecology',       next: 'book_doctor', dept: 'GYNAECOLOGIST' },
+        { label: 'Paediatrics',       next: 'book_doctor', dept: 'PAEDIATRIC' },
+        { label: 'Orthopaedic',       next: 'book_doctor', dept: 'ORTHOPEDIC' },
+        { label: 'Neurology',         next: 'book_doctor', dept: 'NEURO' },
+        { label: 'ENT',               next: 'book_doctor', dept: 'ENT' },
+        { label: 'Dermatology',       next: 'book_doctor', dept: 'DERMATOLOGY' },
+        { label: 'General Surgery',   next: 'book_doctor', dept: 'GENERAL SURGEON' },
         { label: 'Other',             next: 'book_name', dept: 'Other' },
       ],
+    },
+    book_doctor: {
+      message: 'Fetching available doctors…',
+      dynamic: true,
     },
     book_name: {
       message: 'Please type your *full name* to continue.',
@@ -46,9 +50,8 @@
       next: 'book_date',
     },
     book_date: {
-      message: 'What is your *preferred date* for the appointment? (e.g., Tomorrow, Monday, 20 June)',
-      input: true,
-      next: 'book_confirm',
+      message: 'Please select your *preferred date* for the appointment:',
+      datePicker: true,
     },
     book_confirm: {
       message: '✅ *Appointment request received!* Our team will call you within 30 minutes to confirm.\n\nFor immediate help, call *+91 9650494019*.',
@@ -206,6 +209,28 @@
     return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
   }
 
+  async function _showDoctorOptions() {
+    const dept = state.collected.department || '';
+    typewriterAppend('Looking up available doctors…', 'bot', null);
+    try {
+      const doctors = await _fetchDoctors(dept);
+      const options = doctors.map(d => ({
+        label: `👨‍⚕️ ${d.name}`,
+        next: 'book_name',
+        doctorName: d.name,
+      }));
+      options.push({ label: 'Any Available Doctor', next: 'book_name', doctorName: '' });
+      setTimeout(() => {
+        typewriterAppend('Please select a *doctor* for your appointment:', 'bot', () => {
+          appendOptions(options);
+        });
+      }, 400);
+    } catch (_) {
+      // If fetch fails, skip doctor selection
+      setTimeout(() => renderStep('book_name'), 300);
+    }
+  }
+
   async function _showDoctorResult() {
     const dept      = state.collected.department || '';
     const deptLabel = _titleCase(dept) || 'Specialist';
@@ -318,13 +343,59 @@
     }, 600);
   }
 
+  function appendDatePicker() {
+    const wrap = document.createElement('div');
+    wrap.className = 'wa-message wa-message-bot';
+    const inner = document.createElement('div');
+    inner.style.cssText = 'display:flex;flex-direction:column;gap:8px;width:100%;';
+
+    const dateInput = document.createElement('input');
+    dateInput.type = 'date';
+    dateInput.style.cssText = 'padding:10px 14px;border:1.5px solid #D1D5DB;border-radius:10px;font-size:14px;font-family:inherit;outline:none;width:100%;box-sizing:border-box;color:#1F2937;background:#fff;';
+    // Set min to today
+    const today = new Date();
+    dateInput.min = today.toISOString().split('T')[0];
+    // Default to tomorrow
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    dateInput.value = tomorrow.toISOString().split('T')[0];
+
+    const confirmBtn = document.createElement('button');
+    confirmBtn.className = 'wa-option-btn';
+    confirmBtn.textContent = '✓ Confirm Date';
+    confirmBtn.style.cssText += 'background:var(--color-primary,#0A4D8C);color:#fff;font-weight:600;';
+    confirmBtn.addEventListener('click', () => {
+      if (!dateInput.value) return;
+      const d = new Date(dateInput.value + 'T00:00:00');
+      const label = d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+      appendMessage(label, 'user');
+      state.collected.date = dateInput.value;
+      state.collecting = null;
+      _bookAppointment();
+    });
+
+    inner.appendChild(dateInput);
+    inner.appendChild(confirmBtn);
+    wrap.appendChild(inner);
+    chat.appendChild(wrap);
+    scrollBottom();
+  }
+
   function renderStep(stepKey) {
     const step = FLOW[stepKey];
     if (!step) return;
     state.step = stepKey;
 
+    if (step.dynamic && stepKey === 'book_doctor') {
+      _showDoctorOptions();
+      return;
+    }
+
     typewriterAppend(step.message, 'bot', () => {
       if (step.options) appendOptions(step.options);
+      if (step.datePicker) {
+        appendDatePicker();
+      }
       if (step.input) {
         input.disabled = false;
         input.placeholder = 'Type your answer…';
@@ -348,6 +419,9 @@
     }
     if (opt.dept) {
       state.collected.department = opt.dept;
+    }
+    if (opt.doctorName !== undefined) {
+      state.collected.doctor = opt.doctorName;
     }
 
     if (opt.next === 'doctor_result') {
@@ -376,8 +450,6 @@
         state.collected.mobile = digits;
       } else if (state.collecting === 'book_name') {
         state.collected.name = text;
-      } else if (state.collecting === 'book_date') {
-        state.collected.date = text;
       }
 
       input.disabled = true;
@@ -399,6 +471,7 @@
         name:       state.collected.name       || '',
         mobile:     state.collected.mobile     || '',
         department: state.collected.department || '',
+        doctor:     state.collected.doctor     || '',
         date:       state.collected.date       || '',
         message:    'Booked via Surya chat assistant',
       });

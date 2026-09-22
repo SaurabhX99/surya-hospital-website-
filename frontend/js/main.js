@@ -514,7 +514,7 @@
           <div style="width:100%;height:100%;background:linear-gradient(135deg,var(--color-bg-section),var(--color-border));display:flex;align-items:center;justify-content:center;">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="var(--color-border)" stroke-width="1" width="80" height="80"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
           </div>
-          ${d.photo ? `<img src="${d.photo}" alt="${d.name}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'" />` : ''}
+          ${d.photo_url ? `<img src="${d.photo_url}" alt="${d.name}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'" />` : ''}
         </div>
         <div class="doctor-card-body">
           <h3 class="doctor-name" style="text-transform:uppercase;letter-spacing:0.04em;">${d.name}</h3>
@@ -738,10 +738,16 @@
         <span class="partner-logo-name">${p.name}</span>
       </div>`;
 
-    let items = [...providers];
-    while (items.length < 8) items = [...items, ...providers];
-    const html = items.map(makeCard).join('');
-    track.innerHTML = html + html;
+    if (providers.length < 4) {
+      track.style.animation = 'none';
+      track.style.justifyContent = 'center';
+      track.innerHTML = providers.map(makeCard).join('');
+    } else {
+      let items = [...providers];
+      while (items.length < 8) items = [...items, ...providers];
+      const html = items.map(makeCard).join('');
+      track.innerHTML = html + html;
+    }
   }
 
   /* ── Render: Partners ──────────────────────────────────── */
@@ -768,10 +774,17 @@
         <span class="partner-logo-name">${p.name}</span>
       </div>`;
 
-    let items = [...partners];
-    while (items.length < 8) items = [...items, ...partners];
-    const html = items.map(makeCard).join('');
-    track.innerHTML = html + html;
+    if (partners.length < 4) {
+      // Too few for marquee — show as centered static grid
+      track.style.animation = 'none';
+      track.style.justifyContent = 'center';
+      track.innerHTML = partners.map(makeCard).join('');
+    } else {
+      let items = [...partners];
+      while (items.length < 8) items = [...items, ...partners];
+      const html = items.map(makeCard).join('');
+      track.innerHTML = html + html;
+    }
   }
 
   /* ── Render: Blogs ────────────────────────────────────── */
@@ -803,11 +816,18 @@
       return `
       <div class="blog-card" data-animate="fade-up" data-delay="${i * 100}">
         <div class="blog-image-wrap">
-          <div class="blog-image-placeholder" style="background:linear-gradient(135deg,${color}22,${color}55);">
+          ${b.thumbnail_url
+            ? `<img src="${b.thumbnail_url}" alt="${b.title}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+          <div class="blog-image-placeholder" style="background:linear-gradient(135deg,${color}22,${color}55);display:none;">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="${color}" stroke-width="1.5" width="56" height="56" opacity="0.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
             </svg>
-          </div>
+          </div>`
+            : `<div class="blog-image-placeholder" style="background:linear-gradient(135deg,${color}22,${color}55);">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="${color}" stroke-width="1.5" width="56" height="56" opacity="0.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+            </svg>
+          </div>`}
           <span class="blog-category-badge" style="background:${color};">${b.category || 'Health'}</span>
         </div>
         <div class="blog-card-body">
