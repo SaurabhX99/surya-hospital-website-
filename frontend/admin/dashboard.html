@@ -2935,7 +2935,6 @@
     if (!body.name || !body.qualification || !body.specialty) {
       toast('Name, qualification and speciality are required', 'error'); return;
     }
-    const btn = document.getElementById('doc-save-btn');
     btn.textContent = 'Saving…'; btn.disabled = true;
     let result;
     if (id) {
