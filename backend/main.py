@@ -28,6 +28,7 @@ from pymongo.errors import DuplicateKeyError
 load_dotenv()
 
 from security import apply_security, require_public_access, issue_page_token, rate_limit
+from encryption import apply_encryption
 
 # ── Tenant & upload config ──────────────────────────────────────────
 TENANT_NAME = os.getenv("TENANT_NAME", "vedansh_medicare").strip()
@@ -82,6 +83,10 @@ app = FastAPI(
     redoc_url="/redoc" if _docs_enabled else None,
     openapi_url="/openapi.json" if _docs_enabled else None,
 )
+
+# Encryption middleware — innermost layer, closest to route handlers.
+# Must be added FIRST so it sits inside CORS and security middleware.
+apply_encryption(app)
 
 app.add_middleware(
     CORSMiddleware,
