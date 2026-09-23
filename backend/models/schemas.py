@@ -279,8 +279,6 @@ class SmsTestIn(BaseModel):
 class SiteConfigIn(BaseModel):
     phone: Optional[str] = None
     email: Optional[str] = None
-    stats_logo: Optional[str] = None
-    stats_accreditation: Optional[str] = None
 
 
 # ── Auth ─────────────────────────────────────────────────────────────

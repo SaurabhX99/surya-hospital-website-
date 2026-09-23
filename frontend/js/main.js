@@ -412,33 +412,21 @@
 
   function _makeFacilityCard(f, i) {
     const color = f.color || '#0A4D8C';
-    if (f.icon_url) {
-      // Custom image uploaded — show image + name only
-      return `
-        <div class="facility-card" data-animate="scale" data-delay="${(i % 4) * 100}"
-             style="cursor:pointer;" data-facility-id="${i}"
-             onclick="_showFacilityDetail(${i})">
-          <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;padding:16px;">
-            <img src="${resolveURL(f.icon_url)}" alt="${f.name}" style="width:100%;max-height:140px;object-fit:contain;border-radius:12px;" onerror="this.style.display='none'" />
-            <span style="font-family:var(--font-heading);font-size:var(--text-base);font-weight:var(--font-bold);color:${color};text-align:center;">${f.name}</span>
-          </div>
-        </div>`;
-    }
-    // Fallback — default heart icon with colored background
+    // Use the original index in _facilitiesData for modal lookup
+    const dataIdx = f._origIdx != null ? f._origIdx : i;
+    const imgHtml = f.icon_url
+      ? `<img src="${resolveURL(f.icon_url)}" alt="${f.name}" class="facility-card-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
+         <div class="facility-card-placeholder" style="display:none;background:linear-gradient(135deg,${color}18,${color}40);">
+           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="${color}" stroke-width="1.5" width="48" height="48"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+         </div>`
+      : `<div class="facility-card-placeholder" style="background:linear-gradient(135deg,${color}18,${color}40);">
+           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="${color}" stroke-width="1.5" width="48" height="48"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+         </div>`;
     return `
       <div class="facility-card" data-animate="scale" data-delay="${(i % 4) * 100}"
-           style="cursor:pointer;" data-facility-id="${i}"
-           onclick="_showFacilityDetail(${i})">
-        <div style="width:100%;height:100%;background:linear-gradient(135deg,${color}22,${color}55);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;">
-          <div style="width:80px;height:80px;background:${color};border-radius:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px ${color}66;">
-            ${svgIcon('<path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>', 40).replace('stroke="currentColor"', 'stroke="white"')}
-          </div>
-          <span style="font-family:var(--font-heading);font-size:var(--text-base);font-weight:var(--font-bold);color:${color};">${f.name}</span>
-        </div>
-        <div class="facility-overlay">
-          <div class="facility-label">${f.name}</div>
-          <div class="facility-desc-overlay">${f.desc || f.short_desc || ''}</div>
-        </div>
+           onclick="_showFacilityDetail(${dataIdx})">
+        <div class="facility-card-image">${imgHtml}</div>
+        <div class="facility-card-name" style="border-top:3px solid ${color};">${f.name}</div>
       </div>`;
   }
 
@@ -456,24 +444,18 @@
       document.body.appendChild(modal);
     }
     modal.innerHTML = `
-      <div style="background:#fff;border-radius:20px;max-width:480px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.2);overflow:hidden;">
-        <div style="background:linear-gradient(135deg,${color}dd,${color});padding:28px 24px 20px;position:relative;">
-          <button onclick="document.getElementById('facility-detail-modal').remove()"
-            style="position:absolute;top:12px;right:12px;background:rgba(255,255,255,0.25);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-          </button>
-          <div style="width:56px;height:56px;background:rgba(255,255,255,0.25);border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
-            ${f.icon_url
-              ? `<img src="${resolveURL(f.icon_url)}" alt="${f.name}" style="width:36px;height:36px;object-fit:contain;border-radius:6px;" />`
-              : svgIcon('<path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>', 28).replace('stroke="currentColor"', 'stroke="white"')}
-          </div>
-          <h3 style="color:#fff;font-family:var(--font-heading);font-size:var(--text-xl);font-weight:var(--font-bold);margin:0;">${f.name}</h3>
-          ${f.short_desc ? `<p style="color:rgba(255,255,255,0.85);font-size:var(--text-sm);margin:6px 0 0;">${f.short_desc}</p>` : ''}
+      <div style="background:#fff;border-radius:16px;max-width:440px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.2);overflow:hidden;position:relative;">
+        <button onclick="document.getElementById('facility-detail-modal').remove()"
+          style="position:absolute;top:12px;right:12px;background:rgba(0,0,0,0.06);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:1;">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="#333" stroke-width="2" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+        <div style="padding:28px 24px 8px;">
+          <h3 style="color:${color};font-family:var(--font-heading);font-size:var(--text-xl);font-weight:var(--font-bold);margin:0 0 16px;">${f.name}</h3>
+          <p style="color:var(--color-text-secondary);font-size:var(--text-base);line-height:1.75;margin:0;">${desc}</p>
         </div>
-        <div style="padding:24px;">
-          <p style="color:var(--color-text-secondary);font-size:var(--text-base);line-height:1.7;margin:0;">${desc}</p>
+        <div style="padding:16px 24px 24px;">
           <button onclick="document.getElementById('facility-detail-modal').remove()"
-            style="margin-top:20px;background:${color};color:#fff;border:none;border-radius:10px;padding:10px 24px;font-size:var(--text-sm);font-weight:var(--font-semibold);cursor:pointer;">
+            style="background:${color};color:#fff;border:none;border-radius:10px;padding:10px 24px;font-size:var(--text-sm);font-weight:var(--font-semibold);cursor:pointer;width:100%;">
             Close
           </button>
         </div>
@@ -485,9 +467,14 @@
     if (!_facilitiesData) return;
     const grid = $('#facilities-grid');
     if (!grid) return;
-    const items = filter === 'all'
-      ? _facilitiesData
-      : _facilitiesData.filter(f => f.category === filter);
+    let items;
+    if (filter === 'all') {
+      items = _facilitiesData.map((f, i) => ({ ...f, _origIdx: i }));
+    } else {
+      items = _facilitiesData
+        .map((f, i) => ({ ...f, _origIdx: i }))
+        .filter(f => f.category === filter);
+    }
     grid.innerHTML = items.map(_makeFacilityCard).join('');
     initScrollAnimations();
   }
@@ -1233,49 +1220,7 @@
         });
       }
 
-      // Branding: stats logo (left) and accreditation (right)
-      _renderStatsBranding(cfg.stats_logo, cfg.stats_accreditation);
     } catch (_) {}
-  }
-
-  function _renderStatsBranding(logoSrc, accredSrc) {
-    var section = document.getElementById('statistics');
-    if (!section) return;
-    var container = section.querySelector('.container');
-    if (!container) return;
-
-    // Remove existing branding wrappers
-    var existing = container.querySelector('.stats-branding-wrap');
-    if (existing) existing.remove();
-
-    var grid = container.querySelector('.stats-grid');
-    if (!grid) return;
-
-    // Default logo: hospital logo image
-    var logoHtml = logoSrc
-      ? '<img src="' + resolveURL(logoSrc) + '" alt="Hospital Logo" style="max-height:80px;max-width:140px;object-fit:contain;" onerror="this.style.display=\'none\'" />'
-      : '<img src="images/logo.png" alt="Vedansh Medicare" style="max-height:80px;max-width:140px;object-fit:contain;" onerror="this.style.display=\'none\'" />';
-
-    // Default accreditation: NABH badge
-    var accredHtml = accredSrc
-      ? '<img src="' + resolveURL(accredSrc) + '" alt="Accreditation" style="max-height:80px;max-width:140px;object-fit:contain;" onerror="this.style.display=\'none\'" />'
-      : '<img src="assets /nabh-logo-png_seeklogo-398755.png" alt="NABH Accredited" style="max-height:80px;max-width:140px;object-fit:contain;" onerror="this.style.display=\'none\'" />';
-
-    // Wrap grid with branding
-    var wrap = document.createElement('div');
-    wrap.className = 'stats-branding-wrap';
-    wrap.style.cssText = 'display:flex;align-items:center;gap:var(--space-8);justify-content:center;';
-    wrap.innerHTML = '<div style="flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.1);border-radius:var(--radius-xl);padding:var(--space-4);">' + logoHtml + '</div>';
-
-    // Move grid into wrap
-    container.insertBefore(wrap, grid);
-    wrap.appendChild(grid);
-
-    // Append accreditation after grid
-    var accredDiv = document.createElement('div');
-    accredDiv.style.cssText = 'flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.1);border-radius:var(--radius-xl);padding:var(--space-4);';
-    accredDiv.innerHTML = accredHtml;
-    wrap.appendChild(accredDiv);
   }
 
   /* ── Init All ─────────────────────────────────────────── */

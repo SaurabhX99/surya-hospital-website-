@@ -1362,33 +1362,6 @@
         </div>
       </div>
 
-      <!-- Homepage Branding — logo + accreditation images -->
-      <div class="card-panel" style="margin-bottom:20px;">
-        <div class="card-panel-header"><span class="card-panel-title">Homepage Branding</span></div>
-        <div style="padding:20px;">
-          <div style="display:flex;gap:24px;flex-wrap:wrap;">
-            <div style="flex:1;min-width:220px;">
-              <label class="form-label">Hospital Logo (left of stats)</label>
-              <input type="file" id="stats-logo-file" class="form-control" accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml,image/avif" />
-              <input type="hidden" id="stats-logo" />
-              <div id="stats-logo-preview" style="margin-top:6px;display:none;"><img style="max-height:60px;border-radius:8px;" /><button type="button" onclick="clearFilePreview('stats-logo')" style="margin-left:8px;background:none;border:none;color:#E53935;cursor:pointer;font-size:12px;">Remove</button></div>
-              <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Shown on the left side of the stats section. Defaults to the standard hospital logo if not uploaded.</div>
-            </div>
-            <div style="flex:1;min-width:220px;">
-              <label class="form-label">Accreditation Badge (right of stats)</label>
-              <input type="file" id="stats-accreditation-file" class="form-control" accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml,image/avif" />
-              <input type="hidden" id="stats-accreditation" />
-              <div id="stats-accreditation-preview" style="margin-top:6px;display:none;"><img style="max-height:60px;border-radius:8px;" /><button type="button" onclick="clearFilePreview('stats-accreditation')" style="margin-left:8px;background:none;border:none;color:#E53935;cursor:pointer;font-size:12px;">Remove</button></div>
-              <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Shown on the right side of the stats section. Defaults to NABH accreditation badge if not uploaded.</div>
-            </div>
-          </div>
-          <button onclick="saveBranding()" id="branding-save-btn"
-            style="margin-top:12px;background:#1E3A5F;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">
-            Save Branding
-          </button>
-        </div>
-      </div>
-
       <div class="card-panel">
         <div class="card-panel-header"><span class="card-panel-title">Stats</span></div>
         <table class="data-table" id="stats-admin-table">
@@ -1871,7 +1844,7 @@
       <!-- Blog Content File Upload -->
       <div class="form-group">
         <label class="form-label">Blog Content File <span style="color:#E53935">*</span></label>
-        <input type="file" id="blog-content-file" class="form-control" accept=".txt,.md,.doc,.docx,.pdf,.rtf" />
+        <input type="file" id="blog-content-file" class="form-control" accept=".txt,.md" />
         <input type="hidden" id="blog-content-url" />
         <div id="blog-content-url-preview" style="margin-top:6px;display:none;align-items:center;">
           <span style="font-size:13px;color:#1D4ED8;font-weight:500;">Content file uploaded</span>
@@ -2463,7 +2436,7 @@
     if (hiddenEl) hiddenEl.value = '';
     const wrap = document.getElementById(hiddenId + '-preview');
     if (wrap) wrap.style.display = 'none';
-    const fileMap = { 'doc-photo': 'doc-photo-file', 'blog-thumbnail': 'blog-thumbnail-file', 'blog-content-url': 'blog-content-file', 'media-url': 'media-file-upload', 'insurance-logo': 'insurance-logo-file', 'partner-logo': 'partner-logo-file', 'facility-icon': 'facility-icon-file', 'dept-icon': 'dept-icon-file', 'award-image': 'award-image-file', 'stats-logo': 'stats-logo-file', 'stats-accreditation': 'stats-accreditation-file' };
+    const fileMap = { 'doc-photo': 'doc-photo-file', 'blog-thumbnail': 'blog-thumbnail-file', 'blog-content-url': 'blog-content-file', 'media-url': 'media-file-upload', 'insurance-logo': 'insurance-logo-file', 'partner-logo': 'partner-logo-file', 'facility-icon': 'facility-icon-file', 'dept-icon': 'dept-icon-file', 'award-image': 'award-image-file' };
     const fileEl = document.getElementById(fileMap[hiddenId] || (hiddenId + '-file'));
     if (fileEl) fileEl.value = '';
   }
@@ -4504,17 +4477,6 @@
     if (cfg) {
       if (cfg.phone) document.getElementById('site-phone').value = cfg.phone;
       if (cfg.email) document.getElementById('site-email').value = cfg.email;
-      // Branding images
-      const logoEl = document.getElementById('stats-logo');
-      const accredEl = document.getElementById('stats-accreditation');
-      if (logoEl) {
-        logoEl.value = cfg.stats_logo || '';
-        if (cfg.stats_logo) { showFilePreview('stats-logo', cfg.stats_logo); } else { clearFilePreview('stats-logo'); }
-      }
-      if (accredEl) {
-        accredEl.value = cfg.stats_accreditation || '';
-        if (cfg.stats_accreditation) { showFilePreview('stats-accreditation', cfg.stats_accreditation); } else { clearFilePreview('stats-accreditation'); }
-      }
     }
   }
 
@@ -4541,43 +4503,6 @@
       toast('Contact details saved', 'success');
     } else {
       toast('Failed to save contact details', 'error');
-    }
-  }
-
-  async function saveBranding() {
-    const btn = document.getElementById('branding-save-btn');
-    btn.disabled = true; btn.textContent = 'Saving…';
-
-    // Logo
-    const logoFileEl = document.getElementById('stats-logo-file');
-    let logoUrl = document.getElementById('stats-logo').value.trim() || null;
-    if (logoFileEl.files && logoFileEl.files[0]) {
-      try {
-        btn.textContent = 'Reading logo…';
-        logoUrl = await readFileAsDataURI(logoFileEl, 'image');
-      } catch (e) { btn.disabled = false; btn.textContent = 'Save Branding'; return; }
-    }
-
-    // Accreditation
-    const accredFileEl = document.getElementById('stats-accreditation-file');
-    let accredUrl = document.getElementById('stats-accreditation').value.trim() || null;
-    if (accredFileEl.files && accredFileEl.files[0]) {
-      try {
-        btn.textContent = 'Reading accreditation…';
-        accredUrl = await readFileAsDataURI(accredFileEl, 'image');
-      } catch (e) { btn.disabled = false; btn.textContent = 'Save Branding'; return; }
-    }
-
-    const body = { stats_logo: logoUrl, stats_accreditation: accredUrl };
-    const result = await apiFetch('/api/site-config', { method: 'PUT', body: JSON.stringify(body) });
-    btn.disabled = false; btn.textContent = 'Save Branding';
-    if (result && result.success) {
-      toast('Branding saved', 'success');
-      // Update hidden inputs with new values
-      document.getElementById('stats-logo').value = logoUrl || '';
-      document.getElementById('stats-accreditation').value = accredUrl || '';
-    } else {
-      toast('Failed to save branding', 'error');
     }
   }
 

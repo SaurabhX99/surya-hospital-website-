@@ -304,12 +304,13 @@ _bFetch('/api/blogs')
   .then(r => r.json())
   .then(data => {
     BLOGS = data.map(b => ({
-      id:      b.id,
-      title:   b.title,
-      cat:     b.category,
-      date:    formatDate(b.created_at),
-      author:  b.author,
-      excerpt: b.excerpt || '',
+      id:            b.id,
+      title:         b.title,
+      cat:           b.category,
+      date:          formatDate(b.created_at),
+      author:        b.author,
+      excerpt:       b.excerpt || '',
+      thumbnail_url: b.thumbnail_url || null,
     }));
     buildCatTabs();
     renderBlogs(BLOGS);
