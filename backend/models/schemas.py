@@ -237,6 +237,23 @@ class FaqUpdate(BaseModel):
     active: Optional[bool] = None
 
 
+# ── Awards & Recognition ─────────────────────────────────────────────
+class AwardIn(BaseModel):
+    title: str
+    description: str = ""
+    image: Optional[str] = None
+    order: int = 0
+    active: bool = True
+
+
+class AwardUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    image: Optional[str] = None
+    order: Optional[int] = None
+    active: Optional[bool] = None
+
+
 # ── SMS Config ───────────────────────────────────────────────────────
 class SmsConfigIn(BaseModel):
     """Full SMS configuration — supports Twilio and Gupshup providers."""
@@ -262,6 +279,8 @@ class SmsTestIn(BaseModel):
 class SiteConfigIn(BaseModel):
     phone: Optional[str] = None
     email: Optional[str] = None
+    stats_logo: Optional[str] = None
+    stats_accreditation: Optional[str] = None
 
 
 # ── Auth ─────────────────────────────────────────────────────────────

@@ -44,3 +44,4 @@ facilities_col    = db["facilities"]
 faqs_col          = db["faqs"]
 audit_logs_col    = db["audit_logs"]
 api_keys_col      = db["api_keys"]          # dynamic API keys for external callers
+awards_col        = db["awards"]

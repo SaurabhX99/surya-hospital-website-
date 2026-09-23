@@ -23,7 +23,7 @@ from config import (
     ENABLE_DOCS, TENANT_NAME, ADMIN_EMAIL, ADMIN_PASSWORD,
     _request_tenant, _request_user_email,
 )
-from database import appointments_col, users_col
+from database import appointments_col, users_col, awards_col
 from encryption import apply_encryption
 from logging_config import setup_logging, get_logger
 from security import apply_security, require_public_access, issue_page_token, rate_limit, ALLOWED_ORIGINS, IS_PROD
@@ -136,6 +136,26 @@ for idx_name, idx_info in list(appointments_col.index_information().items()):
         logger.warning("Could not drop index", extra={"index": idx_name, "error": str(e)})
 
 
+# ── Seed default awards if collection is empty ──────────────────────
+if awards_col.count_documents({"tenant_name": TENANT_NAME}) == 0:
+    _default_awards = [
+        {"title": "Best Hospital — Greater Noida & Noida", "description": "Certified as the best multi-speciality hospital in the region for clinical excellence and patient satisfaction.", "order": 0},
+        {"title": "24×7 Emergency Excellence", "description": "Recognised for maintaining the highest standards of emergency medical care and rapid response protocols.", "order": 1},
+        {"title": "Advanced Dialysis Centre", "description": "Awarded for state-of-the-art nephrology and dialysis services with the highest patient care standards.", "order": 2},
+        {"title": "Patient Satisfaction Leader", "description": "Consistently rated highly for patient experience, staff behaviour, cleanliness, and clinical outcomes.", "order": 3},
+        {"title": "NICU Excellence Award", "description": "Recognised for exceptional neonatal intensive care services and outcomes for premature and critically ill newborns.", "order": 4},
+        {"title": "Trusted Maternity Hospital", "description": "Preferred choice for maternity care in Greater Noida, with exceptional delivery outcomes and postnatal support.", "order": 5},
+    ]
+    for a in _default_awards:
+        a["tenant_name"] = TENANT_NAME
+        a["active"] = True
+        a["image"] = None
+        a["created_at"] = datetime.now(timezone.utc)
+        a["updated_by"] = "system"
+    awards_col.insert_many(_default_awards)
+    logger.info("Seeded default awards", extra={"count": len(_default_awards)})
+
+
 # ── Root and public-token endpoints ──────────────────────────────────
 @app.get("/")
 def root():
@@ -167,6 +187,7 @@ from routes.auth import router as auth_router
 from routes.admin_users import router as admin_users_router
 from routes.audit_logs import router as audit_logs_router
 from routes.api_keys import router as api_keys_router
+from routes.awards import router as awards_router
 from routes.uploads import router as uploads_router
 
 app.include_router(appointments_router)
@@ -187,6 +208,7 @@ app.include_router(auth_router)
 app.include_router(admin_users_router)
 app.include_router(audit_logs_router)
 app.include_router(api_keys_router)
+app.include_router(awards_router)
 app.include_router(uploads_router)
 
 logger.info("Application started", extra={"tenant": TENANT_NAME})

@@ -2,6 +2,7 @@
 
 from models.schemas import (
     AppointmentIn,
+    AwardIn, AwardUpdate,
     BlogIn, BlogUpdate,
     DepartmentIn, DepartmentUpdate,
     DoctorIn, DoctorUpdate,
@@ -25,6 +26,7 @@ from models.schemas import (
 
 __all__ = [
     "AppointmentIn",
+    "AwardIn", "AwardUpdate",
     "BlogIn", "BlogUpdate",
     "DepartmentIn", "DepartmentUpdate",
     "DoctorIn", "DoctorUpdate",

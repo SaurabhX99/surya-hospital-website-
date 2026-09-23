@@ -126,7 +126,7 @@ def delete_blog(blog_id: str, _: None = Depends(require_admin)):
 
 @router.get("/{blog_id}/content")
 async def get_blog_content(blog_id: str, _: None = Depends(require_public_access)):
-    """Proxy the blog article content from Google Drive."""
+    """Serve blog content — from GridFS upload or proxied from Google Drive."""
     try:
         oid = ObjectId(blog_id)
     except Exception:
@@ -134,7 +134,25 @@ async def get_blog_content(blog_id: str, _: None = Depends(require_public_access
     doc = blogs_col.find_one(tq({"_id": oid}), {"drive_link": 1})
     if not doc or not doc.get("drive_link"):
         raise HTTPException(404, "No content available for this blog post")
-    content_url = drive_content_url(doc["drive_link"])
+
+    link = doc["drive_link"]
+
+    # GridFS file — serve directly
+    if "/api/file/" in link:
+        import re as _re
+        m = _re.search(r'/api/file/([a-f0-9]{24})', link)
+        if not m:
+            raise HTTPException(404, "Invalid file reference")
+        from database import fs
+        try:
+            grid_out = fs.get(ObjectId(m.group(1)))
+        except Exception:
+            raise HTTPException(404, "Content file not found")
+        ct = grid_out.content_type or "application/octet-stream"
+        return Response(content=grid_out.read(), media_type=ct)
+
+    # Legacy Google Drive link — proxy
+    content_url = drive_content_url(link)
     try:
         async with httpx.AsyncClient(follow_redirects=True, timeout=20) as client:
             r = await client.get(content_url)

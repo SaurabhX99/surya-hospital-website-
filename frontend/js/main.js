@@ -1232,7 +1232,50 @@
           } catch (_) {}
         });
       }
+
+      // Branding: stats logo (left) and accreditation (right)
+      _renderStatsBranding(cfg.stats_logo, cfg.stats_accreditation);
     } catch (_) {}
+  }
+
+  function _renderStatsBranding(logoSrc, accredSrc) {
+    var section = document.getElementById('statistics');
+    if (!section) return;
+    var container = section.querySelector('.container');
+    if (!container) return;
+
+    // Remove existing branding wrappers
+    var existing = container.querySelector('.stats-branding-wrap');
+    if (existing) existing.remove();
+
+    var grid = container.querySelector('.stats-grid');
+    if (!grid) return;
+
+    // Default logo: hospital logo image
+    var logoHtml = logoSrc
+      ? '<img src="' + resolveURL(logoSrc) + '" alt="Hospital Logo" style="max-height:80px;max-width:140px;object-fit:contain;" onerror="this.style.display=\'none\'" />'
+      : '<img src="images/logo.png" alt="Vedansh Medicare" style="max-height:80px;max-width:140px;object-fit:contain;" onerror="this.style.display=\'none\'" />';
+
+    // Default accreditation: NABH badge
+    var accredHtml = accredSrc
+      ? '<img src="' + resolveURL(accredSrc) + '" alt="Accreditation" style="max-height:80px;max-width:140px;object-fit:contain;" onerror="this.style.display=\'none\'" />'
+      : '<img src="assets /nabh-logo-png_seeklogo-398755.png" alt="NABH Accredited" style="max-height:80px;max-width:140px;object-fit:contain;" onerror="this.style.display=\'none\'" />';
+
+    // Wrap grid with branding
+    var wrap = document.createElement('div');
+    wrap.className = 'stats-branding-wrap';
+    wrap.style.cssText = 'display:flex;align-items:center;gap:var(--space-8);justify-content:center;';
+    wrap.innerHTML = '<div style="flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.1);border-radius:var(--radius-xl);padding:var(--space-4);">' + logoHtml + '</div>';
+
+    // Move grid into wrap
+    container.insertBefore(wrap, grid);
+    wrap.appendChild(grid);
+
+    // Append accreditation after grid
+    var accredDiv = document.createElement('div');
+    accredDiv.style.cssText = 'flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.1);border-radius:var(--radius-xl);padding:var(--space-4);';
+    accredDiv.innerHTML = accredHtml;
+    wrap.appendChild(accredDiv);
   }
 
   /* ── Init All ─────────────────────────────────────────── */

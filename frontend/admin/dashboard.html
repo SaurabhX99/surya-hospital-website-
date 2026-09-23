@@ -743,6 +743,10 @@
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
       <span class="nav-label">FAQs</span>
     </button>
+    <button class="nav-item" data-page="awards">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path stroke-linecap="round" stroke-linejoin="round" d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+      <span class="nav-label">Awards</span>
+    </button>
 
     <div class="nav-section-label">Settings</div>
     <!-- SMS Settings, Logs & Users — visible to SUPER_ADMIN only; shown via JS after auth -->
@@ -1358,6 +1362,33 @@
         </div>
       </div>
 
+      <!-- Homepage Branding — logo + accreditation images -->
+      <div class="card-panel" style="margin-bottom:20px;">
+        <div class="card-panel-header"><span class="card-panel-title">Homepage Branding</span></div>
+        <div style="padding:20px;">
+          <div style="display:flex;gap:24px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:220px;">
+              <label class="form-label">Hospital Logo (left of stats)</label>
+              <input type="file" id="stats-logo-file" class="form-control" accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml,image/avif" />
+              <input type="hidden" id="stats-logo" />
+              <div id="stats-logo-preview" style="margin-top:6px;display:none;"><img style="max-height:60px;border-radius:8px;" /><button type="button" onclick="clearFilePreview('stats-logo')" style="margin-left:8px;background:none;border:none;color:#E53935;cursor:pointer;font-size:12px;">Remove</button></div>
+              <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Shown on the left side of the stats section. Defaults to the standard hospital logo if not uploaded.</div>
+            </div>
+            <div style="flex:1;min-width:220px;">
+              <label class="form-label">Accreditation Badge (right of stats)</label>
+              <input type="file" id="stats-accreditation-file" class="form-control" accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml,image/avif" />
+              <input type="hidden" id="stats-accreditation" />
+              <div id="stats-accreditation-preview" style="margin-top:6px;display:none;"><img style="max-height:60px;border-radius:8px;" /><button type="button" onclick="clearFilePreview('stats-accreditation')" style="margin-left:8px;background:none;border:none;color:#E53935;cursor:pointer;font-size:12px;">Remove</button></div>
+              <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Shown on the right side of the stats section. Defaults to NABH accreditation badge if not uploaded.</div>
+            </div>
+          </div>
+          <button onclick="saveBranding()" id="branding-save-btn"
+            style="margin-top:12px;background:#1E3A5F;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">
+            Save Branding
+          </button>
+        </div>
+      </div>
+
       <div class="card-panel">
         <div class="card-panel-header"><span class="card-panel-title">Stats</span></div>
         <table class="data-table" id="stats-admin-table">
@@ -1588,6 +1619,66 @@
         <div class="modal-footer">
           <button class="btn-cancel" onclick="closeModal('faq')">Cancel</button>
           <button class="btn-save" onclick="saveFaq()">Save FAQ</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Awards & Recognition ── -->
+    <div class="page-view" id="page-awards">
+      <div class="page-title-row">
+        <div><div class="page-title">Awards & Recognition</div><div class="page-subtitle">Manage awards, certifications and accreditations</div></div>
+        <button class="btn-add" onclick="openAwardModal()">+ Add Award</button>
+      </div>
+      <div class="card-panel">
+        <div class="card-panel-header"><span class="card-panel-title">Awards</span></div>
+        <table class="data-table">
+          <thead><tr><th>Image</th><th>Title</th><th>Description</th><th>Order</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="awards-admin-tbody"><tr><td colspan="6" style="text-align:center;color:#94A3B8;padding:32px;">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Add / Edit Award Modal -->
+    <div class="modal-overlay" id="modal-award">
+      <div class="modal" style="max-width:540px">
+        <div class="modal-header">
+          <h3 class="modal-title" id="award-modal-title">Add Award</h3>
+          <button class="modal-close" onclick="closeModal('award')"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="award-edit-id">
+          <div class="form-group">
+            <label class="form-label">Title <span style="color:#EF4444">*</span></label>
+            <input id="award-title" type="text" class="form-control" placeholder="e.g. Best Hospital Award">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea id="award-desc" class="form-control" rows="3" placeholder="Brief description of the award"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Award Image</label>
+            <input type="file" id="award-image-file" class="form-control" accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml,image/avif" />
+            <input type="hidden" id="award-image" />
+            <div id="award-image-preview" style="margin-top:6px;display:none;"><img style="max-height:80px;border-radius:8px;" /><button type="button" onclick="clearFilePreview('award-image')" style="margin-left:8px;background:none;border:none;color:#E53935;cursor:pointer;font-size:12px;">Remove</button></div>
+            <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Upload an image for this award. A default icon will be shown if not provided.</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group">
+              <label class="form-label">Display Order</label>
+              <input id="award-order" type="number" class="form-control" value="0" min="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Active</label>
+              <select id="award-active" class="form-control">
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" onclick="closeModal('award')">Cancel</button>
+          <button class="btn-save" id="award-save-btn" onclick="saveAward()">Save Award</button>
         </div>
       </div>
     </div>
@@ -2372,7 +2463,7 @@
     if (hiddenEl) hiddenEl.value = '';
     const wrap = document.getElementById(hiddenId + '-preview');
     if (wrap) wrap.style.display = 'none';
-    const fileMap = { 'doc-photo': 'doc-photo-file', 'blog-thumbnail': 'blog-thumbnail-file', 'blog-content-url': 'blog-content-file', 'media-url': 'media-file-upload', 'insurance-logo': 'insurance-logo-file', 'partner-logo': 'partner-logo-file', 'facility-icon': 'facility-icon-file', 'dept-icon': 'dept-icon-file' };
+    const fileMap = { 'doc-photo': 'doc-photo-file', 'blog-thumbnail': 'blog-thumbnail-file', 'blog-content-url': 'blog-content-file', 'media-url': 'media-file-upload', 'insurance-logo': 'insurance-logo-file', 'partner-logo': 'partner-logo-file', 'facility-icon': 'facility-icon-file', 'dept-icon': 'dept-icon-file', 'award-image': 'award-image-file', 'stats-logo': 'stats-logo-file', 'stats-accreditation': 'stats-accreditation-file' };
     const fileEl = document.getElementById(fileMap[hiddenId] || (hiddenId + '-file'));
     if (fileEl) fileEl.value = '';
   }
@@ -2859,7 +2950,7 @@
     departments:'Departments', blogs:'Blogs', testimonials:'Testimonials',
     homepage:'Homepage CMS', media:'Media Library', users:'Users & Roles', seo:'SEO Settings',
     offers:'Offers Marquee', insurance:'Insurance Providers', partners:'Partners', stats:'Homepage Stats',
-    facilities:'Facilities', faqs:'FAQs',
+    facilities:'Facilities', faqs:'FAQs', awards:'Awards & Recognition',
     sms:'SMS Settings', 'sms-logs':'SMS Audit Log', 'activity-log':'Activity Log'
   };
 
@@ -2885,6 +2976,7 @@
     if (page === 'stats')         { loadHeroStats(); loadSiteConfig(); }
     if (page === 'facilities')    loadFacilities();
     if (page === 'faqs')          loadFaqs();
+    if (page === 'awards')        loadAwards();
     if (page === 'sms')           loadSmsConfig();
     if (page === 'sms-logs')      loadSmsLogs(1);
     if (page === 'activity-log')  loadAuditLogs(1);
@@ -4301,6 +4393,106 @@
     else toast('Failed to delete', 'error');
   }
 
+  /* ── Awards & Recognition ──────────────────────────────────────── */
+  let _awardItems = [];
+
+  async function loadAwards() {
+    const tbody = document.getElementById('awards-admin-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#9CA3AF;padding:32px;">Loading…</td></tr>';
+    const data = await apiFetch('/api/awards?show_all=true');
+    if (!data) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#E53935;padding:32px;">Something went wrong.</td></tr>'; return; }
+    const list = Array.isArray(data) ? data : (data.items || []);
+    _awardItems = list;
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#94A3B8;padding:24px;">No awards yet. Click "+ Add Award" to create one.</td></tr>';
+      return;
+    }
+    const EDIT_SVG = '<path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>';
+    const DEL_SVG  = '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m5 5v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3"/>';
+    tbody.innerHTML = list.map(a => `
+      <tr>
+        <td>${a.image_url ? `<img src="${a.image_url}" style="width:40px;height:40px;border-radius:8px;object-fit:cover;cursor:pointer;" onclick="openPreviewModal('${a.image_url.replace(/'/g, "\\'")}','${esc(a.title)}')" />` : '<span style="color:#CBD5E1;">—</span>'}</td>
+        <td><strong>${esc(a.title)}</strong></td>
+        <td style="max-width:220px;font-size:12px;color:#6B7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(a.description)}">${esc(a.description || '—')}</td>
+        <td>${a.order}</td>
+        <td><span style="display:inline-block;padding:2px 10px;border-radius:99px;font-size:11px;font-weight:600;${a.active ? 'background:#ECFDF5;color:#059669;' : 'background:#FEF2F2;color:#DC2626;'}">${a.active ? 'Active' : 'Inactive'}</span></td>
+        <td>
+          <div class="table-actions">
+            <button class="action-btn edit" title="Edit" onclick="editAwardById('${a.id}')">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">${EDIT_SVG}</svg>
+            </button>
+            <button class="action-btn del" title="Delete" onclick="deleteAward('${a.id}')">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">${DEL_SVG}</svg>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function editAwardById(id) {
+    const a = _awardItems.find(x => x.id === id);
+    if (a) openAwardModal(a);
+  }
+
+  function openAwardModal(a) {
+    document.getElementById('award-edit-id').value   = a ? a.id : '';
+    document.getElementById('award-title').value     = a ? a.title : '';
+    document.getElementById('award-desc').value      = a ? (a.description || '') : '';
+    document.getElementById('award-image').value     = a ? (a.image || '') : '';
+    document.getElementById('award-image-file').value = '';
+    if (a && a.image_url) { showFilePreview('award-image', a.image_url); } else { clearFilePreview('award-image'); }
+    document.getElementById('award-order').value     = a ? (a.order ?? 0) : 0;
+    document.getElementById('award-active').value    = a ? String(!!a.active) : 'true';
+    document.getElementById('award-modal-title').textContent = a ? 'Edit Award' : 'Add Award';
+    document.getElementById('modal-award').classList.add('open');
+  }
+
+  async function saveAward() {
+    const id    = document.getElementById('award-edit-id').value;
+    const title = document.getElementById('award-title').value.trim();
+    if (!title) { toast('Title is required', 'error'); return; }
+
+    const btn = document.getElementById('award-save-btn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+
+    const imageFileEl = document.getElementById('award-image-file');
+    let imageUrl = document.getElementById('award-image').value.trim() || null;
+    if (imageFileEl.files && imageFileEl.files[0]) {
+      try {
+        btn.textContent = 'Reading image…';
+        imageUrl = await readFileAsDataURI(imageFileEl, 'image');
+      } catch (e) { btn.disabled = false; btn.textContent = 'Save Award'; return; }
+    }
+
+    const body = {
+      title,
+      description: document.getElementById('award-desc').value.trim(),
+      image:       imageUrl,
+      order:       Number(document.getElementById('award-order').value) || 0,
+      active:      document.getElementById('award-active').value === 'true',
+    };
+    const url    = id ? `/api/awards/${id}` : '/api/awards';
+    const method = id ? 'PATCH' : 'POST';
+    const result = await apiFetch(url, { method, body: JSON.stringify(body) });
+    btn.disabled = false; btn.textContent = 'Save Award';
+    if (result && (result.success || result.id)) {
+      closeModal('award');
+      loadAwards();
+      toast(id ? 'Award updated' : 'Award added', 'success');
+    } else {
+      toast('Failed to save award', 'error');
+    }
+  }
+
+  async function deleteAward(id) {
+    if (!confirm('Delete this award?')) return;
+    const result = await apiFetch(`/api/awards/${id}`, { method: 'DELETE' });
+    if (result && result.success) { loadAwards(); toast('Award deleted', 'success'); }
+    else toast('Failed to delete', 'error');
+  }
+
   /* ── Site Config (hospital phone number etc.) ─────────────────────
    * Stored in the site_config collection as a single document per tenant.
    * GET /api/site-config is public so the homepage can read it.
@@ -4312,6 +4504,17 @@
     if (cfg) {
       if (cfg.phone) document.getElementById('site-phone').value = cfg.phone;
       if (cfg.email) document.getElementById('site-email').value = cfg.email;
+      // Branding images
+      const logoEl = document.getElementById('stats-logo');
+      const accredEl = document.getElementById('stats-accreditation');
+      if (logoEl) {
+        logoEl.value = cfg.stats_logo || '';
+        if (cfg.stats_logo) { showFilePreview('stats-logo', cfg.stats_logo); } else { clearFilePreview('stats-logo'); }
+      }
+      if (accredEl) {
+        accredEl.value = cfg.stats_accreditation || '';
+        if (cfg.stats_accreditation) { showFilePreview('stats-accreditation', cfg.stats_accreditation); } else { clearFilePreview('stats-accreditation'); }
+      }
     }
   }
 
@@ -4338,6 +4541,43 @@
       toast('Contact details saved', 'success');
     } else {
       toast('Failed to save contact details', 'error');
+    }
+  }
+
+  async function saveBranding() {
+    const btn = document.getElementById('branding-save-btn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+
+    // Logo
+    const logoFileEl = document.getElementById('stats-logo-file');
+    let logoUrl = document.getElementById('stats-logo').value.trim() || null;
+    if (logoFileEl.files && logoFileEl.files[0]) {
+      try {
+        btn.textContent = 'Reading logo…';
+        logoUrl = await readFileAsDataURI(logoFileEl, 'image');
+      } catch (e) { btn.disabled = false; btn.textContent = 'Save Branding'; return; }
+    }
+
+    // Accreditation
+    const accredFileEl = document.getElementById('stats-accreditation-file');
+    let accredUrl = document.getElementById('stats-accreditation').value.trim() || null;
+    if (accredFileEl.files && accredFileEl.files[0]) {
+      try {
+        btn.textContent = 'Reading accreditation…';
+        accredUrl = await readFileAsDataURI(accredFileEl, 'image');
+      } catch (e) { btn.disabled = false; btn.textContent = 'Save Branding'; return; }
+    }
+
+    const body = { stats_logo: logoUrl, stats_accreditation: accredUrl };
+    const result = await apiFetch('/api/site-config', { method: 'PUT', body: JSON.stringify(body) });
+    btn.disabled = false; btn.textContent = 'Save Branding';
+    if (result && result.success) {
+      toast('Branding saved', 'success');
+      // Update hidden inputs with new values
+      document.getElementById('stats-logo').value = logoUrl || '';
+      document.getElementById('stats-accreditation').value = accredUrl || '';
+    } else {
+      toast('Failed to save branding', 'error');
     }
   }
 
