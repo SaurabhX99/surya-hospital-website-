@@ -66,7 +66,7 @@ def update_department(dept_id: str, body: DepartmentUpdate, _: None = Depends(re
     except Exception:
         raise HTTPException(400, "Invalid id")
     try:
-        updates = {k: v for k, v in body.model_dump().items() if v is not None}
+        updates = body.model_dump(exclude_unset=True)
         if not updates:
             raise HTTPException(400, "No fields to update")
         updates["updated_by"] = user_email()

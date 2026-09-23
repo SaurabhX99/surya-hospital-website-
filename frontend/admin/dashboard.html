@@ -1014,9 +1014,9 @@
         </div>
         <div style="overflow-x:auto">
           <table class="data-table">
-            <thead><tr><th>Name</th><th>Qualification</th><th>Speciality</th><th>Department</th><th>Experience</th><th>Timing</th><th>Show Doctor</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Photo</th><th>Name</th><th>Qualification</th><th>Speciality</th><th>Department</th><th>Experience</th><th>Timing</th><th>Show Doctor</th><th>Actions</th></tr></thead>
             <tbody id="tbody-doctors">
-              <tr><td colspan="8" style="text-align:center;color:#9CA3AF;padding:24px;">Loading…</td></tr>
+              <tr><td colspan="9" style="text-align:center;color:#9CA3AF;padding:24px;">Loading…</td></tr>
             </tbody>
           </table>
         </div>
@@ -2929,7 +2929,7 @@
   async function loadDoctors(page) {
     _docPage = page || 1;
     const tbody = document.getElementById('tbody-doctors');
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#9CA3AF;">Loading…</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:#9CA3AF;">Loading…</td></tr>';
     const search = (document.getElementById('doc-search-admin')?.value || '').trim();
     const dept   = document.getElementById('doc-dept-filter')?.value || '';
     let qs = `?show_all=true&page=${_docPage}&limit=${PAGE_SIZE}`;
@@ -2937,7 +2937,7 @@
     if (dept)   qs += `&department=${encodeURIComponent(dept)}`;
     const data = await apiFetch('/api/doctors' + qs);
     if (!data || !data.items) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#E53935;">Something went wrong. Please refresh the page.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:#E53935;">Something went wrong. Please refresh the page.</td></tr>';
       return;
     }
     _doctors = data.items;
@@ -2948,17 +2948,15 @@
   function renderDoctorsTable(list) {
     const tbody = document.getElementById('tbody-doctors');
     if (!list.length) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#9CA3AF;">No doctors yet — click Add Doctor to get started.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:#9CA3AF;">No doctors yet — click Add Doctor to get started.</td></tr>';
       return;
     }
     const EDIT_SVG = '<path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>';
     const DEL_SVG  = '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m5 5v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3"/>';
     tbody.innerHTML = list.map(d => `
       <tr data-id="${d.id}">
-        <td style="white-space:nowrap;">
-          ${(d.photo_url || d.photo) ? `<img src="${d.photo_url || d.photo}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;margin-right:8px;vertical-align:middle;cursor:pointer;" onerror="this.style.display='none'" onclick="openPreviewModal(this.src,'Doctor Photo')" />` : '<span style="display:inline-block;width:36px;height:36px;border-radius:50%;background:#E5E7EB;margin-right:8px;vertical-align:middle;"></span>'}
-          <strong>${esc(d.name)}</strong>
-        </td>
+        <td>${(d.photo_url || d.photo) ? `<img src="${d.photo_url || d.photo}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;vertical-align:middle;cursor:pointer;" onerror="this.outerHTML='<span style=\\'color:#CBD5E1\\'>—</span>'" onclick="openPreviewModal(this.src,'Doctor Photo')" />` : '<span style="color:#CBD5E1;">—</span>'}</td>
+        <td><strong>${esc(d.name)}</strong></td>
         <td style="font-size:12px;">${esc(d.qualification)}</td>
         <td>${esc(d.specialty)}</td>
         <td>${esc(d.department)}</td>

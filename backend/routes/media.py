@@ -63,7 +63,7 @@ def update_media(media_id: str, body: MediaUpdate, _: None = Depends(require_adm
         oid = ObjectId(media_id)
     except Exception:
         raise HTTPException(400, "Invalid id")
-    updates = {k: v for k, v in body.model_dump().items() if v is not None}
+    updates = body.model_dump(exclude_unset=True)
     if not updates:
         raise HTTPException(400, "No fields to update")
     updates["updated_by"] = user_email()
@@ -99,7 +99,7 @@ def get_gallery_config(_: None = Depends(require_public_access)):
 
 @router.patch("/api/gallery-config")
 def update_gallery_config(body: GalleryConfigIn, _: None = Depends(require_admin)):
-    data = {k: v for k, v in body.model_dump().items() if v is not None}
+    data = body.model_dump(exclude_unset=True)
     data["updated_by"] = user_email()
     gallery_cfg_col.update_one(tq(), {"$set": data}, upsert=True)
     return {"success": True}

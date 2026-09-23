@@ -52,7 +52,7 @@ def update_faq(faq_id: str, body: FaqUpdate, _: None = Depends(require_admin)):
         oid = ObjectId(faq_id)
     except Exception:
         raise HTTPException(400, "Invalid id")
-    patch = {k: v for k, v in body.model_dump().items() if v is not None}
+    patch = body.model_dump(exclude_unset=True)
     patch["updated_by"] = user_email()
     result = faqs_col.update_one(tq({"_id": oid}), {"$set": patch})
     if result.matched_count == 0:

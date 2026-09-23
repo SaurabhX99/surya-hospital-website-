@@ -48,7 +48,7 @@ def update_hero_stat(stat_id: str, body: StatUpdate, _: None = Depends(require_a
         oid = ObjectId(stat_id)
     except Exception:
         raise HTTPException(400, "Invalid id")
-    updates = {k: v for k, v in body.model_dump().items() if v is not None}
+    updates = body.model_dump(exclude_unset=True)
     if not updates:
         raise HTTPException(400, "Nothing to update")
     updates["updated_by"] = user_email()

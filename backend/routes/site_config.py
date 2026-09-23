@@ -26,7 +26,7 @@ def get_site_config(_: None = Depends(require_public_access)):
 @router.put("")
 def save_site_config(body: SiteConfigIn, _admin: dict = Depends(require_admin)):
     """Upsert site-wide configuration."""
-    update = {k: v for k, v in body.model_dump().items() if v is not None}
+    update = body.model_dump(exclude_unset=True)
     site_config_col.update_one(
         tq(),
         {"$set": {**update, "tenant_name": tenant()}},

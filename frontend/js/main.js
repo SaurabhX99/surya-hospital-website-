@@ -412,23 +412,32 @@
 
   function _makeFacilityCard(f, i) {
     const color = f.color || '#0A4D8C';
-    const desc  = f.desc || f.short_desc || '';
-    const iconContent = f.icon_url
-      ? `<img src="${resolveURL(f.icon_url)}" alt="${f.name}" style="width:48px;height:48px;object-fit:contain;border-radius:8px;" />`
-      : svgIcon('<path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>', 40).replace('stroke="currentColor"', 'stroke="white"');
+    if (f.icon_url) {
+      // Custom image uploaded — show image + name only
+      return `
+        <div class="facility-card" data-animate="scale" data-delay="${(i % 4) * 100}"
+             style="cursor:pointer;" data-facility-id="${i}"
+             onclick="_showFacilityDetail(${i})">
+          <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;padding:16px;">
+            <img src="${resolveURL(f.icon_url)}" alt="${f.name}" style="width:100%;max-height:140px;object-fit:contain;border-radius:12px;" onerror="this.style.display='none'" />
+            <span style="font-family:var(--font-heading);font-size:var(--text-base);font-weight:var(--font-bold);color:${color};text-align:center;">${f.name}</span>
+          </div>
+        </div>`;
+    }
+    // Fallback — default heart icon with colored background
     return `
       <div class="facility-card" data-animate="scale" data-delay="${(i % 4) * 100}"
            style="cursor:pointer;" data-facility-id="${i}"
            onclick="_showFacilityDetail(${i})">
         <div style="width:100%;height:100%;background:linear-gradient(135deg,${color}22,${color}55);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;">
           <div style="width:80px;height:80px;background:${color};border-radius:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px ${color}66;">
-            ${iconContent}
+            ${svgIcon('<path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>', 40).replace('stroke="currentColor"', 'stroke="white"')}
           </div>
           <span style="font-family:var(--font-heading);font-size:var(--text-base);font-weight:var(--font-bold);color:${color};">${f.name}</span>
         </div>
         <div class="facility-overlay">
           <div class="facility-label">${f.name}</div>
-          <div class="facility-desc-overlay">${desc}</div>
+          <div class="facility-desc-overlay">${f.desc || f.short_desc || ''}</div>
         </div>
       </div>`;
   }

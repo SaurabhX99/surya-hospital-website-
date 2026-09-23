@@ -51,7 +51,7 @@ def update_offer(offer_id: str, body: OfferUpdate, _: None = Depends(require_adm
         oid = ObjectId(offer_id)
     except Exception:
         raise HTTPException(400, "Invalid id")
-    updates = {k: v for k, v in body.model_dump().items() if v is not None}
+    updates = body.model_dump(exclude_unset=True)
     if not updates:
         raise HTTPException(400, "No fields to update")
     updates["updated_by"] = user_email()
