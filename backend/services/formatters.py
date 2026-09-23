@@ -33,15 +33,21 @@ def gdrive_direct(url: Optional[str]) -> Optional[str]:
     """Convert an image reference to a displayable URL.
 
     Handles:
-      - GridFS URLs (/api/file/...) — returned as-is (or prefixed with BASE_URL)
+      - data: URIs (base64 inline)  — returned as-is
+      - GridFS URLs (/api/file/...) — returned with relative path
       - Google Drive share URLs     — converted to proxy URL (legacy fallback)
       - Other URLs                  — returned as-is
     """
     if not url:
         return url
-    # GridFS file URL — already usable
+    # base64 data URI — already directly renderable
+    if url.startswith("data:"):
+        return url
+    # GridFS file URL — normalise to relative path so it works across environments
     if "/api/file/" in url:
-        return url if url.startswith("http") else f"{BASE_URL}{url}"
+        # Extract the relative path /api/file/{id} regardless of host prefix
+        idx = url.index("/api/file/")
+        return url[idx:]
     fid = extract_drive_id(url)
     if fid:
         return f"{BASE_URL}/api/proxy/image?id={fid}"
@@ -63,10 +69,10 @@ def drive_content_url(link: str) -> str:
 
 
 def validate_drive_link(url: Optional[str], field: str = "logo_drive_link") -> None:
-    """Validate image URL — accepts GridFS URLs or Google Drive links."""
+    """Validate image URL — accepts data URIs, GridFS URLs, or Google Drive links."""
     from fastapi import HTTPException
-    if url and "/api/file/" not in url and not _DRIVE_RE.search(url):
-        raise HTTPException(400, f"{field} must be a valid uploaded file URL or Google Drive link")
+    if url and not url.startswith("data:") and "/api/file/" not in url and not _DRIVE_RE.search(url):
+        raise HTTPException(400, f"{field} must be a valid uploaded file URL or data URI")
 
 
 # ── Document formatters ──────────────────────────────────────────────
@@ -151,11 +157,16 @@ def fmt_media(doc: dict) -> dict:
     if isinstance(ca, datetime):
         doc["created_at"] = ca.isoformat()
     link = doc.get("drive_link", "")
-    # GridFS file — use directly
-    if "/api/file/" in link:
-        full = link if link.startswith("http") else f"{BASE_URL}{link}"
-        doc["display_url"] = full
-        doc["thumb_url"] = full
+    # data URI — already directly renderable
+    if link.startswith("data:"):
+        doc["display_url"] = link
+        doc["thumb_url"] = link
+    # GridFS file — normalise to relative path
+    elif "/api/file/" in link:
+        idx = link.index("/api/file/")
+        rel = link[idx:]
+        doc["display_url"] = rel
+        doc["thumb_url"] = rel
     else:
         fid = extract_drive_id(link)
         if doc.get("type") == "video":
@@ -184,9 +195,7 @@ def fmt_insurance(doc: dict) -> dict:
     doc.setdefault("active", True)
     doc.setdefault("order", 0)
     doc.setdefault("logo_drive_link", None)
-    link = doc.get("logo_drive_link") or ""
-    fid  = extract_drive_id(link)
-    doc["logo_url"] = f"{BASE_URL}/api/proxy/image?id={fid}" if fid else None
+    doc["logo_url"] = gdrive_direct(doc.get("logo_drive_link"))
     return doc
 
 
@@ -198,9 +207,7 @@ def fmt_partner(doc: dict) -> dict:
     doc.setdefault("active", True)
     doc.setdefault("order", 0)
     doc.setdefault("logo_drive_link", None)
-    link = doc.get("logo_drive_link") or ""
-    fid  = extract_drive_id(link)
-    doc["logo_url"] = f"{BASE_URL}/api/proxy/image?id={fid}" if fid else None
+    doc["logo_url"] = gdrive_direct(doc.get("logo_drive_link"))
     return doc
 
 

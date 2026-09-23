@@ -1336,21 +1336,25 @@
         <button class="btn-add" onclick="openHeroStatModal()">+ Add Stat</button>
       </div>
 
-      <!-- Hospital Contact Number card — saved to site_config collection -->
+      <!-- Hospital Contact Details card — saved to site_config collection -->
       <div class="card-panel" style="margin-bottom:20px;">
-        <div class="card-panel-header"><span class="card-panel-title">Hospital Contact Number</span></div>
+        <div class="card-panel-header"><span class="card-panel-title">Hospital Contact Details</span></div>
         <div style="padding:20px;">
-          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;">
             <div style="flex:1;min-width:200px;max-width:340px;">
               <label class="form-label">Phone Number</label>
               <input type="tel" id="site-phone" class="form-control" placeholder="+91 96504 94019" />
             </div>
+            <div style="flex:1;min-width:200px;max-width:340px;">
+              <label class="form-label">Email Address</label>
+              <input type="email" id="site-email" class="form-control" placeholder="info@vedanshmedicare.com" />
+            </div>
             <button onclick="saveSiteConfig()" id="site-config-save-btn"
-              style="background:#1E3A5F;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;height:40px;white-space:nowrap;margin-top:20px;">
-              Save Number
+              style="background:#1E3A5F;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;height:40px;white-space:nowrap;">
+              Save
             </button>
           </div>
-          <div style="font-size:11px;color:#9CA3AF;margin-top:6px;">Displayed in the homepage hero section and footer</div>
+          <div style="font-size:11px;color:#9CA3AF;margin-top:6px;">Displayed in the homepage header, footer, and contact section</div>
         </div>
       </div>
 
@@ -1464,8 +1468,8 @@
       <div class="card-panel">
         <div class="card-panel-header"><span class="card-panel-title">Facilities</span></div>
         <table class="data-table" id="facilities-admin-table">
-          <thead><tr><th>Name</th><th>Short Description</th><th>Category</th><th>Order</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody id="facilities-admin-tbody"><tr><td colspan="6" style="text-align:center;color:#94A3B8;padding:32px;">Loading…</td></tr></tbody>
+          <thead><tr><th>Icon</th><th>Name</th><th>Short Description</th><th>Category</th><th>Order</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="facilities-admin-tbody"><tr><td colspan="7" style="text-align:center;color:#94A3B8;padding:32px;">Loading…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -1484,12 +1488,19 @@
             <input id="facility-name" type="text" class="form-control" placeholder="e.g. ICU">
           </div>
           <div class="form-group">
+            <label class="form-label">Icon / Image</label>
+            <input type="file" id="facility-icon-file" class="form-control" accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml,image/avif" />
+            <input type="hidden" id="facility-icon" />
+            <div id="facility-icon-preview" style="margin-top:6px;display:none;"><img style="max-height:80px;border-radius:8px;" /><button type="button" onclick="clearFilePreview('facility-icon')" style="margin-left:8px;background:none;border:none;color:#E53935;cursor:pointer;font-size:12px;">Remove</button></div>
+            <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Upload a custom icon/image for this facility. If not provided, a default icon will be used.</div>
+          </div>
+          <div class="form-group">
             <label class="form-label">Short Description</label>
             <input id="facility-short-desc" type="text" class="form-control" placeholder="One-line summary shown on card hover">
           </div>
           <div class="form-group">
             <label class="form-label">Full Description <span style="color:#EF4444">*</span></label>
-            <textarea id="facility-desc" class="form-control" rows="3" placeholder="Detailed description shown when user clicks the facility card"></textarea>
+            <textarea id="facility-desc" class="form-control" rows="5" placeholder="Detailed description shown when user clicks the facility card"></textarea>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
             <div class="form-group">
@@ -1766,11 +1777,16 @@
         </div>
         <div class="form-group"><label class="form-label">Tags</label><input type="text" id="blog-tags" class="form-control" placeholder="heart, health, tips" /></div>
       </div>
-      <!-- Google Drive / Docs link -->
+      <!-- Blog Content File Upload -->
       <div class="form-group">
-        <label class="form-label">Google Drive / Docs Link <span style="color:#E53935">*</span></label>
-        <input type="url" id="blog-drive-link" class="form-control" placeholder="https://docs.google.com/document/d/… or drive.google.com/file/d/…" />
-        <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Paste a public Google Docs or Drive file link. The content will be fetched and rendered on the fly.</div>
+        <label class="form-label">Blog Content File <span style="color:#E53935">*</span></label>
+        <input type="file" id="blog-content-file" class="form-control" accept=".txt,.md,.doc,.docx,.pdf,.rtf" />
+        <input type="hidden" id="blog-content-url" />
+        <div id="blog-content-url-preview" style="margin-top:6px;display:none;align-items:center;">
+          <span style="font-size:13px;color:#1D4ED8;font-weight:500;">Content file uploaded</span>
+          <button type="button" onclick="clearFilePreview('blog-content-url')" style="margin-left:8px;background:none;border:none;color:#E53935;cursor:pointer;font-size:12px;">Remove</button>
+        </div>
+        <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Upload a text file (.txt, .md, .doc, .docx, .pdf, .rtf). Images and executables are not allowed.</div>
       </div>
       <div class="form-group" style="display:flex;align-items:center;gap:10px;">
         <label class="toggle-switch"><input type="checkbox" id="blog-published" checked /><span class="toggle-slider"></span></label>
@@ -1841,9 +1857,9 @@
       </div>
       <div class="form-group">
         <label class="form-label">Upload File <span style="color:#E53935">*</span></label>
-        <input type="file" id="media-file-upload" class="form-control" accept="image/*,video/mp4,video/webm" />
-        <input type="hidden" id="media-drive-link" />
-        <div id="media-drive-link-preview" style="margin-top:6px;display:none;"><img style="max-height:80px;border-radius:8px;" /><button type="button" onclick="clearFilePreview('media-drive-link')" style="margin-left:8px;background:none;border:none;color:#E53935;cursor:pointer;font-size:12px;">Remove</button></div>
+        <input type="file" id="media-file-upload" class="form-control" accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml,image/avif,video/mp4,video/webm,video/ogg" />
+        <input type="hidden" id="media-url" />
+        <div id="media-url-preview" style="margin-top:6px;display:none;"><img style="max-height:80px;border-radius:8px;" /><button type="button" onclick="clearFilePreview('media-url')" style="margin-left:8px;background:none;border:none;color:#E53935;cursor:pointer;font-size:12px;">Remove</button></div>
         <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Upload an image or video file (max 16 MB).</div>
       </div>
       <div class="form-group">
@@ -2265,10 +2281,64 @@
     }
   }
 
-  /* ── File Upload Helper ──────────────────────────────── */
-  async function uploadFile(fileInput) {
+  /* ── File Upload / Read Helpers ──────────────────────── */
+
+  const BLOCKED_EXTENSIONS = ['.exe','.bat','.cmd','.com','.msi','.scr','.pif','.vbs','.vbe','.js','.jse','.ws','.wsf','.wsc','.wsh','.ps1','.sh','.csh','.jar','.app','.bin','.dll','.sys','.drv'];
+  const BLOG_CONTENT_ALLOWED = ['.txt','.md','.doc','.docx','.pdf','.rtf'];
+  const IMAGE_ALLOWED_TYPES = ['image/jpeg','image/png','image/gif','image/webp','image/svg+xml','image/avif','image/bmp','image/tiff'];
+  const VIDEO_ALLOWED_TYPES = ['video/mp4','video/webm','video/ogg'];
+  const MAX_FILE_SIZE = 16 * 1024 * 1024; // 16 MB
+  const MAX_IMAGE_BASE64_SIZE = 5 * 1024 * 1024; // 5 MB for inline base64 images
+
+  function validateFile(file, mode) {
+    const ext = '.' + file.name.split('.').pop().toLowerCase();
+    if (BLOCKED_EXTENSIONS.includes(ext)) return 'Executable files are not allowed.';
+    if (file.size > MAX_FILE_SIZE) return 'File is too large. Maximum size is 16 MB.';
+    if (mode === 'blog-content') {
+      if (!BLOG_CONTENT_ALLOWED.includes(ext)) return 'Only text files (.txt, .md, .doc, .docx, .pdf, .rtf) are allowed for blog content.';
+    } else if (mode === 'image') {
+      if (!IMAGE_ALLOWED_TYPES.includes(file.type) && !ext.match(/^\.(jpe?g|png|gif|webp|svg|avif|bmp|tiff?)$/)) return 'Only image files (JPEG, PNG, GIF, WebP, SVG, AVIF) are allowed.';
+      if (file.size > MAX_IMAGE_BASE64_SIZE) return 'Image is too large. Maximum size for images is 5 MB.';
+    } else if (mode === 'media') {
+      if (!IMAGE_ALLOWED_TYPES.includes(file.type) && !VIDEO_ALLOWED_TYPES.includes(file.type)) return 'Only image and video files are allowed.';
+    }
+    return null;
+  }
+
+  /**
+   * Read an image file as a base64 data URI (client-side, no server upload).
+   * The data URI is stored directly in the MongoDB document.
+   */
+  function readFileAsDataURI(fileInput, mode) {
+    return new Promise((resolve, reject) => {
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) { resolve(null); return; }
+      const error = validateFile(file, mode || 'image');
+      if (error) { toast(error, 'error'); reject(new Error(error)); return; }
+      toast('Reading file…', 'info');
+      const reader = new FileReader();
+      reader.onload = function() {
+        toast('File ready', 'success');
+        resolve(reader.result); // data:image/...;base64,...
+      };
+      reader.onerror = function() {
+        toast('Failed to read file', 'error');
+        reject(new Error('Failed to read file'));
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /**
+   * Upload a large file (video, blog content) to GridFS.
+   * Returns a relative URL /api/file/{id} (no BASE_URL baked in).
+   */
+  async function uploadFile(fileInput, mode) {
     const file = fileInput.files && fileInput.files[0];
     if (!file) return null;
+    const error = validateFile(file, mode || 'media');
+    if (error) { toast(error, 'error'); throw new Error(error); }
+    toast('Uploading file…', 'info');
     const form = new FormData();
     form.append('file', file);
     const d = JSON.parse(sessionStorage.getItem('vm_token') || '{}');
@@ -2277,16 +2347,24 @@
     if (key) headers['X-Api-Key'] = key;
     if (d.token) headers['Authorization'] = `Bearer ${d.token}`;
     const res = await fetch(API + '/api/upload', { method: 'POST', headers, body: form });
-    if (!res.ok) { const t = await res.text(); throw new Error(t); }
+    if (!res.ok) { const t = await res.text(); toast('Upload failed: ' + t, 'error'); throw new Error(t); }
     const data = await res.json();
-    return data.url;
+    toast('File uploaded successfully', 'success');
+    // Return relative path so it works across environments
+    return data.relative_url || data.url;
   }
 
   function showFilePreview(hiddenId, url) {
     const wrap = document.getElementById(hiddenId + '-preview');
     if (!wrap) return;
     const img = wrap.querySelector('img');
-    if (img && url) { img.src = url; wrap.style.display = 'flex'; wrap.style.alignItems = 'center'; }
+    if (img && url) {
+      img.src = url;
+      img.style.cursor = 'pointer';
+      img.onclick = function() { openPreviewModal(url, hiddenId); };
+      wrap.style.display = 'flex';
+      wrap.style.alignItems = 'center';
+    }
   }
 
   function clearFilePreview(hiddenId) {
@@ -2294,10 +2372,37 @@
     if (hiddenEl) hiddenEl.value = '';
     const wrap = document.getElementById(hiddenId + '-preview');
     if (wrap) wrap.style.display = 'none';
-    // Clear corresponding file input (convention: {hiddenId}-file or special mapping)
-    const fileMap = { 'doc-photo': 'doc-photo-file', 'blog-thumbnail': 'blog-thumbnail-file', 'media-drive-link': 'media-file-upload', 'insurance-logo': 'insurance-logo-file', 'partner-logo': 'partner-logo-file' };
+    const fileMap = { 'doc-photo': 'doc-photo-file', 'blog-thumbnail': 'blog-thumbnail-file', 'blog-content-url': 'blog-content-file', 'media-url': 'media-file-upload', 'insurance-logo': 'insurance-logo-file', 'partner-logo': 'partner-logo-file', 'facility-icon': 'facility-icon-file', 'dept-icon': 'dept-icon-file' };
     const fileEl = document.getElementById(fileMap[hiddenId] || (hiddenId + '-file'));
     if (fileEl) fileEl.value = '';
+  }
+
+  /* ── File Preview Modal ──────────────────────────────── */
+  function openPreviewModal(url, title) {
+    let modal = document.getElementById('file-preview-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'file-preview-modal';
+      modal.addEventListener('click', function(e) { if (e.target === modal) modal.style.display = 'none'; });
+      document.body.appendChild(modal);
+    }
+    const isVideo = url && (url.startsWith('data:video') || /\.(mp4|webm|ogg)$/i.test(url));
+    const label = (title || 'Preview').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    modal.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:24px;';
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:16px;max-width:640px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 24px 64px rgba(0,0,0,0.3);">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #E5E7EB;">
+          <span style="font-weight:600;font-size:14px;color:#1F2937;">${esc(label)}</span>
+          <button onclick="document.getElementById('file-preview-modal').style.display='none'"
+            style="background:none;border:none;cursor:pointer;font-size:20px;color:#6B7280;line-height:1;">&times;</button>
+        </div>
+        <div style="padding:20px;display:flex;align-items:center;justify-content:center;min-height:200px;background:#F9FAFB;">
+          ${isVideo
+            ? `<video src="${esc(url)}" controls style="max-width:100%;max-height:60vh;border-radius:8px;"></video>`
+            : `<img src="${esc(url)}" style="max-width:100%;max-height:60vh;border-radius:8px;object-fit:contain;" />`
+          }
+        </div>
+      </div>`;
   }
 
   /* ── Session Management ───────────────────────────────── */
@@ -2727,11 +2832,13 @@
 
   /* ── Toast ────────────────────────────────────────────── */
   function toast(msg, type) {
+    const colors = { success: '#00C853', error: '#E53935', info: '#1E88E5' };
+    const icons = { success: '\u2713', error: '\u2717', info: '\u2139' };
     const t = document.createElement('div');
-    t.style.cssText = `position:fixed;bottom:24px;right:24px;z-index:9999;background:#fff;border-radius:10px;padding:12px 18px;box-shadow:0 4px 20px rgba(0,0,0,0.12);font-size:13px;border-left:4px solid ${type==='success'?'#00C853':'#E53935'};font-family:Inter,sans-serif;max-width:300px;`;
-    t.textContent = msg;
+    t.style.cssText = `position:fixed;bottom:24px;right:24px;z-index:9999;background:#fff;border-radius:10px;padding:12px 18px;box-shadow:0 4px 20px rgba(0,0,0,0.12);font-size:13px;border-left:4px solid ${colors[type]||colors.info};font-family:Inter,sans-serif;max-width:340px;display:flex;align-items:center;gap:8px;`;
+    t.innerHTML = `<span style="color:${colors[type]||colors.info};font-weight:700;font-size:15px;">${icons[type]||icons.info}</span><span>${msg}</span>`;
     document.body.appendChild(t);
-    setTimeout(() => t.remove(), 3000);
+    setTimeout(() => { t.style.transition='opacity 0.3s'; t.style.opacity='0'; setTimeout(() => t.remove(), 300); }, 3000);
   }
 
   /* ── Helpers ──────────────────────────────────────────── */
@@ -2848,8 +2955,8 @@
     const DEL_SVG  = '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m5 5v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3"/>';
     tbody.innerHTML = list.map(d => `
       <tr data-id="${d.id}">
-        <td>
-          ${d.photo_url ? `<img src="${esc(d.photo_url)}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;margin-right:8px;vertical-align:middle;" onerror="this.style.display='none'" />` : ''}
+        <td style="white-space:nowrap;">
+          ${(d.photo_url || d.photo) ? `<img src="${d.photo_url || d.photo}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;margin-right:8px;vertical-align:middle;cursor:pointer;" onerror="this.style.display='none'" onclick="openPreviewModal(this.src,'Doctor Photo')" />` : '<span style="display:inline-block;width:36px;height:36px;border-radius:50%;background:#E5E7EB;margin-right:8px;vertical-align:middle;"></span>'}
           <strong>${esc(d.name)}</strong>
         </td>
         <td style="font-size:12px;">${esc(d.qualification)}</td>
@@ -2866,7 +2973,7 @@
         </td>
         <td>
           <div class="table-actions">
-            <button class="action-btn edit" title="Edit" onclick="openDoctorModal(${JSON.stringify(d).replace(/"/g,'&quot;')})">
+            <button class="action-btn edit" title="Edit" onclick="editDoctorById('${d.id}')">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">${EDIT_SVG}</svg>
             </button>
             <button class="action-btn del" title="Delete" onclick="deleteDoctor('${d.id}', '${esc(d.name)}')">
@@ -2880,6 +2987,11 @@
 
   function filterDoctors() { loadDoctors(); }
 
+  function editDoctorById(id) {
+    const d = _doctors.find(x => x.id === id);
+    if (d) openDoctorModal(d);
+  }
+
   async function openDoctorModal(doctor) {
     document.getElementById('doctor-modal-title').textContent = doctor ? 'Edit Doctor' : 'Add Doctor';
     // Always reload dept options so dropdown is fresh
@@ -2892,7 +3004,7 @@
     document.getElementById('doc-timing').value   = doctor ? doctor.timing : '';
     document.getElementById('doc-photo').value    = doctor ? (doctor.photo || '') : '';
     document.getElementById('doc-photo-file').value = '';
-    if (doctor && doctor.photo_url) { showFilePreview('doc-photo', doctor.photo_url); } else { clearFilePreview('doc-photo'); }
+    if (doctor && (doctor.photo_url || doctor.photo)) { showFilePreview('doc-photo', doctor.photo_url || doctor.photo); } else { clearFilePreview('doc-photo'); }
     document.getElementById('doc-featured').checked = doctor ? !!doctor.featured : false;
     const sel = document.getElementById('doc-dept');
     if (doctor && doctor.department) {
@@ -2909,14 +3021,14 @@
     const id   = document.getElementById('doc-id').value;
     const btn = document.getElementById('doc-save-btn');
 
-    // Upload photo if a new file was selected
+    // Read photo as base64 data URI if a new file was selected
     const photoFileEl = document.getElementById('doc-photo-file');
     let photoUrl = document.getElementById('doc-photo').value.trim() || null;
     if (photoFileEl.files && photoFileEl.files[0]) {
       try {
-        btn.textContent = 'Uploading photo…'; btn.disabled = true;
-        photoUrl = await uploadFile(photoFileEl);
-      } catch (e) { toast('Failed to upload photo: ' + e.message, 'error'); btn.textContent = 'Save Doctor'; btn.disabled = false; return; }
+        btn.textContent = 'Reading photo…'; btn.disabled = true;
+        photoUrl = await readFileAsDataURI(photoFileEl, 'image');
+      } catch (e) { btn.textContent = 'Save Doctor'; btn.disabled = false; return; }
     }
 
     const body = {
@@ -3012,7 +3124,7 @@
     tbody.innerHTML = list.map(d => `
       <tr data-id="${d.id}">
         <td>
-          ${d.icon ? `<img src="${esc(d.icon)}" style="width:28px;height:28px;border-radius:6px;object-fit:cover;margin-right:8px;vertical-align:middle;" onerror="this.style.display='none'" />` : ''}
+          ${d.icon ? `<img src="${d.icon}" style="width:28px;height:28px;border-radius:6px;object-fit:cover;margin-right:8px;vertical-align:middle;cursor:pointer;" onerror="this.style.display='none'" onclick="openPreviewModal(this.src,'Department Icon')" />` : ''}
           <strong>${esc(d.name)}</strong>
         </td>
         <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:#6B7280;" title="${esc(d.description || '')}">${esc(d.description || '—')}</td>
@@ -3027,7 +3139,7 @@
         </td>
         <td>
           <div class="table-actions">
-            <button class="action-btn edit" title="Edit" onclick="openDeptModal(${JSON.stringify(d).replace(/"/g,'&quot;')})">
+            <button class="action-btn edit" title="Edit" onclick="editDeptById('${d.id}')">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">${EDIT_SVG}</svg>
             </button>
             <button class="action-btn del" title="Delete" onclick="deleteDept('${d.id}', '${esc(d.name)}')">
@@ -3040,6 +3152,11 @@
   }
 
   function filterDepts() { loadDepartments(); }
+
+  function editDeptById(id) {
+    const d = _departments.find(x => x.id === id);
+    if (d) openDeptModal(d);
+  }
 
   function openDeptModal(dept) {
     document.getElementById('dept-modal-title').textContent = dept ? 'Edit Department' : 'Add Department';
@@ -3068,9 +3185,9 @@
     let iconUrl = document.getElementById('dept-icon').value.trim() || null;
     if (iconFileEl.files && iconFileEl.files[0]) {
       try {
-        btn.textContent = 'Uploading icon…';
-        iconUrl = await uploadFile(iconFileEl);
-      } catch (e) { toast('Failed to upload icon: ' + e.message, 'error'); btn.textContent = 'Save Department'; btn.disabled = false; return; }
+        btn.textContent = 'Reading icon…';
+        iconUrl = await readFileAsDataURI(iconFileEl, 'image');
+      } catch (e) { btn.textContent = 'Save Department'; btn.disabled = false; return; }
     }
 
     const rawHead = document.getElementById('dept-head').value.trim();
@@ -3169,7 +3286,7 @@
         <td style="font-size:12px;white-space:nowrap;">${(b.created_at || '').slice(0, 10)}</td>
         <td style="font-size:11px;">
           ${b.drive_link
-            ? `<a href="${esc(b.drive_link)}" target="_blank" style="color:#0A4D8C;text-decoration:none;" title="Open in Drive">Drive Link</a>`
+            ? `<span style="color:#1D4ED8;font-size:11px;" title="Content file uploaded">Uploaded</span>`
             : '<span style="color:#9CA3AF;">—</span>'}
         </td>
         <td>
@@ -3183,7 +3300,7 @@
             <button class="action-btn view" title="Preview article" onclick="window.open('../blog-post.html?id=${b.id}','_blank')" ${!b.drive_link ? 'disabled' : ''}>
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">${VIEW_SVG}</svg>
             </button>
-            <button class="action-btn edit" title="Edit metadata / replace file" onclick="openBlogModal(${JSON.stringify(b).replace(/"/g,'&quot;')})">
+            <button class="action-btn edit" title="Edit metadata / replace file" onclick="editBlogById('${b.id}')">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">${EDIT_SVG}</svg>
             </button>
             <button class="action-btn del" title="Delete" onclick="deleteBlog('${b.id}', '${esc(b.title)}')">
@@ -3197,6 +3314,11 @@
 
   function filterBlogs() { loadBlogs(); }
 
+  function editBlogById(id) {
+    const b = _blogs.find(x => x.id === id);
+    if (b) openBlogModal(b);
+  }
+
   function openBlogModal(blog) {
     document.getElementById('blog-modal-title').textContent = blog ? 'Edit Blog Post' : 'Add Article';
     document.getElementById('blog-save-btn').textContent    = blog ? 'Save Changes' : 'Save Article';
@@ -3208,7 +3330,9 @@
     document.getElementById('blog-thumbnail-file').value = '';
     if (blog && blog.thumbnail_url) { showFilePreview('blog-thumbnail', blog.thumbnail_url); } else { clearFilePreview('blog-thumbnail'); }
     document.getElementById('blog-tags').value        = blog ? (blog.tags || '') : '';
-    document.getElementById('blog-drive-link').value  = blog ? (blog.drive_link || '') : '';
+    document.getElementById('blog-content-file').value = '';
+    document.getElementById('blog-content-url').value = blog ? (blog.drive_link || '') : '';
+    if (blog && blog.drive_link) { const pw = document.getElementById('blog-content-url-preview'); if(pw) { pw.style.display='flex'; } } else { clearFilePreview('blog-content-url'); }
     document.getElementById('blog-published').checked = blog ? !!blog.published : true;
     const catSel = document.getElementById('blog-category');
     if (blog) { for (let o of catSel.options) { if (o.value === blog.category) { o.selected = true; break; } } }
@@ -3221,27 +3345,35 @@
     const title      = document.getElementById('blog-title').value.trim();
     const author     = document.getElementById('blog-author').value.trim();
     const category   = document.getElementById('blog-category').value;
-    const drive_link = document.getElementById('blog-drive-link').value.trim();
-
     if (!title || !author)         { toast('Title and author are required', 'error'); return; }
-    if (!id && !drive_link)        { toast('Please paste a Google Drive or Docs link', 'error'); return; }
 
     const btn = document.getElementById('blog-save-btn');
     btn.textContent = 'Saving…'; btn.disabled = true;
+
+    // Upload blog content file if selected
+    const contentFileEl = document.getElementById('blog-content-file');
+    let contentUrl = document.getElementById('blog-content-url').value.trim() || null;
+    if (contentFileEl.files && contentFileEl.files[0]) {
+      try {
+        btn.textContent = 'Uploading content file…';
+        contentUrl = await uploadFile(contentFileEl, 'blog-content');
+      } catch (e) { btn.textContent = id ? 'Save Changes' : 'Save Article'; btn.disabled = false; return; }
+    }
+    if (!id && !contentUrl) { toast('Please upload a blog content file', 'error'); btn.textContent = 'Save Article'; btn.disabled = false; return; }
 
     // Upload thumbnail if a new file was selected
     const thumbFileEl = document.getElementById('blog-thumbnail-file');
     let thumbnailUrl = document.getElementById('blog-thumbnail').value.trim() || null;
     if (thumbFileEl.files && thumbFileEl.files[0]) {
       try {
-        btn.textContent = 'Uploading thumbnail…';
-        thumbnailUrl = await uploadFile(thumbFileEl);
-      } catch (e) { toast('Failed to upload thumbnail: ' + e.message, 'error'); btn.textContent = id ? 'Save Changes' : 'Save Article'; btn.disabled = false; return; }
+        btn.textContent = 'Reading thumbnail…';
+        thumbnailUrl = await readFileAsDataURI(thumbFileEl, 'image');
+      } catch (e) { btn.textContent = id ? 'Save Changes' : 'Save Article'; btn.disabled = false; return; }
     }
 
     const body = {
       title, author, category,
-      drive_link: drive_link || undefined,
+      drive_link: contentUrl || undefined,
       excerpt:    document.getElementById('blog-excerpt').value.trim()   || null,
       thumbnail:  thumbnailUrl,
       tags:       document.getElementById('blog-tags').value.trim()      || null,
@@ -3499,10 +3631,10 @@
 
     grid.innerHTML = items.map(m => `
       <div class="media-card" data-id="${m.id}">
-        <div class="media-thumb">
+        <div class="media-thumb" style="cursor:pointer;" onclick="openPreviewModal('${esc(m.display_url || m.thumb_url || '')}','${esc(m.title)}')">
           ${m.type === 'video'
             ? `<div class="media-thumb-placeholder">${VIDEO_ICON}<span>Video</span></div>`
-            : `<img src="${esc(m.thumb_url || m.display_url || '')}" alt="${esc(m.alt || m.title)}" onerror="this.parentElement.innerHTML='<div class=\\'media-thumb-placeholder\\'><span>No preview</span></div>'" />`
+            : `<img src="${m.thumb_url || m.display_url || ''}" alt="${esc(m.alt || m.title)}" onerror="this.parentElement.innerHTML='<div class=\\'media-thumb-placeholder\\'><span>No preview</span></div>'" />`
           }
         </div>
         <div class="media-card-body">
@@ -3515,7 +3647,7 @@
               <span class="toggle-slider"></span>
             </label>
             <div class="table-actions">
-              <button class="action-btn edit" title="Edit" onclick="openMediaModal(${JSON.stringify(m).replace(/"/g,'&quot;')})">
+              <button class="action-btn edit" title="Edit" onclick="editMediaById('${m.id}')">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">${EDIT_SVG}</svg>
               </button>
               <button class="action-btn del" title="Delete" onclick="deleteMedia('${m.id}', '${esc(m.title)}')">
@@ -3533,15 +3665,20 @@
     renderMediaGrid(type ? _mediaItems.filter(m => m.type === type) : _mediaItems);
   }
 
+  function editMediaById(id) {
+    const m = _mediaItems.find(x => x.id === id);
+    if (m) openMediaModal(m);
+  }
+
   function openMediaModal(item) {
     document.getElementById('media-modal-title').textContent = item ? 'Edit Media' : 'Add Media';
     document.getElementById('media-save-btn').textContent    = item ? 'Save Changes' : 'Save Media';
     document.getElementById('media-id').value         = item ? item.id : '';
     document.getElementById('media-title').value      = item ? item.title : '';
     document.getElementById('media-type').value       = item ? (item.type || 'image') : 'image';
-    document.getElementById('media-drive-link').value = item ? (item.drive_link || '') : '';
+    document.getElementById('media-url').value = item ? (item.drive_link || '') : '';
     document.getElementById('media-file-upload').value = '';
-    if (item && item.display_url) { showFilePreview('media-drive-link', item.display_url); } else { const mw = document.getElementById('media-drive-link-preview'); if(mw) mw.style.display='none'; }
+    if (item && item.display_url) { showFilePreview('media-url', item.display_url); } else { const mw = document.getElementById('media-url-preview'); if(mw) mw.style.display='none'; }
     document.getElementById('media-alt').value        = item ? (item.alt || '') : '';
     document.getElementById('media-order').value      = item ? (item.order ?? 0) : 0;
     document.getElementById('media-gallery').checked  = item ? !!item.show_in_gallery : true;
@@ -3558,12 +3695,12 @@
 
     // Upload file if selected
     const fileEl = document.getElementById('media-file-upload');
-    let link = document.getElementById('media-drive-link').value.trim();
+    let link = document.getElementById('media-url').value.trim();
     if (fileEl.files && fileEl.files[0]) {
       try {
         btn.textContent = 'Uploading file…';
-        link = await uploadFile(fileEl);
-      } catch (e) { toast('Failed to upload file: ' + e.message, 'error'); btn.textContent = id ? 'Save Changes' : 'Save Media'; btn.disabled = false; return; }
+        link = await uploadFile(fileEl, 'media');
+      } catch (e) { btn.textContent = id ? 'Save Changes' : 'Save Media'; btn.disabled = false; return; }
     }
     if (!id && !link) { toast('Please upload a file', 'error'); btn.textContent = 'Save Media'; btn.disabled = false; return; }
 
@@ -3719,8 +3856,8 @@
     if (!data.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#9CA3AF;padding:32px;">No providers yet. Click "+ Add Provider" to create one.</td></tr>'; return; }
     tbody.innerHTML = data.map(p => `
       <tr>
-        <td>${p.logo_url ? `<img src="${p.logo_url}" alt="${p.name}" style="height:36px;max-width:80px;object-fit:contain;border-radius:4px;background:#f8fafc;padding:2px;" onerror="this.style.display='none'" />` : '<span style="color:#9CA3AF;font-size:12px;">No logo</span>'}</td>
-        <td style="font-weight:500;">${p.name}</td>
+        <td>${(p.logo_url || p.logo_drive_link) ? `<img src="${p.logo_url || p.logo_drive_link}" alt="${esc(p.name)}" style="height:36px;max-width:80px;object-fit:contain;border-radius:4px;background:#f8fafc;padding:2px;cursor:pointer;" onerror="this.style.display='none'" onclick="openPreviewModal(this.src,'Insurance Logo')" />` : '<span style="color:#9CA3AF;font-size:12px;">No logo</span>'}</td>
+        <td style="font-weight:500;">${esc(p.name)}</td>
         <td>${p.order}</td>
         <td><span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:${p.active ? 'rgba(0,200,83,0.12)' : 'rgba(148,163,184,0.15)'};color:${p.active ? '#00843D' : '#64748B'};">${p.active ? 'Active' : 'Inactive'}</span></td>
         <td>
@@ -3749,7 +3886,7 @@
     document.getElementById('insurance-name').value = p.name;
     document.getElementById('insurance-logo').value = p.logo_drive_link || '';
     document.getElementById('insurance-logo-file').value = '';
-    if (p.logo_url) { showFilePreview('insurance-logo', p.logo_url); } else { clearFilePreview('insurance-logo'); }
+    if (p.logo_url || p.logo_drive_link) { showFilePreview('insurance-logo', p.logo_url || p.logo_drive_link); } else { clearFilePreview('insurance-logo'); }
     document.getElementById('insurance-order').value = p.order;
     document.getElementById('insurance-active').checked = p.active;
     document.getElementById('insurance-modal-title').textContent = 'Edit Insurance Provider';
@@ -3771,9 +3908,9 @@
     let logo = document.getElementById('insurance-logo').value.trim();
     if (logoFileEl.files && logoFileEl.files[0]) {
       try {
-        btn.textContent = 'Uploading logo…';
-        logo = await uploadFile(logoFileEl);
-      } catch (e) { toast('Failed to upload logo: ' + e.message, 'error'); btn.disabled = false; btn.textContent = 'Save Provider'; return; }
+        btn.textContent = 'Reading logo…';
+        logo = await readFileAsDataURI(logoFileEl, 'image');
+      } catch (e) { btn.disabled = false; btn.textContent = 'Save Provider'; return; }
     }
 
     const body = { name, logo_drive_link: logo || null, order, active };
@@ -3810,8 +3947,8 @@
     if (!data.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#9CA3AF;padding:32px;">No partners yet. Click "+ Add Partner" to create one.</td></tr>'; return; }
     tbody.innerHTML = data.map(p => `
       <tr>
-        <td>${p.logo_url ? `<img src="${p.logo_url}" alt="${p.name}" style="height:36px;max-width:80px;object-fit:contain;border-radius:4px;background:#f8fafc;padding:2px;" onerror="this.style.display='none'" />` : '<span style="color:#9CA3AF;font-size:12px;">No logo</span>'}</td>
-        <td style="font-weight:500;">${p.name}</td>
+        <td>${(p.logo_url || p.logo_drive_link) ? `<img src="${p.logo_url || p.logo_drive_link}" alt="${esc(p.name)}" style="height:36px;max-width:80px;object-fit:contain;border-radius:4px;background:#f8fafc;padding:2px;cursor:pointer;" onerror="this.style.display='none'" onclick="openPreviewModal(this.src,'Partner Logo')" />` : '<span style="color:#9CA3AF;font-size:12px;">No logo</span>'}</td>
+        <td style="font-weight:500;">${esc(p.name)}</td>
         <td>${p.order}</td>
         <td><span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:${p.active ? 'rgba(0,200,83,0.12)' : 'rgba(148,163,184,0.15)'};color:${p.active ? '#00843D' : '#64748B'};">${p.active ? 'Active' : 'Inactive'}</span></td>
         <td>
@@ -3840,7 +3977,7 @@
     document.getElementById('partner-name').value = p.name;
     document.getElementById('partner-logo').value = p.logo_drive_link || '';
     document.getElementById('partner-logo-file').value = '';
-    if (p.logo_url) { showFilePreview('partner-logo', p.logo_url); } else { clearFilePreview('partner-logo'); }
+    if (p.logo_url || p.logo_drive_link) { showFilePreview('partner-logo', p.logo_url || p.logo_drive_link); } else { clearFilePreview('partner-logo'); }
     document.getElementById('partner-order').value = p.order;
     document.getElementById('partner-active').checked = p.active;
     document.getElementById('partner-modal-title').textContent = 'Edit Partner';
@@ -3862,9 +3999,9 @@
     let logo = document.getElementById('partner-logo').value.trim();
     if (logoFileEl.files && logoFileEl.files[0]) {
       try {
-        btn.textContent = 'Uploading logo…';
-        logo = await uploadFile(logoFileEl);
-      } catch (e) { toast('Failed to upload logo: ' + e.message, 'error'); btn.disabled = false; btn.textContent = 'Save Partner'; return; }
+        btn.textContent = 'Reading logo…';
+        logo = await readFileAsDataURI(logoFileEl, 'image');
+      } catch (e) { btn.disabled = false; btn.textContent = 'Save Partner'; return; }
     }
 
     const body = { name, logo_drive_link: logo || null, order, active };
@@ -3980,19 +4117,20 @@
   async function loadFacilities() {
     const tbody = document.getElementById('facilities-admin-tbody');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#94A3B8;padding:24px;">Loading…</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#94A3B8;padding:24px;">Loading…</td></tr>';
     const list = await apiFetch('/api/facilities?show_all=true');
     if (!list || !Array.isArray(list)) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#EF4444;padding:24px;">Failed to load</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#EF4444;padding:24px;">Failed to load</td></tr>';
       return;
     }
     _facilityItems = list;
     if (!list.length) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#94A3B8;padding:24px;">No facilities yet. Click "+ Add Facility" to create one.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#94A3B8;padding:24px;">No facilities yet. Click "+ Add Facility" to create one.</td></tr>';
       return;
     }
     tbody.innerHTML = list.map(f => `
       <tr>
+        <td>${f.icon_url ? `<img src="${f.icon_url}" style="width:36px;height:36px;object-fit:contain;border-radius:6px;cursor:pointer;" onclick="openPreviewModal(this.src,'Facility Icon')" onerror="this.style.display='none'" />` : '<span style="color:#CBD5E1;">—</span>'}</td>
         <td style="font-weight:600;">${esc(f.name)}</td>
         <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(f.short_desc || '')}</td>
         <td><span style="background:#EFF6FF;color:#1D4ED8;border-radius:6px;padding:2px 8px;font-size:12px;">${esc(f.category || 'general')}</span></td>
@@ -4008,6 +4146,9 @@
   function openFacilityModal() {
     document.getElementById('facility-edit-id').value = '';
     document.getElementById('facility-name').value = '';
+    document.getElementById('facility-icon-file').value = '';
+    document.getElementById('facility-icon').value = '';
+    clearFilePreview('facility-icon');
     document.getElementById('facility-short-desc').value = '';
     document.getElementById('facility-desc').value = '';
     document.getElementById('facility-category').value = 'general';
@@ -4023,6 +4164,9 @@
     if (!f) return;
     document.getElementById('facility-edit-id').value = f.id;
     document.getElementById('facility-name').value = f.name || '';
+    document.getElementById('facility-icon-file').value = '';
+    document.getElementById('facility-icon').value = f.icon_url || '';
+    if (f.icon_url) { showFilePreview('facility-icon', f.icon_url); } else { clearFilePreview('facility-icon'); }
     document.getElementById('facility-short-desc').value = f.short_desc || '';
     document.getElementById('facility-desc').value = f.description || '';
     document.getElementById('facility-category').value = f.category || 'general';
@@ -4038,8 +4182,19 @@
     const name = document.getElementById('facility-name').value.trim();
     const desc = document.getElementById('facility-desc').value.trim();
     if (!name || !desc) { toast('Name and description are required', 'error'); return; }
+
+    // Upload icon if selected
+    const iconFileEl = document.getElementById('facility-icon-file');
+    let iconUrl = document.getElementById('facility-icon').value.trim() || null;
+    if (iconFileEl.files && iconFileEl.files[0]) {
+      try {
+        iconUrl = await readFileAsDataURI(iconFileEl, 'image');
+      } catch (e) { return; }
+    }
+
     const body = {
       name,
+      icon_url:    iconUrl || null,
       short_desc:  document.getElementById('facility-short-desc').value.trim(),
       description: desc,
       category:    document.getElementById('facility-category').value,
@@ -4155,32 +4310,36 @@
    * ------------------------------------------------------------------ */
 
   async function loadSiteConfig() {
-    // apiFetch sends the admin bearer token, but site-config GET is also
-    // accessible with a page token — either works here.
     const cfg = await apiFetch('/api/site-config');
-    if (cfg && cfg.phone) {
-      document.getElementById('site-phone').value = cfg.phone;
+    if (cfg) {
+      if (cfg.phone) document.getElementById('site-phone').value = cfg.phone;
+      if (cfg.email) document.getElementById('site-email').value = cfg.email;
     }
   }
 
   async function saveSiteConfig() {
     const phone = document.getElementById('site-phone').value.trim();
-    if (!phone) { toast('Please enter a phone number', 'error'); return; }
+    const email = document.getElementById('site-email').value.trim();
+    if (!phone && !email) { toast('Please enter at least a phone number or email', 'error'); return; }
 
     const btn = document.getElementById('site-config-save-btn');
     btn.disabled = true; btn.textContent = 'Saving…';
 
+    const body = {};
+    if (phone) body.phone = phone;
+    if (email) body.email = email;
+
     const result = await apiFetch('/api/site-config', {
       method : 'PUT',
-      body   : JSON.stringify({ phone }),
+      body   : JSON.stringify(body),
     });
 
-    btn.disabled = false; btn.textContent = 'Save Number';
+    btn.disabled = false; btn.textContent = 'Save';
 
     if (result && result.success) {
-      toast('Phone number saved', 'success');
+      toast('Contact details saved', 'success');
     } else {
-      toast('Failed to save phone number', 'error');
+      toast('Failed to save contact details', 'error');
     }
   }
 

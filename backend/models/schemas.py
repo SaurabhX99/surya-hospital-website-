@@ -202,6 +202,7 @@ class StatUpdate(BaseModel):
 # ── Facilities ───────────────────────────────────────────────────────
 class FacilityIn(BaseModel):
     name: str
+    icon_url: Optional[str] = None
     short_desc: str = ""
     description: str = ""
     category: str = "general"
@@ -212,6 +213,7 @@ class FacilityIn(BaseModel):
 
 class FacilityUpdate(BaseModel):
     name: Optional[str] = None
+    icon_url: Optional[str] = None
     short_desc: Optional[str] = None
     description: Optional[str] = None
     category: Optional[str] = None
@@ -259,6 +261,7 @@ class SmsTestIn(BaseModel):
 # ── Site Config ──────────────────────────────────────────────────────
 class SiteConfigIn(BaseModel):
     phone: Optional[str] = None
+    email: Optional[str] = None
 
 
 # ── Auth ─────────────────────────────────────────────────────────────

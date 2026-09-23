@@ -45,6 +45,14 @@
   function $(sel, ctx) { return (ctx || document).querySelector(sel); }
   function $$(sel, ctx) { return Array.from((ctx || document).querySelectorAll(sel)); }
 
+  /** Resolve an image/file URL — data URIs pass through, relative API paths get prefixed with API_BASE */
+  function resolveURL(url) {
+    if (!url) return '';
+    if (url.startsWith('data:') || url.startsWith('http://') || url.startsWith('https://')) return url;
+    if (url.startsWith('/api/')) return API_BASE + url;
+    return url;
+  }
+
   function svgIcon(path, size) {
     size = size || 24;
     return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="${size}" height="${size}">${path}</svg>`;
@@ -230,14 +238,14 @@
         if (item.type === 'video') {
           slide.innerHTML = `
             <div class="gallery-slide-inner" style="background:#000;">
-              <video data-src="${item.display_url}" muted playsinline loop
+              <video data-src="${resolveURL(item.display_url)}" muted playsinline loop
                 style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;"></video>
               ${captions && item.alt ? `<div class="gallery-caption">${item.alt}</div>` : ''}
             </div>`;
         } else {
           slide.innerHTML = `
             <div class="gallery-slide-inner">
-              <img src="${item.display_url}"
+              <img src="${resolveURL(item.display_url)}"
                    alt="${item.alt || item.title}"
                    style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;"
                    onerror="this.style.display='none';this.parentElement.style.background='#1a2a3a';" />
@@ -405,13 +413,16 @@
   function _makeFacilityCard(f, i) {
     const color = f.color || '#0A4D8C';
     const desc  = f.desc || f.short_desc || '';
+    const iconContent = f.icon_url
+      ? `<img src="${resolveURL(f.icon_url)}" alt="${f.name}" style="width:48px;height:48px;object-fit:contain;border-radius:8px;" />`
+      : svgIcon('<path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>', 40).replace('stroke="currentColor"', 'stroke="white"');
     return `
       <div class="facility-card" data-animate="scale" data-delay="${(i % 4) * 100}"
            style="cursor:pointer;" data-facility-id="${i}"
            onclick="_showFacilityDetail(${i})">
         <div style="width:100%;height:100%;background:linear-gradient(135deg,${color}22,${color}55);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;">
           <div style="width:80px;height:80px;background:${color};border-radius:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px ${color}66;">
-            ${svgIcon('<path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>', 40).replace('stroke="currentColor"', 'stroke="white"')}
+            ${iconContent}
           </div>
           <span style="font-family:var(--font-heading);font-size:var(--text-base);font-weight:var(--font-bold);color:${color};">${f.name}</span>
         </div>
@@ -443,7 +454,9 @@
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
           <div style="width:56px;height:56px;background:rgba(255,255,255,0.25);border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;">
-            ${svgIcon('<path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>', 28).replace('stroke="currentColor"', 'stroke="white"')}
+            ${f.icon_url
+              ? `<img src="${resolveURL(f.icon_url)}" alt="${f.name}" style="width:36px;height:36px;object-fit:contain;border-radius:6px;" />`
+              : svgIcon('<path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>', 28).replace('stroke="currentColor"', 'stroke="white"')}
           </div>
           <h3 style="color:#fff;font-family:var(--font-heading);font-size:var(--text-xl);font-weight:var(--font-bold);margin:0;">${f.name}</h3>
           ${f.short_desc ? `<p style="color:rgba(255,255,255,0.85);font-size:var(--text-sm);margin:6px 0 0;">${f.short_desc}</p>` : ''}
@@ -514,7 +527,7 @@
           <div style="width:100%;height:100%;background:linear-gradient(135deg,var(--color-bg-section),var(--color-border));display:flex;align-items:center;justify-content:center;">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="var(--color-border)" stroke-width="1" width="80" height="80"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
           </div>
-          ${d.photo_url ? `<img src="${d.photo_url}" alt="${d.name}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'" />` : ''}
+          ${d.photo_url ? `<img src="${resolveURL(d.photo_url)}" alt="${d.name}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'" />` : ''}
         </div>
         <div class="doctor-card-body">
           <h3 class="doctor-name" style="text-transform:uppercase;letter-spacing:0.04em;">${d.name}</h3>
@@ -734,7 +747,7 @@
 
     const makeCard = (p) => `
       <div class="partner-logo">
-        ${p.logo_url ? `<img src="${p.logo_url}" alt="${p.name}" loading="lazy" onerror="this.style.display='none'" />` : ''}
+        ${p.logo_url ? `<img src="${resolveURL(p.logo_url)}" alt="${p.name}" loading="lazy" onerror="this.style.display='none'" />` : ''}
         <span class="partner-logo-name">${p.name}</span>
       </div>`;
 
@@ -770,7 +783,7 @@
 
     const makeCard = (p) => `
       <div class="partner-logo">
-        ${p.logo_url ? `<img src="${p.logo_url}" alt="${p.name}" loading="lazy" onerror="this.style.display='none'" />` : ''}
+        ${p.logo_url ? `<img src="${resolveURL(p.logo_url)}" alt="${p.name}" loading="lazy" onerror="this.style.display='none'" />` : ''}
         <span class="partner-logo-name">${p.name}</span>
       </div>`;
 
@@ -817,7 +830,7 @@
       <div class="blog-card" data-animate="fade-up" data-delay="${i * 100}">
         <div class="blog-image-wrap">
           ${b.thumbnail_url
-            ? `<img src="${b.thumbnail_url}" alt="${b.title}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+            ? `<img src="${resolveURL(b.thumbnail_url)}" alt="${b.title}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
           <div class="blog-image-placeholder" style="background:linear-gradient(135deg,${color}22,${color}55);display:none;">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="${color}" stroke-width="1.5" width="56" height="56" opacity="0.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
@@ -1149,9 +1162,10 @@
       const res = await _apiFetch('/api/site-config');
       if (!res.ok) return;
       const cfg   = await res.json();
-      const raw   = (cfg && cfg.phone || '').replace(/\D/g, ''); // digits only e.g. "919650494019"
-      if (!raw) return;
+      if (!cfg) return;
+      const raw   = (cfg.phone || '').replace(/\D/g, ''); // digits only e.g. "919650494019"
 
+      if (raw) {
       const telHref  = 'tel:+' + raw;
       const waHref   = 'https://wa.me/' + raw;
       // Format for display: +91 XXXXXXXXXX
@@ -1191,6 +1205,24 @@
           if (ld && ld.telephone) { ld.telephone = '+' + raw; s.textContent = JSON.stringify(ld); }
         } catch (_) {}
       });
+      } // end if (raw)
+
+      // Update email addresses from config
+      var email = cfg && cfg.email;
+      if (email) {
+        document.querySelectorAll('a[href^="mailto:"]').forEach(function (el) {
+          el.href = 'mailto:' + email;
+          var txt = el.textContent.trim();
+          if (txt.includes('@')) el.textContent = email;
+        });
+        // Update JSON-LD email field
+        document.querySelectorAll('script[type="application/ld+json"]').forEach(function (s) {
+          try {
+            var ld = JSON.parse(s.textContent);
+            if (ld && ld.email) { ld.email = email; s.textContent = JSON.stringify(ld); }
+          } catch (_) {}
+        });
+      }
     } catch (_) {}
   }
 
