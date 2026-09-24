@@ -518,26 +518,15 @@
     initScrollAnimations();
   }
 
-  async function renderFacilities(filter) {
+  function renderFacilities(filter) {
     const grid = $('#facilities-grid');
     if (!grid) return;
     filter = filter || 'all';
 
-    if (!_facilitiesData) {
-      try {
-        const res  = await _apiFetch('/api/facilities');
-        if (res.ok) {
-          const json = await res.json();
-          if (Array.isArray(json) && json.length) {
-            _facilitiesData = json;
-          }
-        }
-      } catch (_) {}
-      if (!_facilitiesData && data && data.facilities) {
-        _facilitiesData = data.facilities.map(f => ({
-          ...f, short_desc: f.desc || '', description: f.desc || ''
-        }));
-      }
+    if (!_facilitiesData && data && data.facilities) {
+      _facilitiesData = data.facilities.map(f => ({
+        ...f, short_desc: f.desc || '', description: f.desc || ''
+      }));
     }
 
     _applyFacilityFilter(filter);
@@ -801,10 +790,16 @@
         <span class="partner-logo-name">${p.name}</span>
       </div>`;
 
-    let items = [...providers];
-    while (items.length < 8) items = [...items, ...providers];
-    const html = items.map(makeCard).join('');
-    track.innerHTML = html + html;
+    if (providers.length === 1) {
+      track.innerHTML = providers.map(makeCard).join('');
+      track.style.animation = 'none';
+      track.style.justifyContent = 'center';
+    } else {
+      let items = [...providers];
+      while (items.length < 8) items = [...items, ...providers];
+      const html = items.map(makeCard).join('');
+      track.innerHTML = html + html;
+    }
   }
 
   /* ── Render: Partners ──────────────────────────────────── */
@@ -831,10 +826,16 @@
         <span class="partner-logo-name">${p.name}</span>
       </div>`;
 
-    let items = [...partners];
-    while (items.length < 8) items = [...items, ...partners];
-    const html = items.map(makeCard).join('');
-    track.innerHTML = html + html;
+    if (partners.length === 1) {
+      track.innerHTML = partners.map(makeCard).join('');
+      track.style.animation = 'none';
+      track.style.justifyContent = 'center';
+    } else {
+      let items = [...partners];
+      while (items.length < 8) items = [...items, ...partners];
+      const html = items.map(makeCard).join('');
+      track.innerHTML = html + html;
+    }
   }
 
   /* ── Render: Blogs ────────────────────────────────────── */
@@ -858,7 +859,7 @@
       if (res.ok) blogs = await res.json();
     } catch(_) {}
     if (!Array.isArray(blogs) || !blogs.length) {
-      grid.innerHTML = '<p style="text-align:center;color:var(--color-text-muted);grid-column:1/-1;padding:var(--space-8) 0;">No articles published yet. Check back soon!</p>';
+      if (section) section.style.display = 'none';
       return;
     }
     grid.innerHTML = blogs.slice(0, 3).map((b, i) => {
@@ -902,6 +903,7 @@
       </div>
     `;
     }).join('');
+    initScrollAnimations();
   }
 
   /* ── Populate Department Dropdown + Doctor Datalist ───── */
@@ -958,7 +960,10 @@
     const doctorParam = _qs.get('doctor');
     const deptParam   = _qs.get('dept');
     if (doctorParam || deptParam) {
-      // Wait for populateDeptSelect to finish populating the dept dropdown
+      // Scroll to appointment section immediately to avoid gallery flash
+      const apptSection = $('#appointment');
+      if (apptSection) apptSection.scrollIntoView({ behavior: 'instant' });
+      // Wait for populateDeptSelect to finish, then prefill values
       setTimeout(() => {
         if (deptParam) {
           const deptEl = $('#appt-dept');
@@ -970,8 +975,6 @@
         if (doctorParam && $('#appt-doctor')) {
           $('#appt-doctor').value = doctorParam;
         }
-        const apptSection = $('#appointment');
-        if (apptSection) apptSection.scrollIntoView({ behavior: 'smooth' });
       }, 600);
     }
 
@@ -1174,7 +1177,13 @@
       const offers = await res.json();
       if (!Array.isArray(offers) || !offers.length) return;
       const items = offers.map(o => `<span class="offers-marquee-item">${o.text}</span><span class="offers-marquee-sep">★</span>`).join('');
-      track.innerHTML = items + items;
+      if (offers.length === 1) {
+        track.innerHTML = items;
+        track.style.animation = 'none';
+        track.style.justifyContent = 'center';
+      } else {
+        track.innerHTML = items + items;
+      }
       bar.style.display = '';
       // Measure actual height and push hero content down
       const h = bar.getBoundingClientRect().height || 38;

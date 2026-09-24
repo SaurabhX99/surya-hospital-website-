@@ -261,11 +261,18 @@
         return '<div class="facility-marquee-card"><img src="' + esc(resolveURL(f.icon_url)) + '" alt="' + esc(f.name) + '" loading="lazy" onerror="this.parentElement.style.display=\'none\'" /><div class="facility-marquee-label">' + esc(f.name) + '</div></div>';
       }).join('');
 
-      // repeat cards enough for seamless scroll, then duplicate the set
-      var repeated = html;
-      var count = items.length;
-      while (count < 6) { repeated += html; count += items.length; }
-      track.innerHTML = repeated + repeated;
+      if (items.length === 1) {
+        // Single image — show once, no scroll
+        track.innerHTML = html;
+        track.style.animation = 'none';
+        track.style.justifyContent = 'center';
+      } else {
+        // Repeat cards enough for seamless scroll, then duplicate the set
+        var repeated = html;
+        var count = items.length;
+        while (count < 6) { repeated += html; count += items.length; }
+        track.innerHTML = repeated + repeated;
+      }
       section.style.display = '';
 
       // observe the section header for animation

@@ -19,7 +19,9 @@
       height: 100vh;
       overflow: hidden;
       font-size: 14px;
+      visibility: hidden;
     }
+    body.authed { visibility: visible; }
 
     /* ════════════════════════════════════
        SIDEBAR
@@ -2311,6 +2313,7 @@
   /* ── Auth guard ───────────────────────────────────────── */
   const _tokenData = JSON.parse(sessionStorage.getItem('vm_token') || 'null');
   if (!_tokenData || !_tokenData.token) { window.location.replace('login.html'); }
+  document.body.classList.add('authed');
 
   const admin = _tokenData || {};
 
@@ -2503,7 +2506,7 @@
         </div>
         <div style="padding:20px;display:flex;align-items:center;justify-content:center;min-height:200px;background:#F9FAFB;">
           ${isVideo
-            ? `<video src="${esc(url)}" controls style="max-width:100%;max-height:60vh;border-radius:8px;"></video>`
+            ? `<video src="${esc(url)}" controls autoplay style="max-width:100%;max-height:60vh;border-radius:8px;background:#000;"></video>`
             : `<img src="${esc(url)}" style="max-width:100%;max-height:60vh;border-radius:8px;object-fit:contain;" />`
           }
         </div>
@@ -2955,6 +2958,21 @@
     requestAnimationFrame(function() { requestAnimationFrame(function() { t.style.transform = 'translateX(0)'; }); });
     setTimeout(function() { t.style.transform = 'translateX(120%)'; t.style.opacity = '0'; setTimeout(function() { t.remove(); }, 300); }, 3500);
   }
+
+  /* ── Welcome toast (shown once after login) ─────────── */
+  (function() {
+    if (sessionStorage.getItem('vm_just_logged_in') === '1') {
+      sessionStorage.removeItem('vm_just_logged_in');
+      var name = (admin && admin.name) ? admin.name.split(' ')[0] : '';
+      var welcomeMsg = name ? 'Welcome back, ' + name + '!' : 'You have logged in successfully';
+      var t = document.createElement('div');
+      t.style.cssText = 'position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-80px);z-index:10001;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;padding:14px 28px;box-shadow:0 8px 32px rgba(0,0,0,0.12);font-size:14px;font-weight:600;color:#166534;display:flex;align-items:center;gap:10px;transition:transform 0.4s cubic-bezier(0.4,0,0.2,1),opacity 0.4s;white-space:nowrap;';
+      t.innerHTML = '<span style="font-size:18px;">&#10003;</span>' + welcomeMsg;
+      document.body.appendChild(t);
+      requestAnimationFrame(function() { requestAnimationFrame(function() { t.style.transform = 'translateX(-50%) translateY(0)'; }); });
+      setTimeout(function() { t.style.transform = 'translateX(-50%) translateY(-80px)'; t.style.opacity = '0'; setTimeout(function() { t.remove(); }, 400); }, 3500);
+    }
+  })();
 
   /* ── Helpers ──────────────────────────────────────────── */
   function esc(s) {
@@ -3752,7 +3770,7 @@
       <div class="media-card" data-id="${m.id}">
         <div class="media-thumb" style="cursor:pointer;" onclick="openPreviewModal('${esc(resolveUrl(m.display_url || m.thumb_url || ''))}','${esc(m.title)}')">
           ${m.type === 'video'
-            ? `<div class="media-thumb-placeholder">${VIDEO_ICON}<span>Video</span></div>`
+            ? `<div class="media-thumb-placeholder" style="position:relative;">${VIDEO_ICON}<span>Video</span><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;"><div style="width:44px;height:44px;border-radius:50%;background:rgba(10,77,140,0.85);display:flex;align-items:center;justify-content:center;"><svg xmlns="http://www.w3.org/2000/svg" fill="white" viewBox="0 0 24 24" width="20" height="20"><polygon points="8,5 20,12 8,19"/></svg></div></div></div>`
             : `<img src="${resolveUrl(m.thumb_url || m.display_url || '')}" alt="${esc(m.alt || m.title)}" onerror="this.parentElement.innerHTML='<div class=\\'media-thumb-placeholder\\'><span>No preview</span></div>'" />`
           }
         </div>
