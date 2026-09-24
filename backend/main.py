@@ -23,7 +23,7 @@ from config import (
     ENABLE_DOCS, TENANT_NAME, ADMIN_EMAIL, ADMIN_PASSWORD,
     _request_tenant, _request_user_email,
 )
-from database import appointments_col, users_col, awards_col
+from database import appointments_col, users_col, awards_col, facilities_col
 from encryption import apply_encryption
 from logging_config import setup_logging, get_logger
 from security import apply_security, require_public_access, issue_page_token, rate_limit, ALLOWED_ORIGINS, IS_PROD
@@ -154,6 +154,28 @@ if awards_col.count_documents({"tenant_name": TENANT_NAME}) == 0:
         a["updated_by"] = "system"
     awards_col.insert_many(_default_awards)
     logger.info("Seeded default awards", extra={"count": len(_default_awards)})
+
+
+# ── Seed default facilities if collection is empty ─────────────────
+if facilities_col.count_documents({"tenant_name": TENANT_NAME}) == 0:
+    _default_facilities = [
+        {"name": "ICU", "short_desc": "Advanced Intensive Care", "description": "Our state-of-the-art ICU is equipped with advanced life-support systems, multi-parameter monitors, and ventilators to provide round-the-clock critical care for seriously ill patients.", "category": "critical", "color": "#0A4D8C", "order": 0},
+        {"name": "NICU", "short_desc": "Neonatal Intensive Care Unit", "description": "Our Level-III NICU provides specialised care for premature and critically ill newborns with incubators, phototherapy units, and 24×7 neonatologist coverage.", "category": "maternity", "color": "#00A6A6", "order": 1},
+        {"name": "Emergency Dept.", "short_desc": "24×7 Emergency & Trauma Care", "description": "Our 24×7 emergency department is staffed by experienced emergency physicians and equipped for rapid triage, trauma stabilisation, and life-saving interventions.", "category": "critical", "color": "#E53935", "order": 2},
+        {"name": "Dialysis Centre", "short_desc": "Modern Kidney Dialysis Facility", "description": "Our advanced dialysis centre offers haemodialysis with state-of-the-art machines, RO water treatment, and individual patient stations in a comfortable environment.", "category": "critical", "color": "#0A4D8C", "order": 3},
+        {"name": "Modular OT", "short_desc": "Advanced Operating Theatres", "description": "Our modular operating theatres feature laminar airflow, advanced anaesthesia workstations, and the latest surgical equipment for safe and precise procedures.", "category": "surgery", "color": "#00C853", "order": 4},
+        {"name": "Labour Room", "short_desc": "Comfortable Maternity Suite", "description": "Our labour rooms are designed for comfort and safety, with foetal monitoring, birthing equipment, and immediate access to the OT and NICU for emergencies.", "category": "maternity", "color": "#E91E8C", "order": 5},
+        {"name": "Radiology", "short_desc": "Digital X-Ray, CT Scan, MRI", "description": "Our radiology department offers digital X-ray, ultrasound, CT scan, and MRI with rapid reporting by experienced radiologists for accurate diagnosis.", "category": "diagnostics", "color": "#673AB7", "order": 6},
+        {"name": "Pathology Lab", "short_desc": "NABL Accredited Diagnostic Lab", "description": "Our NABL-accredited pathology laboratory provides a comprehensive range of blood tests, histopathology, and microbiology services with quick turnaround times.", "category": "diagnostics", "color": "#FF6F00", "order": 7},
+    ]
+    for f in _default_facilities:
+        f["tenant_name"] = TENANT_NAME
+        f["active"] = True
+        f["icon_url"] = None
+        f["created_at"] = datetime.now(timezone.utc)
+        f["updated_by"] = "system"
+    facilities_col.insert_many(_default_facilities)
+    logger.info("Seeded default facilities", extra={"count": len(_default_facilities)})
 
 
 # ── Root and public-token endpoints ──────────────────────────────────

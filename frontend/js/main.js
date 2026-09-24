@@ -487,9 +487,11 @@
     if (!_facilitiesData) {
       try {
         const res  = await _apiFetch('/api/facilities');
-        const json = await res.json();
-        if (Array.isArray(json) && json.length) {
-          _facilitiesData = json;
+        if (res.ok) {
+          const json = await res.json();
+          if (Array.isArray(json) && json.length) {
+            _facilitiesData = json;
+          }
         }
       } catch (_) {}
       if (!_facilitiesData && data && data.facilities) {
@@ -814,10 +816,10 @@
     let blogs = [];
     try {
       const res = await _apiFetch('/api/blogs');
-      blogs = await res.json();
-    } catch(e) { if (section) section.style.display = 'none'; return; }
+      if (res.ok) blogs = await res.json();
+    } catch(_) {}
     if (!Array.isArray(blogs) || !blogs.length) {
-      if (section) section.style.display = 'none';
+      grid.innerHTML = '<p style="text-align:center;color:var(--color-text-muted);grid-column:1/-1;padding:var(--space-8) 0;">No articles published yet. Check back soon!</p>';
       return;
     }
     grid.innerHTML = blogs.slice(0, 3).map((b, i) => {
