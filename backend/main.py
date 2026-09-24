@@ -204,7 +204,7 @@ def frontend_config():
     global _FRONTEND_CFG
     if _FRONTEND_CFG is None:
         _FRONTEND_CFG = {
-            "API_BASE_URL":       os.getenv("BASE_URL", "http://localhost:8000").rstrip("/"),
+            "API_BASE_URL":       os.getenv("BASE_URL", "https://surya-hospital-website.onrender.com").rstrip("/"),
             "PUBLIC_API_KEY":     os.getenv("PUBLIC_API_KEY", ""),
             "AES_ENCRYPTION_KEY": os.getenv("AES_ENCRYPTION_KEY", ""),
             "APP_PROFILE":        os.getenv("APP_PROFILE", "DEV").strip().upper(),
