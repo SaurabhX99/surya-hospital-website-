@@ -2357,6 +2357,7 @@
   }
 
   async function apiFetch(path, opts = {}) {
+    if (window.__configReady) await window.__configReady;
     try {
       const res = await fetch(API + path, { headers: _authHeaders(), ...opts });
       if (!res.ok) throw new Error(await res.text());
@@ -2443,15 +2444,32 @@
   function showFilePreview(hiddenId, url) {
     const wrap = document.getElementById(hiddenId + '-preview');
     if (!wrap) return;
-    const img = wrap.querySelector('img');
     const resolved = resolveUrl(url);
-    if (img && resolved) {
-      img.src = resolved;
-      img.style.cursor = 'pointer';
-      img.onclick = function() { openPreviewModal(resolved, hiddenId); };
-      wrap.style.display = 'flex';
-      wrap.style.alignItems = 'center';
+    if (!resolved) return;
+    const isVideo = resolved.startsWith('data:video') || /\.(mp4|webm|ogg)(\?|$)/i.test(resolved) || /\/api\/proxy\/video/i.test(resolved);
+    // Clear previous content and rebuild
+    wrap.innerHTML = '';
+    let el;
+    if (isVideo) {
+      el = document.createElement('video');
+      el.src = resolved;
+      el.controls = true;
+      el.style.cssText = 'max-height:80px;border-radius:8px;cursor:pointer;';
+    } else {
+      el = document.createElement('img');
+      el.src = resolved;
+      el.style.cssText = 'max-height:80px;border-radius:8px;cursor:pointer;';
     }
+    el.onclick = function() { openPreviewModal(resolved, hiddenId); };
+    wrap.appendChild(el);
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.textContent = 'Remove';
+    removeBtn.style.cssText = 'margin-left:8px;background:none;border:none;color:#E53935;cursor:pointer;font-size:12px;';
+    removeBtn.onclick = function() { clearFilePreview(hiddenId); };
+    wrap.appendChild(removeBtn);
+    wrap.style.display = 'flex';
+    wrap.style.alignItems = 'center';
   }
 
   function clearFilePreview(hiddenId) {
@@ -2473,7 +2491,7 @@
       modal.addEventListener('click', function(e) { if (e.target === modal) modal.style.display = 'none'; });
       document.body.appendChild(modal);
     }
-    const isVideo = url && (url.startsWith('data:video') || /\.(mp4|webm|ogg)$/i.test(url));
+    const isVideo = url && (url.startsWith('data:video') || /\.(mp4|webm|ogg)(\?|$)/i.test(url) || /\/api\/proxy\/video/i.test(url));
     const label = (title || 'Preview').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     modal.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:24px;';
     modal.innerHTML = `

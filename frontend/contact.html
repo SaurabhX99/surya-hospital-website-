@@ -281,6 +281,7 @@
     btn.disabled = true;
 
     try {
+      if (window.__configReady) await window.__configReady;
       const pt  = await _getPageToken();
       const res = await fetch(API_BASE + '/api/testimonials', {
         method: 'POST',

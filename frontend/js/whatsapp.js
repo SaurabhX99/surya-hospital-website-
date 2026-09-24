@@ -163,6 +163,7 @@
   }
 
   async function _fetchFaqs() {
+    if (window.__configReady) await window.__configReady;
     const pt  = await _getPageToken();
     try {
       const res = await fetch(API_BASE + '/api/faqs', {
@@ -194,6 +195,7 @@
   }
 
   async function _fetchDoctors(dept) {
+    if (window.__configReady) await window.__configReady;
     const pt  = await _getPageToken();
     const res = await fetch(API_BASE + '/api/doctors', {
       headers: { 'X-Api-Key': _apiKey(), 'X-Page-Token': pt },
@@ -255,12 +257,13 @@
   }
 
   async function _submitAppointment(data) {
+    if (window.__configReady) await window.__configReady;
     const pt = await _getPageToken();
     const res = await fetch(API_BASE + '/api/appointments', {
       method:  'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Api-Key':    API_KEY,
+        'X-Api-Key':    _apiKey(),
         'X-Page-Token': pt,
       },
       body: JSON.stringify(data),
