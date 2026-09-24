@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  const API_BASE = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || 'http://localhost:8000';
+  const API_BASE = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || 'https://surya-hospital-website.onrender.com';
   const data = window.VM && window.VM.data;
 
   /* ── Security: page token (Layer 3) + API key (Layer 1) ── */
@@ -33,6 +33,7 @@
   }
 
   async function _apiFetch(path, opts) {
+    if (window.__configReady) await window.__configReady;
     await _initPageToken();
     const extra = (opts && opts.headers) || {};
     // Destructure headers out so we don't accidentally override the merged set.

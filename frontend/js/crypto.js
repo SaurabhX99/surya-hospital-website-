@@ -11,12 +11,13 @@
 
    When the key is NOT set, this script is a complete no-op —
    all requests and responses pass through as plain JSON.
+
+   Config is loaded asynchronously via __configReady, so the
+   monkey-patch is installed immediately but encryption only
+   activates once the key is available.
    ============================================================ */
 (function () {
   'use strict';
-
-  var KEY_B64 = (window.APP_CONFIG && window.APP_CONFIG.AES_ENCRYPTION_KEY) || '';
-  if (!KEY_B64) return; // Encryption disabled — nothing to patch
 
   /* ── Base64 ↔ Uint8Array helpers ───────────────────────── */
   function b64ToBytes(b64) {
@@ -38,12 +39,10 @@
 
   function getKey() {
     if (!_keyPromise) {
+      var kb = (window.APP_CONFIG && window.APP_CONFIG.AES_ENCRYPTION_KEY) || '';
+      if (!kb) return null;
       _keyPromise = crypto.subtle.importKey(
-        'raw',
-        b64ToBytes(KEY_B64),
-        { name: 'AES-CBC' },
-        false,
-        ['encrypt', 'decrypt']
+        'raw', b64ToBytes(kb), { name: 'AES-CBC' }, false, ['encrypt', 'decrypt']
       );
     }
     return _keyPromise;
@@ -72,12 +71,22 @@
 
   /* ── Monkey-patch window.fetch ─────────────────────────── */
   var _origFetch = window.fetch;
+  // Promise that resolves once config is loaded (or immediately if no loader)
+  var _ready = window.__configReady || Promise.resolve();
 
   window.fetch = async function (input, init) {
     var url = typeof input === 'string' ? input : (input && input.url) || '';
 
     // Only intercept /api/ calls
     if (url.indexOf('/api/') === -1) {
+      return _origFetch.call(this, input, init);
+    }
+
+    // Wait for config to be loaded before first API call
+    await _ready;
+
+    // Check if encryption is enabled (key available after config load)
+    if (!getKey()) {
       return _origFetch.call(this, input, init);
     }
 

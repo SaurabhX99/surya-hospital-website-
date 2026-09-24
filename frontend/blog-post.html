@@ -73,8 +73,7 @@
 <script src="js/shared.js"></script>
 <script>
 (function() {
-  var API_BASE = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || 'http://localhost:8000';
-  var API_KEY  = (window.APP_CONFIG && window.APP_CONFIG.PUBLIC_API_KEY) || '';
+  var API_BASE = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || 'https://surya-hospital-website.onrender.com';
   var _pt = '';
 
   function resolveURL(url) {
@@ -97,9 +96,11 @@
     return _pt;
   }
   async function apiFetch(path, opts) {
+    if (window.__configReady) await window.__configReady;
     var token = await getToken();
+    var apiKey = (window.APP_CONFIG && window.APP_CONFIG.PUBLIC_API_KEY) || '';
     var h = {};
-    if (API_KEY) h['X-API-Key'] = API_KEY;
+    if (apiKey) h['X-API-Key'] = apiKey;
     if (token) h['X-Page-Token'] = token;
     return fetch(API_BASE + path, Object.assign({ headers: h }, opts || {}));
   }

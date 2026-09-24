@@ -150,14 +150,15 @@
 </div></footer>
 
 <script>
-const API     = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL)  || 'http://localhost:8000';
-const API_KEY = (window.APP_CONFIG && window.APP_CONFIG.PUBLIC_API_KEY) || '';
+function _API() { return (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || 'https://surya-hospital-website.onrender.com'; }
+function _KEY() { return (window.APP_CONFIG && window.APP_CONFIG.PUBLIC_API_KEY) || ''; }
 
 async function apiFetch(path) {
+  if (window.__configReady) await window.__configReady;
   let pt = sessionStorage.getItem('vm_pt') || '';
   if (!pt || Date.now() > Number(sessionStorage.getItem('vm_pt_exp') || 0)) {
     try {
-      const r = await fetch(API + '/api/public-token');
+      const r = await fetch(_API() + '/api/public-token');
       if (r.ok) {
         const d = await r.json();
         pt = d.token;
@@ -166,7 +167,7 @@ async function apiFetch(path) {
       }
     } catch (_) {}
   }
-  return fetch(API + path, { headers: { 'X-Api-Key': API_KEY, 'X-Page-Token': pt } });
+  return fetch(_API() + path, { headers: { 'X-Api-Key': _KEY(), 'X-Page-Token': pt } });
 }
 const ICON_SVG = '<path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>';
 const CLK_SVG  = '<circle cx="12" cy="12" r="10"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/>';

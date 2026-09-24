@@ -2337,7 +2337,7 @@
     new Date().toLocaleDateString('en-IN', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
 
   /* ── API ──────────────────────────────────────────────── */
-  const API = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || 'http://localhost:8000';
+  const API = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || 'https://surya-hospital-website.onrender.com';
 
   /** Resolve a URL that may be relative (/api/...) to the full API base */
   function resolveUrl(url) {

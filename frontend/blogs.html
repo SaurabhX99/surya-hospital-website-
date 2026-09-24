@@ -290,14 +290,15 @@ function buildCatTabs() {
   tabsEl.querySelector('[data-cat="all"]').addEventListener('click', () => filterCat('all'));
 }
 
-const _bAPI = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || 'http://localhost:8000';
-const _bKEY = (window.APP_CONFIG && window.APP_CONFIG.PUBLIC_API_KEY) || '';
+function _bAPI() { return (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || 'https://surya-hospital-website.onrender.com'; }
+function _bKEY() { return (window.APP_CONFIG && window.APP_CONFIG.PUBLIC_API_KEY) || ''; }
 async function _bFetch(path) {
+  if (window.__configReady) await window.__configReady;
   let pt = sessionStorage.getItem('vm_pt') || '';
   if (!pt || Date.now() > Number(sessionStorage.getItem('vm_pt_exp') || 0)) {
-    try { const r = await fetch(_bAPI + '/api/public-token'); if (r.ok) { const d = await r.json(); pt = d.token; sessionStorage.setItem('vm_pt', pt); sessionStorage.setItem('vm_pt_exp', Date.now() + (d.expires_in - 60) * 1000); } } catch (_) {}
+    try { const r = await fetch(_bAPI() + '/api/public-token'); if (r.ok) { const d = await r.json(); pt = d.token; sessionStorage.setItem('vm_pt', pt); sessionStorage.setItem('vm_pt_exp', Date.now() + (d.expires_in - 60) * 1000); } } catch (_) {}
   }
-  return fetch(_bAPI + path, { headers: { 'X-Api-Key': _bKEY, 'X-Page-Token': pt } });
+  return fetch(_bAPI() + path, { headers: { 'X-Api-Key': _bKEY(), 'X-Page-Token': pt } });
 }
 
 _bFetch('/api/blogs')

@@ -144,8 +144,8 @@
   };
 
   /* ── API helpers ──────────────────────────────────────── */
-  const API_BASE = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || 'http://localhost:8000';
-  const API_KEY  = (window.APP_CONFIG && window.APP_CONFIG.PUBLIC_API_KEY) || '';
+  const API_BASE = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || 'https://surya-hospital-website.onrender.com';
+  function _apiKey() { return (window.APP_CONFIG && window.APP_CONFIG.PUBLIC_API_KEY) || ''; }
   let _pt = sessionStorage.getItem('vm_pt') || '';
 
   async function _getPageToken() {
@@ -166,7 +166,7 @@
     const pt  = await _getPageToken();
     try {
       const res = await fetch(API_BASE + '/api/faqs', {
-        headers: { 'X-Api-Key': API_KEY, 'X-Page-Token': pt },
+        headers: { 'X-Api-Key': _apiKey(), 'X-Page-Token': pt },
       });
       if (!res.ok) return [];
       return await res.json();
@@ -196,7 +196,7 @@
   async function _fetchDoctors(dept) {
     const pt  = await _getPageToken();
     const res = await fetch(API_BASE + '/api/doctors', {
-      headers: { 'X-Api-Key': API_KEY, 'X-Page-Token': pt },
+      headers: { 'X-Api-Key': _apiKey(), 'X-Page-Token': pt },
     });
     if (!res.ok) return [];
     const all = await res.json();

@@ -240,8 +240,7 @@
 <script src="js/shared.js"></script>
 <script>
 (function () {
-  const API_BASE = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL)  || 'http://localhost:8000';
-  const _cKEY   = (window.APP_CONFIG && window.APP_CONFIG.PUBLIC_API_KEY) || '';
+  const API_BASE = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL)  || 'https://surya-hospital-website.onrender.com';
   async function _getPageToken() {
     let pt = sessionStorage.getItem('vm_pt') || '';
     if (!pt || Date.now() > Number(sessionStorage.getItem('vm_pt_exp') || 0)) {
@@ -285,7 +284,7 @@
       const pt  = await _getPageToken();
       const res = await fetch(API_BASE + '/api/testimonials', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Api-Key': _cKEY, 'X-Page-Token': pt },
+        headers: { 'Content-Type': 'application/json', 'X-Api-Key': (window.APP_CONFIG && window.APP_CONFIG.PUBLIC_API_KEY) || '', 'X-Page-Token': pt },
         body: JSON.stringify({ name, text, rating }),
       });
       if (res.ok) {
