@@ -1,23 +1,25 @@
-// ── Frontend Environment Configuration ────────────────────────────
-// This file IS the frontend's .env — there is no browser-native ENV
-// for vanilla JS. Update these values per deployment environment.
-//
-// For PROD: set API_BASE_URL, PUBLIC_API_KEY, AES_ENCRYPTION_KEY,
-//           and APP_PROFILE before deploying the frontend.
-window.APP_CONFIG = {
-  // Backend URL — change to your deployed backend before going live
-  API_BASE_URL: 'https://surya-hospital-website.onrender.com',
+// ── Frontend Config Loader ─────────────────────────────────────────
+// The API base URL is the only value kept in code (it's not a secret).
+// All keys (API key, AES key) are fetched from the backend at runtime.
+(function () {
+  var API_BASE = 'https://surya-hospital-website.onrender.com';
 
-  // Site API key — must match PUBLIC_API_KEY in backend .env
-  // In PROD this key only works from whitelisted origins (ALLOWED_ORIGINS).
-  // External callers must use a separately issued API key.
-  PUBLIC_API_KEY: 'i4SF2xgEp5U4FnFPxmeA6uiu+JeadCIWR9vV75Gl4Jw=',
+  // Start with just the base URL so early scripts can reference it
+  window.APP_CONFIG = window.APP_CONFIG || {};
+  window.APP_CONFIG.API_BASE_URL = API_BASE;
 
-  // AES-256-CBC encryption key — must match backend AES_ENCRYPTION_KEY
-  // Leave empty to disable encryption (all traffic will be plain JSON).
-  AES_ENCRYPTION_KEY: 'IWJ1XhEdXfj4OyeYLEr/6U2p+3n3oNus5hhCL1oriEg=',
-
-  // APP_PROFILE: 'DEV' or 'PROD'
-  // PROD: disables browser dev tools, enforces strict origin checks
-  APP_PROFILE: 'DEV',
-};
+  // Fetch the rest (keys, profile) from the backend
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', API_BASE + '/_config.json', false); // synchronous so subsequent scripts see the config
+  try {
+    xhr.send();
+    if (xhr.status === 200) {
+      var cfg = JSON.parse(xhr.responseText);
+      for (var k in cfg) {
+        if (cfg.hasOwnProperty(k)) window.APP_CONFIG[k] = cfg[k];
+      }
+    }
+  } catch (e) {
+    // Config fetch failed — app will run with defaults (no encryption, no API key)
+  }
+})();

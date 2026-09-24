@@ -1774,9 +1774,15 @@
         <input type="hidden" id="doc-photo" />
         <div id="doc-photo-preview" style="margin-top:6px;display:none;"><img style="max-height:80px;border-radius:8px;" /><button type="button" onclick="clearFilePreview('doc-photo')" style="margin-left:8px;background:none;border:none;color:#E53935;cursor:pointer;font-size:12px;">Remove</button></div>
       </div>
-      <div class="form-group" style="display:flex;align-items:center;gap:10px;">
-        <label class="toggle-switch"><input type="checkbox" id="doc-featured" /><span class="toggle-slider"></span></label>
-        <span style="font-size:13px;color:#1F2937;">Show on homepage (Featured)</span>
+      <div class="form-row">
+        <div class="form-group" style="display:flex;align-items:center;gap:10px;">
+          <label class="toggle-switch"><input type="checkbox" id="doc-active" checked /><span class="toggle-slider"></span></label>
+          <span style="font-size:13px;color:#1F2937;">Visible on website</span>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:10px;">
+          <label class="toggle-switch"><input type="checkbox" id="doc-featured" /><span class="toggle-slider"></span></label>
+          <span style="font-size:13px;color:#1F2937;">Show on homepage (Featured)</span>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -2333,6 +2339,14 @@
   /* ── API ──────────────────────────────────────────────── */
   const API = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || 'http://localhost:8000';
 
+  /** Resolve a URL that may be relative (/api/...) to the full API base */
+  function resolveUrl(url) {
+    if (!url) return '';
+    if (url.startsWith('data:') || url.startsWith('http://') || url.startsWith('https://')) return url;
+    if (url.startsWith('/api/')) return API + url;
+    return url;
+  }
+
   function _authHeaders() {
     const d   = JSON.parse(sessionStorage.getItem('vm_token') || '{}');
     const key = (window.APP_CONFIG && window.APP_CONFIG.PUBLIC_API_KEY) || '';
@@ -2430,10 +2444,11 @@
     const wrap = document.getElementById(hiddenId + '-preview');
     if (!wrap) return;
     const img = wrap.querySelector('img');
-    if (img && url) {
-      img.src = url;
+    const resolved = resolveUrl(url);
+    if (img && resolved) {
+      img.src = resolved;
       img.style.cursor = 'pointer';
-      img.onclick = function() { openPreviewModal(url, hiddenId); };
+      img.onclick = function() { openPreviewModal(resolved, hiddenId); };
       wrap.style.display = 'flex';
       wrap.style.alignItems = 'center';
     }
@@ -2903,14 +2918,24 @@
   function applyApptFilters() { _debouncedLoadAppointments(); }
 
   /* ── Toast ────────────────────────────────────────────── */
+  (function() {
+    var container = document.createElement('div');
+    container.id = 'toast-container';
+    container.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column-reverse;gap:10px;pointer-events:none;max-width:360px;';
+    document.body.appendChild(container);
+  })();
+
   function toast(msg, type) {
-    const colors = { success: '#00C853', error: '#E53935', info: '#1E88E5' };
-    const icons = { success: '\u2713', error: '\u2717', info: '\u2139' };
-    const t = document.createElement('div');
-    t.style.cssText = `position:fixed;bottom:24px;right:24px;z-index:9999;background:#fff;border-radius:10px;padding:12px 18px;box-shadow:0 4px 20px rgba(0,0,0,0.12);font-size:13px;border-left:4px solid ${colors[type]||colors.info};font-family:Inter,sans-serif;max-width:340px;display:flex;align-items:center;gap:8px;`;
-    t.innerHTML = `<span style="color:${colors[type]||colors.info};font-weight:700;font-size:15px;">${icons[type]||icons.info}</span><span>${msg}</span>`;
-    document.body.appendChild(t);
-    setTimeout(() => { t.style.transition='opacity 0.3s'; t.style.opacity='0'; setTimeout(() => t.remove(), 300); }, 3000);
+    var container = document.getElementById('toast-container');
+    var colors = { success: '#10B981', error: '#EF4444', info: '#3B82F6' };
+    var bgColors = { success: '#F0FDF4', error: '#FEF2F2', info: '#EFF6FF' };
+    var icons = { success: '\u2713', error: '\u2717', info: '\u2139' };
+    var t = document.createElement('div');
+    t.style.cssText = 'pointer-events:auto;background:' + (bgColors[type]||bgColors.info) + ';border-radius:10px;padding:12px 16px;box-shadow:0 4px 20px rgba(0,0,0,0.1);font-size:13px;border-left:4px solid ' + (colors[type]||colors.info) + ';font-family:Inter,sans-serif;display:flex;align-items:center;gap:10px;transform:translateX(120%);transition:transform 0.3s cubic-bezier(0.4,0,0.2,1),opacity 0.3s;';
+    t.innerHTML = '<span style="color:' + (colors[type]||colors.info) + ';font-weight:700;font-size:15px;flex-shrink:0;">' + (icons[type]||icons.info) + '</span><span style="color:#1F2937;flex:1;">' + msg + '</span><button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;font-size:16px;color:#9CA3AF;line-height:1;flex-shrink:0;padding:0 0 0 4px;">&times;</button>';
+    container.appendChild(t);
+    requestAnimationFrame(function() { requestAnimationFrame(function() { t.style.transform = 'translateX(0)'; }); });
+    setTimeout(function() { t.style.transform = 'translateX(120%)'; t.style.opacity = '0'; setTimeout(function() { t.remove(); }, 300); }, 3500);
   }
 
   /* ── Helpers ──────────────────────────────────────────── */
@@ -2935,7 +2960,7 @@
     sms:'SMS Settings', 'sms-logs':'SMS Audit Log', 'activity-log':'Activity Log'
   };
 
-  function navigate(page) {
+  async function navigate(page) {
     document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-item[data-page]').forEach(n => n.classList.remove('active'));
     const el = document.getElementById('page-' + page);
@@ -2945,23 +2970,26 @@
     document.getElementById('topbar-title').textContent = title;
     document.getElementById('topbar-bc').textContent   = title;
     window.scrollTo(0, 0);
-    if (page === 'appointments')  loadAppointments();
-    if (page === 'doctors')       loadDoctors();
-    if (page === 'departments')   loadDepartments();
-    if (page === 'blogs')         loadBlogs();
-    if (page === 'media')         loadMedia();
-    if (page === 'testimonials')  loadTestimonials();
-    if (page === 'offers')        loadOffers();
-    if (page === 'insurance')     loadInsurance();
-    if (page === 'partners')      loadPartners();
-    if (page === 'stats')         { loadHeroStats(); loadSiteConfig(); }
-    if (page === 'facilities')    loadFacilities();
-    if (page === 'faqs')          loadFaqs();
-    if (page === 'awards')        loadAwards();
-    if (page === 'sms')           loadSmsConfig();
-    if (page === 'sms-logs')      loadSmsLogs(1);
-    if (page === 'activity-log')  loadAuditLogs(1);
-    if (page === 'users')         loadAdminUsers();
+    showLoader();
+    try {
+    if (page === 'appointments')  await loadAppointments();
+    if (page === 'doctors')       await loadDoctors();
+    if (page === 'departments')   await loadDepartments();
+    if (page === 'blogs')         await loadBlogs();
+    if (page === 'media')         await loadMedia();
+    if (page === 'testimonials')  await loadTestimonials();
+    if (page === 'offers')        await loadOffers();
+    if (page === 'insurance')     await loadInsurance();
+    if (page === 'partners')      await loadPartners();
+    if (page === 'stats')         { await loadHeroStats(); await loadSiteConfig(); }
+    if (page === 'facilities')    await loadFacilities();
+    if (page === 'faqs')          await loadFaqs();
+    if (page === 'awards')        await loadAwards();
+    if (page === 'sms')           await loadSmsConfig();
+    if (page === 'sms-logs')      await loadSmsLogs(1);
+    if (page === 'activity-log')  await loadAuditLogs(1);
+    if (page === 'users')         await loadAdminUsers();
+    } finally { hideLoader(); }
   }
 
   document.querySelectorAll('.nav-item[data-page]').forEach(btn => {
@@ -3028,7 +3056,7 @@
     const DEL_SVG  = '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m5 5v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3"/>';
     tbody.innerHTML = list.map(d => `
       <tr data-id="${d.id}">
-        <td>${(d.photo_url || d.photo) ? `<img src="${d.photo_url || d.photo}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;vertical-align:middle;cursor:pointer;" onerror="this.outerHTML='<span style=\\'color:#CBD5E1\\'>—</span>'" onclick="openPreviewModal(this.src,'Doctor Photo')" />` : '<span style="color:#CBD5E1;">—</span>'}</td>
+        <td>${(d.photo_url || d.photo) ? `<img src="${resolveUrl(d.photo_url || d.photo)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;vertical-align:middle;cursor:pointer;" onerror="this.outerHTML='<span style=\\'color:#CBD5E1\\'>—</span>'" onclick="openPreviewModal(this.src,'Doctor Photo')" />` : '<span style="color:#CBD5E1;">—</span>'}</td>
         <td><strong>${esc(d.name)}</strong></td>
         <td style="font-size:12px;">${esc(d.qualification)}</td>
         <td>${esc(d.specialty)}</td>
@@ -3076,6 +3104,7 @@
     document.getElementById('doc-photo').value    = doctor ? (doctor.photo || '') : '';
     document.getElementById('doc-photo-file').value = '';
     if (doctor && (doctor.photo_url || doctor.photo)) { showFilePreview('doc-photo', doctor.photo_url || doctor.photo); } else { clearFilePreview('doc-photo'); }
+    document.getElementById('doc-active').checked   = doctor ? doctor.active !== false : true;
     document.getElementById('doc-featured').checked = doctor ? !!doctor.featured : false;
     const sel = document.getElementById('doc-dept');
     if (doctor && doctor.department) {
@@ -3110,6 +3139,7 @@
       experience:    document.getElementById('doc-exp').value.trim(),
       timing:        document.getElementById('doc-timing').value.trim(),
       photo:         photoUrl,
+      active:        document.getElementById('doc-active').checked,
       featured:      document.getElementById('doc-featured').checked,
     };
     body.name          = body.name.toUpperCase();
@@ -3195,7 +3225,7 @@
     tbody.innerHTML = list.map(d => `
       <tr data-id="${d.id}">
         <td>
-          ${d.icon ? `<img src="${d.icon}" style="width:28px;height:28px;border-radius:6px;object-fit:cover;margin-right:8px;vertical-align:middle;cursor:pointer;" onerror="this.style.display='none'" onclick="openPreviewModal(this.src,'Department Icon')" />` : ''}
+          ${d.icon ? `<img src="${resolveUrl(d.icon)}" style="width:28px;height:28px;border-radius:6px;object-fit:cover;margin-right:8px;vertical-align:middle;cursor:pointer;" onerror="this.style.display='none'" onclick="openPreviewModal(this.src,'Department Icon')" />` : ''}
           <strong>${esc(d.name)}</strong>
         </td>
         <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:#6B7280;" title="${esc(d.description || '')}">${esc(d.description || '—')}</td>
@@ -3702,10 +3732,10 @@
 
     grid.innerHTML = items.map(m => `
       <div class="media-card" data-id="${m.id}">
-        <div class="media-thumb" style="cursor:pointer;" onclick="openPreviewModal('${esc(m.display_url || m.thumb_url || '')}','${esc(m.title)}')">
+        <div class="media-thumb" style="cursor:pointer;" onclick="openPreviewModal('${esc(resolveUrl(m.display_url || m.thumb_url || ''))}','${esc(m.title)}')">
           ${m.type === 'video'
             ? `<div class="media-thumb-placeholder">${VIDEO_ICON}<span>Video</span></div>`
-            : `<img src="${m.thumb_url || m.display_url || ''}" alt="${esc(m.alt || m.title)}" onerror="this.parentElement.innerHTML='<div class=\\'media-thumb-placeholder\\'><span>No preview</span></div>'" />`
+            : `<img src="${resolveUrl(m.thumb_url || m.display_url || '')}" alt="${esc(m.alt || m.title)}" onerror="this.parentElement.innerHTML='<div class=\\'media-thumb-placeholder\\'><span>No preview</span></div>'" />`
           }
         </div>
         <div class="media-card-body">
@@ -3927,7 +3957,7 @@
     if (!data.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#9CA3AF;padding:32px;">No providers yet. Click "+ Add Provider" to create one.</td></tr>'; return; }
     tbody.innerHTML = data.map(p => `
       <tr>
-        <td>${(p.logo_url || p.logo_drive_link) ? `<img src="${p.logo_url || p.logo_drive_link}" alt="${esc(p.name)}" style="height:36px;max-width:80px;object-fit:contain;border-radius:4px;background:#f8fafc;padding:2px;cursor:pointer;" onerror="this.style.display='none'" onclick="openPreviewModal(this.src,'Insurance Logo')" />` : '<span style="color:#9CA3AF;font-size:12px;">No logo</span>'}</td>
+        <td>${(p.logo_url || p.logo_drive_link) ? `<img src="${resolveUrl(p.logo_url || p.logo_drive_link)}" alt="${esc(p.name)}" style="height:36px;max-width:80px;object-fit:contain;border-radius:4px;background:#f8fafc;padding:2px;cursor:pointer;" onerror="this.style.display='none'" onclick="openPreviewModal(this.src,'Insurance Logo')" />` : '<span style="color:#9CA3AF;font-size:12px;">No logo</span>'}</td>
         <td style="font-weight:500;">${esc(p.name)}</td>
         <td>${p.order}</td>
         <td><span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:${p.active ? 'rgba(0,200,83,0.12)' : 'rgba(148,163,184,0.15)'};color:${p.active ? '#00843D' : '#64748B'};">${p.active ? 'Active' : 'Inactive'}</span></td>
@@ -4018,7 +4048,7 @@
     if (!data.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#9CA3AF;padding:32px;">No partners yet. Click "+ Add Partner" to create one.</td></tr>'; return; }
     tbody.innerHTML = data.map(p => `
       <tr>
-        <td>${(p.logo_url || p.logo_drive_link) ? `<img src="${p.logo_url || p.logo_drive_link}" alt="${esc(p.name)}" style="height:36px;max-width:80px;object-fit:contain;border-radius:4px;background:#f8fafc;padding:2px;cursor:pointer;" onerror="this.style.display='none'" onclick="openPreviewModal(this.src,'Partner Logo')" />` : '<span style="color:#9CA3AF;font-size:12px;">No logo</span>'}</td>
+        <td>${(p.logo_url || p.logo_drive_link) ? `<img src="${resolveUrl(p.logo_url || p.logo_drive_link)}" alt="${esc(p.name)}" style="height:36px;max-width:80px;object-fit:contain;border-radius:4px;background:#f8fafc;padding:2px;cursor:pointer;" onerror="this.style.display='none'" onclick="openPreviewModal(this.src,'Partner Logo')" />` : '<span style="color:#9CA3AF;font-size:12px;">No logo</span>'}</td>
         <td style="font-weight:500;">${esc(p.name)}</td>
         <td>${p.order}</td>
         <td><span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:${p.active ? 'rgba(0,200,83,0.12)' : 'rgba(148,163,184,0.15)'};color:${p.active ? '#00843D' : '#64748B'};">${p.active ? 'Active' : 'Inactive'}</span></td>
@@ -4201,7 +4231,7 @@
     }
     tbody.innerHTML = list.map(f => `
       <tr>
-        <td>${f.icon_url ? `<img src="${f.icon_url}" style="width:36px;height:36px;object-fit:contain;border-radius:6px;cursor:pointer;" onclick="openPreviewModal(this.src,'Facility Icon')" onerror="this.style.display='none'" />` : '<span style="color:#CBD5E1;">—</span>'}</td>
+        <td>${f.icon_url ? `<img src="${resolveUrl(f.icon_url)}" style="width:36px;height:36px;object-fit:contain;border-radius:6px;cursor:pointer;" onclick="openPreviewModal(this.src,'Facility Icon')" onerror="this.style.display='none'" />` : '<span style="color:#CBD5E1;">—</span>'}</td>
         <td style="font-weight:600;">${esc(f.name)}</td>
         <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(f.short_desc || '')}</td>
         <td><span style="background:#EFF6FF;color:#1D4ED8;border-radius:6px;padding:2px 8px;font-size:12px;">${esc(f.category || 'general')}</span></td>
@@ -4827,21 +4857,7 @@
     document.getElementById('page-loader').classList.remove('visible');
   }
 
-  // Wrap the navigate function to show/hide the loader automatically
-  (function () {
-    const _origNavigate = navigate;
-    window.navigate = function (page) {
-      showLoader();
-      _origNavigate(page);
-      // Hide after a short window — data loads are async so we rely on
-      // individual load functions calling hideLoader() when done
-      setTimeout(hideLoader, 800);
-    };
-    // Re-attach nav button listeners to the wrapped version
-    document.querySelectorAll('.nav-item[data-page]').forEach(function (btn) {
-      btn.onclick = function () { navigate(btn.dataset.page); };
-    });
-  })();
+  // Nav button listeners already set up above; navigate() handles loader internally.
 
   /* ── Activity / Audit Log ────────────────────────────────────────
    * Loads paginated audit log from GET /api/audit-logs (SUPER_ADMIN only).
@@ -5140,11 +5156,8 @@
   }
 
   /* ── Boot ─────────────────────────────────────────────── */
-  loadDeptOptions();
-  loadStats();
-  loadAppointments();
-  loadDashboardActivity();
-  loadNotifications();
+  showLoader();
+  Promise.all([loadDeptOptions(), loadStats(), loadAppointments(), loadDashboardActivity(), loadNotifications()]).finally(hideLoader);
   setInterval(loadNotifications, 30000);
 </script>
 </body>

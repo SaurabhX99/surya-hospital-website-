@@ -15,6 +15,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+import os
+
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -188,6 +190,26 @@ def root():
 def get_page_token(request: Request, _: None = Depends(rate_limit(20, 60))):
     """Issue a short-lived page token for public website API access."""
     return issue_page_token()
+
+
+# ── Dynamic frontend config (keys from env, never committed to code) ─
+_FRONTEND_CFG: dict | None = None
+
+@app.get("/_config.json")
+def frontend_config():
+    """Serve frontend configuration with keys injected from server env vars.
+
+    Only the API base URL is in the frontend code; all keys are fetched here.
+    """
+    global _FRONTEND_CFG
+    if _FRONTEND_CFG is None:
+        _FRONTEND_CFG = {
+            "API_BASE_URL":       os.getenv("BASE_URL", "http://localhost:8000").rstrip("/"),
+            "PUBLIC_API_KEY":     os.getenv("PUBLIC_API_KEY", ""),
+            "AES_ENCRYPTION_KEY": os.getenv("AES_ENCRYPTION_KEY", ""),
+            "APP_PROFILE":        os.getenv("APP_PROFILE", "DEV").strip().upper(),
+        }
+    return JSONResponse(content=_FRONTEND_CFG, headers={"Cache-Control": "no-store"})
 
 
 # ── Mount all route modules ──────────────────────────────────────────

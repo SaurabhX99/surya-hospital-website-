@@ -132,38 +132,7 @@
 <script src="js/shared.js"></script>
 <script>
 (function() {
-  var API_BASE = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || 'http://localhost:8000';
-  var API_KEY  = (window.APP_CONFIG && window.APP_CONFIG.PUBLIC_API_KEY) || '';
-  var _pt = '';
-
-  function resolveURL(url) {
-    if (!url) return '';
-    if (url.startsWith('data:') || url.startsWith('http://') || url.startsWith('https://')) return url;
-    if (url.startsWith('/api/')) return API_BASE + url;
-    return url;
-  }
-
   function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
-
-  async function getToken() {
-    if (_pt && Date.now() < Number(sessionStorage.getItem('vm_pt_exp') || 0)) return _pt;
-    try {
-      var r = await fetch(API_BASE + '/api/public-token');
-      var j = await r.json();
-      _pt = j.token || '';
-      sessionStorage.setItem('vm_pt', _pt);
-      sessionStorage.setItem('vm_pt_exp', Date.now() + 4 * 60000);
-    } catch(e) { _pt = ''; }
-    return _pt;
-  }
-
-  async function apiFetch(path) {
-    var token = await getToken();
-    var h = { 'Content-Type': 'application/json' };
-    if (API_KEY) h['X-API-Key'] = API_KEY;
-    if (token) h['X-Page-Token'] = token;
-    return fetch(API_BASE + path, { headers: h });
-  }
 
   var defaultIcon = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="1.5" width="40" height="40"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>';
 
@@ -182,7 +151,7 @@
   function renderCard(f, i) {
     var color = f.color || '#0A4D8C';
     var color2 = lighten(color);
-    var iconUrl = f.icon_url ? resolveURL(f.icon_url) : '';
+    var iconUrl = f.icon_url || '';
     var visual = iconUrl
       ? '<div class="facility-visual" style="background:linear-gradient(135deg,' + color + ',' + color2 + ');"><img src="' + esc(iconUrl) + '" alt="' + esc(f.name) + '" style="max-width:80%;max-height:80%;object-fit:contain;border-radius:12px;" onerror="this.style.display=\'none\'" /><div class="facility-visual-label">' + esc(f.name) + '</div></div>'
       : '<div class="facility-visual" style="background:linear-gradient(135deg,' + color + ',' + color2 + ');"><div class="facility-visual-icon">' + defaultIcon + '</div><div class="facility-visual-label">' + esc(f.name) + '</div></div>';
@@ -193,7 +162,7 @@
     return '<div class="facility-feature-card" data-animate="fade-up" data-delay="' + ((i % 2) * 100) + '">' + visual + info + '</div>';
   }
 
-  var defaultFacilities = [
+  var facilities = [
     { name: 'ICU', category: 'critical_care', color: '#0A4D8C', description: 'Fully equipped Intensive Care Unit with round-the-clock monitoring by trained intensivists and nursing staff.' },
     { name: 'NICU', category: 'neonatal', color: '#1A7A5A', description: 'Neonatal Intensive Care Unit with incubators, phototherapy, and continuous monitoring for premature and critically ill newborns.' },
     { name: 'Emergency Department', category: 'emergency', color: '#C0392B', description: '24×7 Emergency services with trauma care, triage, and rapid-response teams for all medical emergencies.' },
@@ -204,24 +173,8 @@
     { name: 'Pathology Lab', category: 'pathology', color: '#8E44AD', description: 'In-house pathology laboratory offering comprehensive blood tests, microbiology, and histopathology with quick turnaround.' },
   ];
 
-  async function loadFacilities() {
-    var grid = document.getElementById('facility-feature-grid');
-    if (!grid) return;
-    var facilities = null;
-    try {
-      var res = await apiFetch('/api/facilities');
-      if (res.ok) {
-        var data = await res.json();
-        if (Array.isArray(data) && data.length) {
-          facilities = data;
-        }
-      }
-    } catch(e) {}
-    if (!facilities) facilities = defaultFacilities;
-    grid.innerHTML = facilities.map(renderCard).join('');
-  }
-
-  loadFacilities();
+  var grid = document.getElementById('facility-feature-grid');
+  if (grid) grid.innerHTML = facilities.map(renderCard).join('');
 })();
 </script>
 </body>

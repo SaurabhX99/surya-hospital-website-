@@ -547,9 +547,11 @@
     try {
       var res = await apiFetch('/api/site-config');
       var cfg = await res.json();
-      var images = (cfg && cfg.award_images) || [];
-      if (!images.length) { marquee.style.display = 'none'; return; }
-      var html = images.map(function(src) { return '<img src="' + src + '" alt="Award" onerror="this.style.display=\'none\'" />'; }).join('');
+      var images = ((cfg && cfg.award_images) || []).filter(function(src) { return src && src.trim(); });
+      if (!images.length) { marquee.style.display = 'none'; marquee.innerHTML = ''; return; }
+      var html = images.map(function(src) {
+        return '<img src="' + src + '" alt="Award" onerror="this.remove();if(!this.parentElement||!this.parentElement.querySelector(\'img\'))document.getElementById(\'award-marquee\').style.display=\'none\';" />';
+      }).join('');
       if (images.length === 1) {
         marquee.innerHTML = '<div style="display:flex;justify-content:center;">' + html + '</div>';
       } else {
