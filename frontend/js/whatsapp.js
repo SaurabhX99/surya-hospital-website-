@@ -290,6 +290,51 @@
 
   if (!trigger || !panel) return;
 
+  /* ── Attention Animation ─────────────────────────────── */
+  (function initAttention() {
+    // Inject CSS for pulse rings + tooltip
+    var style = document.createElement('style');
+    style.textContent = [
+      '@keyframes wa-pulse-ring{0%{transform:scale(1);opacity:.6}100%{transform:scale(2.2);opacity:0}}',
+      '.wa-pulse-ring{position:absolute;inset:0;border-radius:50%;border:3px solid #00A6A6;animation:wa-pulse-ring 1.8s ease-out infinite;pointer-events:none;}',
+      '.wa-pulse-ring:nth-child(2){animation-delay:.6s;}',
+      '.wa-tooltip{position:absolute;bottom:72px;right:0;background:#fff;color:#333;font-size:13px;font-weight:600;padding:8px 16px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.15);white-space:nowrap;opacity:0;transform:translateY(8px);transition:opacity .3s,transform .3s;pointer-events:none;}',
+      '.wa-tooltip::after{content:"";position:absolute;bottom:-6px;right:22px;width:12px;height:12px;background:#fff;transform:rotate(45deg);box-shadow:2px 2px 4px rgba(0,0,0,0.08);}',
+      '.wa-tooltip.show{opacity:1;transform:translateY(0);}',
+    ].join('');
+    document.head.appendChild(style);
+
+    // Add pulse rings
+    var ring1 = document.createElement('span');
+    ring1.className = 'wa-pulse-ring';
+    var ring2 = document.createElement('span');
+    ring2.className = 'wa-pulse-ring';
+    trigger.style.position = trigger.style.position || 'fixed';
+    trigger.appendChild(ring1);
+    trigger.appendChild(ring2);
+
+    // Add tooltip bubble
+    var tip = document.createElement('span');
+    tip.className = 'wa-tooltip';
+    tip.textContent = 'Need help? Chat with us!';
+    trigger.appendChild(tip);
+
+    // Show tooltip after 3s
+    setTimeout(function() { tip.classList.add('show'); }, 3000);
+
+    // Dismiss everything on first click
+    function dismiss() {
+      ring1.remove();
+      ring2.remove();
+      tip.remove();
+      trigger.removeEventListener('click', dismiss);
+    }
+    trigger.addEventListener('click', dismiss);
+
+    // Auto-hide tooltip after 8s
+    setTimeout(function() { tip.classList.remove('show'); }, 11000);
+  })();
+
   /* ── Helpers ──────────────────────────────────────────── */
   function formatMessage(text) {
     return text
