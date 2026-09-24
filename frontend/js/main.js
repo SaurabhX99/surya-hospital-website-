@@ -777,10 +777,8 @@
         <div class="partner-logo">
           <span style="font-size:var(--text-sm);font-weight:var(--font-semibold);color:var(--color-text-secondary);white-space:nowrap;">${n}</span>
         </div>`;
-      let staticItems = [...names];
-      while (staticItems.length < 8 && names.length) staticItems = [...staticItems, ...names];
-      const staticHtml = staticItems.map(makeStaticCard).join('');
-      track.innerHTML = staticHtml + staticHtml;
+      const staticHtml = names.map(makeStaticCard).join('');
+      track.innerHTML = staticHtml;
       return;
     }
 
@@ -790,16 +788,7 @@
         <span class="partner-logo-name">${p.name}</span>
       </div>`;
 
-    if (providers.length === 1) {
-      track.innerHTML = providers.map(makeCard).join('');
-      track.style.animation = 'none';
-      track.style.justifyContent = 'center';
-    } else {
-      let items = [...providers];
-      while (items.length < 8) items = [...items, ...providers];
-      const html = items.map(makeCard).join('');
-      track.innerHTML = html + html;
-    }
+    track.innerHTML = providers.map(makeCard).join('');
   }
 
   /* ── Render: Partners ──────────────────────────────────── */
@@ -826,16 +815,7 @@
         <span class="partner-logo-name">${p.name}</span>
       </div>`;
 
-    if (partners.length === 1) {
-      track.innerHTML = partners.map(makeCard).join('');
-      track.style.animation = 'none';
-      track.style.justifyContent = 'center';
-    } else {
-      let items = [...partners];
-      while (items.length < 8) items = [...items, ...partners];
-      const html = items.map(makeCard).join('');
-      track.innerHTML = html + html;
-    }
+    track.innerHTML = partners.map(makeCard).join('');
   }
 
   /* ── Render: Blogs ────────────────────────────────────── */
@@ -1177,13 +1157,7 @@
       const offers = await res.json();
       if (!Array.isArray(offers) || !offers.length) return;
       const items = offers.map(o => `<span class="offers-marquee-item">${o.text}</span><span class="offers-marquee-sep">★</span>`).join('');
-      if (offers.length === 1) {
-        track.innerHTML = items;
-        track.style.animation = 'none';
-        track.style.justifyContent = 'center';
-      } else {
-        track.innerHTML = items + items;
-      }
+      track.innerHTML = items;
       bar.style.display = '';
       // Measure actual height and push hero content down
       const h = bar.getBoundingClientRect().height || 38;

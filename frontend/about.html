@@ -137,7 +137,7 @@
     .award-marquee-track { display: flex; gap: var(--space-6); animation: award-scroll 30s linear infinite; width: max-content; }
     .award-marquee-track:hover { animation-play-state: paused; }
     .award-marquee-track img { height: 100px; border-radius: var(--radius-lg); object-fit: contain; flex-shrink: 0; }
-    @keyframes award-scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+    @keyframes award-scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
 
     /* Awards */
     .awards-grid {
@@ -510,11 +510,7 @@
       var html = images.map(function(src) {
         return '<img src="' + resolveURL(src) + '" alt="Award" onerror="this.remove();if(!this.parentElement||!this.parentElement.querySelector(\'img\'))document.getElementById(\'award-marquee\').style.display=\'none\';" />';
       }).join('');
-      if (images.length === 1) {
-        marquee.innerHTML = '<div style="display:flex;justify-content:center;">' + html + '</div>';
-      } else {
-        marquee.innerHTML = '<div class="award-marquee-track">' + html + html + '</div>';
-      }
+      marquee.innerHTML = '<div class="award-marquee-track">' + html + '</div>';
       marquee.style.display = '';
     } catch(e) { marquee.style.display = 'none'; }
   }

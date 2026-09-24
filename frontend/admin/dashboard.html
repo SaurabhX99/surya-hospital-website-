@@ -3768,9 +3768,9 @@
 
     grid.innerHTML = items.map(m => `
       <div class="media-card" data-id="${m.id}">
-        <div class="media-thumb" style="cursor:pointer;" onclick="openPreviewModal('${esc(resolveUrl(m.display_url || m.thumb_url || ''))}','${esc(m.title)}')">
+        <div class="media-thumb" ${m.type !== 'video' ? `style="cursor:pointer;" onclick="openPreviewModal('${esc(resolveUrl(m.display_url || m.thumb_url || ''))}','${esc(m.title)}')"` : ''}>
           ${m.type === 'video'
-            ? `<div class="media-thumb-placeholder" style="position:relative;">${VIDEO_ICON}<span>Video</span><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;"><div style="width:44px;height:44px;border-radius:50%;background:rgba(10,77,140,0.85);display:flex;align-items:center;justify-content:center;"><svg xmlns="http://www.w3.org/2000/svg" fill="white" viewBox="0 0 24 24" width="20" height="20"><polygon points="8,5 20,12 8,19"/></svg></div></div></div>`
+            ? `<div class="media-thumb-placeholder">${VIDEO_ICON}<span>Video</span></div>`
             : `<img src="${resolveUrl(m.thumb_url || m.display_url || '')}" alt="${esc(m.alt || m.title)}" onerror="this.parentElement.innerHTML='<div class=\\'media-thumb-placeholder\\'><span>No preview</span></div>'" />`
           }
         </div>

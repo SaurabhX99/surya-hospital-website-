@@ -1077,7 +1077,7 @@ body.has-marquee .hero-content {
 .offers-marquee-sep  { opacity: 0.6; }
 @keyframes marquee-scroll {
   from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
+  to   { transform: translateX(-100%); }
 }
 
 /* Hero Image Panel */
@@ -1822,7 +1822,7 @@ body.has-marquee .hero-content {
 
 @keyframes scroll-marquee {
   from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
+  to   { transform: translateX(-100%); }
 }
 
 .partner-logo {
