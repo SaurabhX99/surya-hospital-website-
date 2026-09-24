@@ -13,7 +13,7 @@ from pymongo import ASCENDING, DESCENDING
 
 # ── Tenant & base URL ────────────────────────────────────────────────
 TENANT_NAME = os.getenv("TENANT_NAME", "vedansh_medicare").strip()
-BASE_URL    = os.getenv("BASE_URL", "http://localhost:8000").rstrip("/")
+BASE_URL    = os.getenv("BASE_URL", "https://surya-hospital-website.onrender.com").rstrip("/")
 
 # ── Per-request context variables ────────────────────────────────────
 # Set by tenant middleware on every request; used by route handlers.
