@@ -3,7 +3,7 @@ Pydantic models for all API request bodies.
 """
 from __future__ import annotations
 
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -241,7 +241,6 @@ class FaqUpdate(BaseModel):
 class AwardIn(BaseModel):
     title: str
     description: str = ""
-    image: Optional[str] = None
     order: int = 0
     active: bool = True
 
@@ -249,7 +248,6 @@ class AwardIn(BaseModel):
 class AwardUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
-    image: Optional[str] = None
     order: Optional[int] = None
     active: Optional[bool] = None
 
@@ -279,6 +277,7 @@ class SmsTestIn(BaseModel):
 class SiteConfigIn(BaseModel):
     phone: Optional[str] = None
     email: Optional[str] = None
+    award_images: Optional[List[str]] = None
 
 
 # ── Auth ─────────────────────────────────────────────────────────────

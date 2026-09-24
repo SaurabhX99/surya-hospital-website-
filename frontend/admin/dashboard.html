@@ -1289,7 +1289,7 @@
             <label class="form-label">SMS Template <span style="color:#E53935">*</span></label>
             <!-- Textarea where admin types the SMS template with placeholders -->
             <textarea id="sms-template" class="form-control" rows="5"
-              placeholder="Dear {name}, your appointment has been confirmed. Ref: {appointment_id}. Dept: {department}. Date: {date}."
+              placeholder="Dear {name}, your appointment (Ref: {appointment_id}) at Vedansh Medicare is confirmed. Dept: {department}. Doctor: {doctor}. Date: {date}. Timings: {timing}. Please reach out to the hospital desk in case of any queries. Helpline: +91 9650494019"
               style="resize:vertical;font-family:monospace;font-size:13px;"></textarea>
           </div>
 
@@ -1302,6 +1302,7 @@
               <span style="font-size:11px;background:#EFF6FF;color:#1D4ED8;padding:3px 8px;border-radius:4px;font-family:monospace;">{department}</span>
               <span style="font-size:11px;background:#EFF6FF;color:#1D4ED8;padding:3px 8px;border-radius:4px;font-family:monospace;">{doctor}</span>
               <span style="font-size:11px;background:#EFF6FF;color:#1D4ED8;padding:3px 8px;border-radius:4px;font-family:monospace;">{date}</span>
+              <span style="font-size:11px;background:#EFF6FF;color:#1D4ED8;padding:3px 8px;border-radius:4px;font-family:monospace;">{timing}</span>
               <span style="font-size:11px;background:#EFF6FF;color:#1D4ED8;padding:3px 8px;border-radius:4px;font-family:monospace;">{mobile}</span>
             </div>
             <div style="font-size:11px;color:#6B7280;margin-top:8px;">
@@ -1605,9 +1606,23 @@
       <div class="card-panel">
         <div class="card-panel-header"><span class="card-panel-title">Awards</span></div>
         <table class="data-table">
-          <thead><tr><th>Image</th><th>Title</th><th>Description</th><th>Order</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody id="awards-admin-tbody"><tr><td colspan="6" style="text-align:center;color:#94A3B8;padding:32px;">Loading…</td></tr></tbody>
+          <thead><tr><th>Title</th><th>Description</th><th>Order</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="awards-admin-tbody"><tr><td colspan="5" style="text-align:center;color:#94A3B8;padding:32px;">Loading…</td></tr></tbody>
         </table>
+      </div>
+
+      <!-- Award Gallery Images (marquee) -->
+      <div class="card-panel" style="margin-top:20px;">
+        <div class="card-panel-header"><span class="card-panel-title">Award Gallery Images (Marquee)</span></div>
+        <div style="padding:20px;">
+          <div style="font-size:12px;color:#6B7280;margin-bottom:12px;">Upload images of certificates, trophies, or accreditations. These display as a scrolling marquee above award cards on the website. Leave empty to hide the marquee.</div>
+          <div id="award-gallery-previews" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;"></div>
+          <input type="file" id="award-gallery-file" class="form-control" accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml,image/avif" multiple />
+          <button onclick="saveAwardGallery()" id="award-gallery-save-btn"
+            style="margin-top:12px;background:#1E3A5F;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;">
+            Save Gallery
+          </button>
+        </div>
       </div>
     </div>
 
@@ -1627,13 +1642,6 @@
           <div class="form-group">
             <label class="form-label">Description</label>
             <textarea id="award-desc" class="form-control" rows="3" placeholder="Brief description of the award"></textarea>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Award Image</label>
-            <input type="file" id="award-image-file" class="form-control" accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml,image/avif" />
-            <input type="hidden" id="award-image" />
-            <div id="award-image-preview" style="margin-top:6px;display:none;"><img style="max-height:80px;border-radius:8px;" /><button type="button" onclick="clearFilePreview('award-image')" style="margin-left:8px;background:none;border:none;color:#E53935;cursor:pointer;font-size:12px;">Remove</button></div>
-            <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Upload an image for this award. A default icon will be shown if not provided.</div>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
             <div class="form-group">
@@ -2436,7 +2444,7 @@
     if (hiddenEl) hiddenEl.value = '';
     const wrap = document.getElementById(hiddenId + '-preview');
     if (wrap) wrap.style.display = 'none';
-    const fileMap = { 'doc-photo': 'doc-photo-file', 'blog-thumbnail': 'blog-thumbnail-file', 'blog-content-url': 'blog-content-file', 'media-url': 'media-file-upload', 'insurance-logo': 'insurance-logo-file', 'partner-logo': 'partner-logo-file', 'facility-icon': 'facility-icon-file', 'dept-icon': 'dept-icon-file', 'award-image': 'award-image-file' };
+    const fileMap = { 'doc-photo': 'doc-photo-file', 'blog-thumbnail': 'blog-thumbnail-file', 'blog-content-url': 'blog-content-file', 'media-url': 'media-file-upload', 'insurance-logo': 'insurance-logo-file', 'partner-logo': 'partner-logo-file', 'facility-icon': 'facility-icon-file', 'dept-icon': 'dept-icon-file' };
     const fileEl = document.getElementById(fileMap[hiddenId] || (hiddenId + '-file'));
     if (fileEl) fileEl.value = '';
   }
@@ -4372,20 +4380,18 @@
   async function loadAwards() {
     const tbody = document.getElementById('awards-admin-tbody');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#9CA3AF;padding:32px;">Loading…</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#9CA3AF;padding:32px;">Loading…</td></tr>';
     const data = await apiFetch('/api/awards?show_all=true');
-    if (!data) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#E53935;padding:32px;">Something went wrong.</td></tr>'; return; }
+    if (!data) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#E53935;padding:32px;">Something went wrong.</td></tr>'; return; }
     const list = Array.isArray(data) ? data : (data.items || []);
     _awardItems = list;
     if (!list.length) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#94A3B8;padding:24px;">No awards yet. Click "+ Add Award" to create one.</td></tr>';
-      return;
-    }
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#94A3B8;padding:24px;">No awards yet. Click "+ Add Award" to create one.</td></tr>';
+    } else {
     const EDIT_SVG = '<path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>';
     const DEL_SVG  = '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m5 5v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3"/>';
     tbody.innerHTML = list.map(a => `
       <tr>
-        <td>${a.image_url ? `<img src="${a.image_url}" style="width:40px;height:40px;border-radius:8px;object-fit:cover;cursor:pointer;" onclick="openPreviewModal('${a.image_url.replace(/'/g, "\\'")}','${esc(a.title)}')" />` : '<span style="color:#CBD5E1;">—</span>'}</td>
         <td><strong>${esc(a.title)}</strong></td>
         <td style="max-width:220px;font-size:12px;color:#6B7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(a.description)}">${esc(a.description || '—')}</td>
         <td>${a.order}</td>
@@ -4402,6 +4408,9 @@
         </td>
       </tr>
     `).join('');
+    }
+    // Load award gallery images
+    loadAwardGallery();
   }
 
   function editAwardById(id) {
@@ -4413,9 +4422,6 @@
     document.getElementById('award-edit-id').value   = a ? a.id : '';
     document.getElementById('award-title').value     = a ? a.title : '';
     document.getElementById('award-desc').value      = a ? (a.description || '') : '';
-    document.getElementById('award-image').value     = a ? (a.image || '') : '';
-    document.getElementById('award-image-file').value = '';
-    if (a && a.image_url) { showFilePreview('award-image', a.image_url); } else { clearFilePreview('award-image'); }
     document.getElementById('award-order').value     = a ? (a.order ?? 0) : 0;
     document.getElementById('award-active').value    = a ? String(!!a.active) : 'true';
     document.getElementById('award-modal-title').textContent = a ? 'Edit Award' : 'Add Award';
@@ -4430,19 +4436,9 @@
     const btn = document.getElementById('award-save-btn');
     btn.disabled = true; btn.textContent = 'Saving…';
 
-    const imageFileEl = document.getElementById('award-image-file');
-    let imageUrl = document.getElementById('award-image').value.trim() || null;
-    if (imageFileEl.files && imageFileEl.files[0]) {
-      try {
-        btn.textContent = 'Reading image…';
-        imageUrl = await readFileAsDataURI(imageFileEl, 'image');
-      } catch (e) { btn.disabled = false; btn.textContent = 'Save Award'; return; }
-    }
-
     const body = {
       title,
       description: document.getElementById('award-desc').value.trim(),
-      image:       imageUrl,
       order:       Number(document.getElementById('award-order').value) || 0,
       active:      document.getElementById('award-active').value === 'true',
     };
@@ -4464,6 +4460,65 @@
     const result = await apiFetch(`/api/awards/${id}`, { method: 'DELETE' });
     if (result && result.success) { loadAwards(); toast('Award deleted', 'success'); }
     else toast('Failed to delete', 'error');
+  }
+
+  /* ── Award Gallery Images ───────────────────────────────────────── */
+  let _awardGalleryImages = [];
+
+  async function loadAwardGallery() {
+    const cfg = await apiFetch('/api/site-config');
+    _awardGalleryImages = (cfg && cfg.award_images) || [];
+    renderAwardGalleryPreviews();
+  }
+
+  function renderAwardGalleryPreviews() {
+    const container = document.getElementById('award-gallery-previews');
+    if (!container) return;
+    if (!_awardGalleryImages.length) { container.innerHTML = '<span style="color:#9CA3AF;font-size:12px;">No gallery images yet.</span>'; return; }
+    container.innerHTML = _awardGalleryImages.map((src, i) => `
+      <div style="position:relative;display:inline-block;">
+        <img src="${src}" style="height:60px;border-radius:8px;object-fit:cover;cursor:pointer;" onclick="openPreviewModal(this.src,'Award Image')" />
+        <button onclick="_removeAwardGalleryImage(${i})" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:#E53935;color:#fff;border:none;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;line-height:1;">&times;</button>
+      </div>
+    `).join('');
+  }
+
+  function _removeAwardGalleryImage(idx) {
+    _awardGalleryImages.splice(idx, 1);
+    renderAwardGalleryPreviews();
+  }
+
+  async function saveAwardGallery() {
+    const btn = document.getElementById('award-gallery-save-btn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+
+    const fileEl = document.getElementById('award-gallery-file');
+    if (fileEl.files && fileEl.files.length) {
+      for (const file of fileEl.files) {
+        try {
+          const uri = await new Promise((resolve, reject) => {
+            const r = new FileReader();
+            r.onload = () => resolve(r.result);
+            r.onerror = () => reject(r.error);
+            r.readAsDataURL(file);
+          });
+          _awardGalleryImages.push(uri);
+        } catch(e) { toast('Failed to read ' + file.name, 'error'); }
+      }
+      fileEl.value = '';
+    }
+
+    const result = await apiFetch('/api/site-config', {
+      method: 'PUT',
+      body: JSON.stringify({ award_images: _awardGalleryImages }),
+    });
+    btn.disabled = false; btn.textContent = 'Save Gallery';
+    if (result && result.success) {
+      toast('Award gallery saved', 'success');
+      renderAwardGalleryPreviews();
+    } else {
+      toast('Failed to save gallery', 'error');
+    }
   }
 
   /* ── Site Config (hospital phone number etc.) ─────────────────────

@@ -16,7 +16,7 @@ from typing import Optional
 import httpx
 
 from config import TWILIO_SID, TWILIO_TOKEN, TWILIO_FROM, TWILIO_WA, tenant, tq
-from database import sms_config_col, sms_logs_col
+from database import sms_config_col, sms_logs_col, doctors_col
 from logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -30,6 +30,20 @@ def e164(mobile: str) -> str:
     if d.startswith("91") and len(d) == 12:
         return f"+{d}"
     return f"+{d}"
+
+
+def _lookup_doctor_timing(doctor_name: str) -> str:
+    """Look up a doctor's OPD timing from the doctors collection."""
+    if not doctor_name:
+        return ""
+    try:
+        doc = doctors_col.find_one(
+            {"name": {"$regex": re.escape(doctor_name), "$options": "i"}, "active": True},
+            {"timing": 1},
+        )
+        return doc.get("timing", "") if doc else ""
+    except Exception:
+        return ""
 
 
 # ── Legacy env-var-based notifications ───────────────────────────────
@@ -52,14 +66,21 @@ def _send_whatsapp_legacy(to: str, body: str) -> None:
     )
 
 
-def notify_legacy(name: str, mobile: str, dept: str, date: Optional[str]) -> None:
+def notify_legacy(name: str, mobile: str, dept: str, date: Optional[str], doctor: str = "") -> None:
     """Send appointment notification via legacy env-var-based Twilio."""
     to  = e164(mobile)
+    timing = _lookup_doctor_timing(doctor) if doctor else ""
     msg = (
         f"Hi {name}! Your appointment at Vedansh Medicare has been received.\n"
         f"Department : {dept}\n"
         f"Pref. date : {date or 'to be confirmed'}\n"
-        f"Our team will call you within 30 minutes to confirm.\n"
+    )
+    if doctor:
+        msg += f"Doctor     : {doctor}\n"
+    if timing:
+        msg += f"Timings    : {timing}\n"
+    msg += (
+        f"Please reach out to the hospital desk in case of any queries.\n"
         f"Helpline   : +91 9650494019"
     )
     try:
@@ -98,6 +119,8 @@ def send_appointment_sms(
     from_num = cfg.get("from_number", "").strip()
     short_id = appointment_id[:8].upper()
 
+    timing = _lookup_doctor_timing(doctor) if doctor else ""
+
     try:
         message = template.format(
             name=name,
@@ -106,6 +129,7 @@ def send_appointment_sms(
             doctor=doctor or "To be assigned",
             date=date or "To be confirmed",
             appointment_id=short_id,
+            timing=timing or "Please contact hospital desk",
         )
     except KeyError as ke:
         logger.warning("Unknown template placeholder", extra={"error": str(ke)})

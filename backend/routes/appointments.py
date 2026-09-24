@@ -59,7 +59,7 @@ def create_appointment(body: AppointmentIn,
             result = appointments_col.insert_one(doc)
 
     # Legacy WhatsApp notification (env-var-based)
-    notify_legacy(body.name, body.mobile, body.department, body.date)
+    notify_legacy(body.name, body.mobile, body.department, body.date, body.doctor or "")
     # Admin-configured SMS notification
     send_appointment_sms(
         appointment_id=str(result.inserted_id),

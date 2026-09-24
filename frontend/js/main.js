@@ -704,8 +704,10 @@
     let stats = [];
     try {
       const res  = await _apiFetch('/api/hero-stats');
-      const json = await res.json();
-      if (Array.isArray(json) && json.length) stats = json;
+      if (res.ok) {
+        const json = await res.json();
+        if (Array.isArray(json) && json.length) stats = json;
+      }
     } catch (_) {}
 
     if (!stats.length) return; // keep hardcoded fallback
@@ -715,6 +717,17 @@
         <span class="trust-stat-number" data-count="${s.count}" data-suffix="${s.suffix || '+'}">${s.count >= 1000 ? Math.round(s.count / 1000) + 'k' : s.count}${s.suffix || '+'}</span>
         <span class="trust-stat-label">${s.label}</span>
       </div>`).join('');
+
+    // Update the "why us" badge with the first stat (patients)
+    const patientStat = stats.find(s => (s.label || '').toLowerCase().includes('patient'));
+    if (patientStat) {
+      const badge = document.querySelector('.why-us-badge-num');
+      if (badge) {
+        const val = patientStat.count >= 1000 ? Math.round(patientStat.count / 1000).toLocaleString() + ',000' : patientStat.count;
+        badge.textContent = val + (patientStat.suffix || '+');
+      }
+    }
+
     initScrollAnimations();
   }
 

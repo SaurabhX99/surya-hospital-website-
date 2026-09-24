@@ -240,6 +240,4 @@ def fmt_award(doc: dict) -> dict:
         doc["created_at"] = ca.isoformat()
     doc.setdefault("active", True)
     doc.setdefault("order", 0)
-    doc.setdefault("image", None)
-    doc["image_url"] = gdrive_direct(doc.get("image")) if doc.get("image") else None
     return doc
