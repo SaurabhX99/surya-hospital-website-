@@ -70,40 +70,8 @@
 
     /* Story Section */
     .story-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: var(--space-16);
-      align-items: center;
+      max-width: 800px;
     }
-    .story-image {
-      background: var(--gradient-primary);
-      border-radius: var(--radius-2xl);
-      min-height: 440px;
-      display: flex; align-items: center; justify-content: center;
-      position: relative; overflow: hidden;
-    }
-    .story-image::before {
-      content: '';
-      position: absolute; top: -40px; right: -40px;
-      width: 160px; height: 160px;
-      background: rgba(255,255,255,0.06); border-radius: 50%;
-    }
-    .story-image svg { width: 120px; height: 120px; opacity: 0.25; }
-    .story-badge {
-      position: absolute; bottom: 24px; left: 24px;
-      background: #fff; border-radius: var(--radius-xl);
-      padding: 16px 20px; box-shadow: var(--shadow-lg);
-      display: flex; align-items: center; gap: 12px;
-    }
-    .story-badge-icon {
-      width: 44px; height: 44px;
-      background: var(--gradient-primary);
-      border-radius: var(--radius-lg);
-      display: flex; align-items: center; justify-content: center;
-    }
-    .story-badge-icon svg { width: 22px; height: 22px; }
-    .story-badge-num { font-family: var(--font-heading); font-size: var(--text-2xl); font-weight: var(--font-extrabold); color: var(--color-primary); }
-    .story-badge-text { font-size: var(--text-xs); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
 
     /* Vision Mission */
     .vm-grid {
@@ -195,7 +163,6 @@
     .award-desc  { font-size: var(--text-sm); color: var(--color-text-secondary); line-height: var(--leading-relaxed); }
 
     @media (max-width: 1024px) {
-      .story-grid { grid-template-columns: 1fr; }
       .vm-grid    { grid-template-columns: 1fr; }
       .values-grid { grid-template-columns: repeat(2, 1fr); }
       .awards-grid { grid-template-columns: repeat(2, 1fr); }
@@ -321,18 +288,6 @@
         </div>
       </div>
 
-      <div class="story-image" data-animate="fade-left">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
-        <div class="story-badge">
-          <div class="story-badge-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-          </div>
-          <div>
-            <div class="story-badge-num">12,000+</div>
-            <div class="story-badge-text">Patients Served</div>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </section>
@@ -551,7 +506,7 @@
       var images = ((cfg && cfg.award_images) || []).filter(function(src) { return src && src.trim(); });
       if (!images.length) { marquee.style.display = 'none'; marquee.innerHTML = ''; return; }
       var html = images.map(function(src) {
-        return '<img src="' + src + '" alt="Award" onerror="this.remove();if(!this.parentElement||!this.parentElement.querySelector(\'img\'))document.getElementById(\'award-marquee\').style.display=\'none\';" />';
+        return '<img src="' + resolveURL(src) + '" alt="Award" onerror="this.remove();if(!this.parentElement||!this.parentElement.querySelector(\'img\'))document.getElementById(\'award-marquee\').style.display=\'none\';" />';
       }).join('');
       if (images.length === 1) {
         marquee.innerHTML = '<div style="display:flex;justify-content:center;">' + html + '</div>';
