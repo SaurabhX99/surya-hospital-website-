@@ -319,6 +319,7 @@
 
     activateSlide(0);
     startAuto();
+    initScrollAnimations();
   }
 
   /* ── Animated Counter ─────────────────────────────────── */
@@ -475,7 +476,11 @@
         .map((f, i) => ({ ...f, _origIdx: i }))
         .filter(f => f.category === filter);
     }
-    grid.innerHTML = items.map(_makeFacilityCard).join('');
+    if (items.length === 0) {
+      grid.innerHTML = '<p style="text-align:center;color:var(--color-text-muted);padding:40px 0;grid-column:1/-1;">No facilities to display for this category.</p>';
+    } else {
+      grid.innerHTML = items.map(_makeFacilityCard).join('');
+    }
     initScrollAnimations();
   }
 

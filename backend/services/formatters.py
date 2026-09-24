@@ -10,7 +10,7 @@ import re
 from datetime import datetime
 from typing import Optional
 
-from config import BASE_URL, STATUS_MAP
+from config import STATUS_MAP
 
 
 # ── Google Drive URL helpers ─────────────────────────────────────────
@@ -50,7 +50,7 @@ def gdrive_direct(url: Optional[str]) -> Optional[str]:
         return url[idx:]
     fid = extract_drive_id(url)
     if fid:
-        return f"{BASE_URL}/api/proxy/image?id={fid}"
+        return f"/api/proxy/image?id={fid}"
     return url
 
 
@@ -170,10 +170,10 @@ def fmt_media(doc: dict) -> dict:
     else:
         fid = extract_drive_id(link)
         if doc.get("type") == "video":
-            doc["display_url"] = f"{BASE_URL}/api/proxy/video?id={fid}" if fid else link
+            doc["display_url"] = f"/api/proxy/video?id={fid}" if fid else link
         else:
-            doc["display_url"] = f"{BASE_URL}/api/proxy/image?id={fid}" if fid else link
-        doc["thumb_url"] = f"{BASE_URL}/api/proxy/image?id={fid}" if fid else None
+            doc["display_url"] = f"/api/proxy/image?id={fid}" if fid else link
+        doc["thumb_url"] = f"/api/proxy/image?id={fid}" if fid else None
     return doc
 
 

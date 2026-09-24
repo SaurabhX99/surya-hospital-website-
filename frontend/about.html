@@ -549,9 +549,12 @@
       var cfg = await res.json();
       var images = (cfg && cfg.award_images) || [];
       if (!images.length) { marquee.style.display = 'none'; return; }
-      // Duplicate for seamless loop
       var html = images.map(function(src) { return '<img src="' + src + '" alt="Award" onerror="this.style.display=\'none\'" />'; }).join('');
-      marquee.innerHTML = '<div class="award-marquee-track">' + html + html + '</div>';
+      if (images.length === 1) {
+        marquee.innerHTML = '<div style="display:flex;justify-content:center;">' + html + '</div>';
+      } else {
+        marquee.innerHTML = '<div class="award-marquee-track">' + html + html + '</div>';
+      }
       marquee.style.display = '';
     } catch(e) { marquee.style.display = 'none'; }
   }

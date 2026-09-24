@@ -193,20 +193,32 @@
     return '<div class="facility-feature-card" data-animate="fade-up" data-delay="' + ((i % 2) * 100) + '">' + visual + info + '</div>';
   }
 
+  var defaultFacilities = [
+    { name: 'ICU', category: 'critical_care', color: '#0A4D8C', description: 'Fully equipped Intensive Care Unit with round-the-clock monitoring by trained intensivists and nursing staff.' },
+    { name: 'NICU', category: 'neonatal', color: '#1A7A5A', description: 'Neonatal Intensive Care Unit with incubators, phototherapy, and continuous monitoring for premature and critically ill newborns.' },
+    { name: 'Emergency Department', category: 'emergency', color: '#C0392B', description: '24×7 Emergency services with trauma care, triage, and rapid-response teams for all medical emergencies.' },
+    { name: 'Dialysis Centre', category: 'nephrology', color: '#2980B9', description: 'Modern dialysis centre with multiple stations, water purification systems, and experienced nephrology support.' },
+    { name: 'Modular OT', category: 'surgery', color: '#6C3483', description: 'State-of-the-art modular operation theatres with laminar airflow, advanced anaesthesia workstations, and HD laparoscopy systems.' },
+    { name: 'Labour Room', category: 'labour', color: '#E67E22', description: 'Comfortable and well-equipped labour rooms designed for safe deliveries with immediate neonatal resuscitation facilities.' },
+    { name: 'Radiology', category: 'radiology', color: '#16A085', description: 'Digital X-ray, ultrasound, and CT scan services with fast reporting for accurate diagnostics.' },
+    { name: 'Pathology Lab', category: 'pathology', color: '#8E44AD', description: 'In-house pathology laboratory offering comprehensive blood tests, microbiology, and histopathology with quick turnaround.' },
+  ];
+
   async function loadFacilities() {
     var grid = document.getElementById('facility-feature-grid');
     if (!grid) return;
+    var facilities = null;
     try {
       var res = await apiFetch('/api/facilities');
-      var data = await res.json();
-      if (Array.isArray(data) && data.length) {
-        grid.innerHTML = data.map(renderCard).join('');
-      } else {
-        grid.innerHTML = '<p style="text-align:center;color:var(--color-text-muted);padding:40px 0;grid-column:1/-1;">No facilities available at the moment.</p>';
+      if (res.ok) {
+        var data = await res.json();
+        if (Array.isArray(data) && data.length) {
+          facilities = data;
+        }
       }
-    } catch(e) {
-      grid.innerHTML = '<p style="text-align:center;color:var(--color-text-muted);padding:40px 0;grid-column:1/-1;">Unable to load facilities. Please try again later.</p>';
-    }
+    } catch(e) {}
+    if (!facilities) facilities = defaultFacilities;
+    grid.innerHTML = facilities.map(renderCard).join('');
   }
 
   loadFacilities();
