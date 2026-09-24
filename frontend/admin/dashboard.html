@@ -1774,14 +1774,14 @@
         <input type="hidden" id="doc-photo" />
         <div id="doc-photo-preview" style="margin-top:6px;display:none;"><img style="max-height:80px;border-radius:8px;" /><button type="button" onclick="clearFilePreview('doc-photo')" style="margin-left:8px;background:none;border:none;color:#E53935;cursor:pointer;font-size:12px;">Remove</button></div>
       </div>
+      <div class="form-group">
+        <label class="form-label">About / Description</label>
+        <textarea id="doc-about" class="form-control" rows="4" placeholder="Brief professional background, areas of expertise, achievements…"></textarea>
+      </div>
       <div class="form-row">
         <div class="form-group" style="display:flex;align-items:center;gap:10px;">
           <label class="toggle-switch"><input type="checkbox" id="doc-active" checked /><span class="toggle-slider"></span></label>
           <span style="font-size:13px;color:#1F2937;">Visible on website</span>
-        </div>
-        <div class="form-group" style="display:flex;align-items:center;gap:10px;">
-          <label class="toggle-switch"><input type="checkbox" id="doc-featured" /><span class="toggle-slider"></span></label>
-          <span style="font-size:13px;color:#1F2937;">Show on homepage (Featured)</span>
         </div>
       </div>
     </div>
@@ -3122,8 +3122,8 @@
     document.getElementById('doc-photo').value    = doctor ? (doctor.photo || '') : '';
     document.getElementById('doc-photo-file').value = '';
     if (doctor && (doctor.photo_url || doctor.photo)) { showFilePreview('doc-photo', doctor.photo_url || doctor.photo); } else { clearFilePreview('doc-photo'); }
+    document.getElementById('doc-about').value      = doctor ? (doctor.about || '') : '';
     document.getElementById('doc-active').checked   = doctor ? doctor.active !== false : true;
-    document.getElementById('doc-featured').checked = doctor ? !!doctor.featured : false;
     const sel = document.getElementById('doc-dept');
     if (doctor && doctor.department) {
       let found = false;
@@ -3157,8 +3157,8 @@
       experience:    document.getElementById('doc-exp').value.trim(),
       timing:        document.getElementById('doc-timing').value.trim(),
       photo:         photoUrl,
+      about:         document.getElementById('doc-about').value.trim() || null,
       active:        document.getElementById('doc-active').checked,
-      featured:      document.getElementById('doc-featured').checked,
     };
     body.name          = body.name.toUpperCase();
     body.qualification = body.qualification.toUpperCase();
@@ -4778,7 +4778,8 @@
         ? `<button onclick="openEditUser('${u.id}','${u.email.replace(/'/g,"\\'")}','${(u.name||'').replace(/'/g,"\\'")}','${u.role||'ADMIN'}')" style="font-size:12px;padding:4px 12px;border-radius:6px;cursor:pointer;background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;">Edit</button>
            <span style="color:#9CA3AF;font-size:12px;margin-left:4px;">You</span>`
         : `<button onclick="openEditUser('${u.id}','${u.email.replace(/'/g,"\\'")}','${(u.name||'').replace(/'/g,"\\'")}','${u.role||'ADMIN'}')" style="font-size:12px;padding:4px 12px;border-radius:6px;cursor:pointer;background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;">Edit</button>
-           <button onclick="toggleAdminUser('${u.id}')" style="font-size:12px;padding:4px 12px;border-radius:6px;cursor:pointer;margin-left:4px;${toggleStyle}">${toggleLabel}</button>`;
+           <button onclick="toggleAdminUser('${u.id}')" style="font-size:12px;padding:4px 12px;border-radius:6px;cursor:pointer;margin-left:4px;${toggleStyle}">${toggleLabel}</button>
+           <button onclick="deleteAdminUser('${u.id}','${u.email.replace(/'/g,"\\'")}')" style="font-size:12px;padding:4px 12px;border-radius:6px;cursor:pointer;margin-left:4px;background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;">Delete</button>`;
       return `<tr>
         <td>${u.email}</td>
         <td>${u.name || '—'}</td>
@@ -4798,6 +4799,17 @@
       loadAdminUsers();
     } else {
       toast('Failed to update user status', 'error');
+    }
+  }
+
+  async function deleteAdminUser(userId, email) {
+    if (!confirm('Are you sure you want to permanently delete user "' + email + '"? This action cannot be undone.')) return;
+    const result = await apiFetch(`/api/admin/users/${userId}`, { method: 'DELETE' });
+    if (result && result.success) {
+      toast('User deleted successfully', 'success');
+      loadAdminUsers();
+    } else {
+      toast('Failed to delete user', 'error');
     }
   }
 

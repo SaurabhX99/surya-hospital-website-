@@ -106,6 +106,7 @@ def fmt_doctor(doc: dict) -> dict:
     doc.setdefault("photo", None)
     doc.setdefault("featured", False)
     doc.setdefault("active", True)
+    doc.setdefault("about", None)
     # photo = original Drive link (for edit forms)
     # photo_url = proxy URL (for <img> display)
     doc["photo_url"] = gdrive_direct(doc["photo"]) if doc.get("photo") else None

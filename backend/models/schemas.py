@@ -38,6 +38,7 @@ class DoctorIn(BaseModel):
     experience: str
     timing: str
     photo: Optional[str] = None
+    about: Optional[str] = None
     featured: bool = False
     active: bool = True
 
@@ -50,6 +51,7 @@ class DoctorUpdate(BaseModel):
     experience: Optional[str] = None
     timing: Optional[str] = None
     photo: Optional[str] = None
+    about: Optional[str] = None
     featured: Optional[bool] = None
     active: Optional[bool] = None
 

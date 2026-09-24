@@ -99,6 +99,22 @@ def toggle_admin_user_status(user_id: str, _admin: dict = Depends(require_super_
     return {"success": True, "active": new_active}
 
 
+@router.delete("/{user_id}")
+def delete_admin_user(user_id: str, _admin: dict = Depends(require_super_admin)):
+    """Permanently delete an admin user. SUPER_ADMIN cannot delete themselves."""
+    try:
+        oid = ObjectId(user_id)
+    except Exception:
+        raise HTTPException(400, "Invalid id")
+    user = users_col.find_one(tq({"_id": oid}))
+    if not user:
+        raise HTTPException(404, "User not found")
+    if user.get("email") == _admin.get("email"):
+        raise HTTPException(400, "You cannot delete your own account")
+    users_col.delete_one({"_id": oid})
+    return {"success": True}
+
+
 @router.patch("/{user_id}")
 def update_admin_user(user_id: str, body: UserUpdateIn, _admin: dict = Depends(require_super_admin)):
     """Edit an admin user's email, name, password, or role."""

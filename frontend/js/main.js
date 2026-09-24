@@ -429,11 +429,22 @@
     _default:   '<path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H5m14 0h2M5 21H3m4-10h2m4 0h2m-6 4h2m4 0h2"/>',
   };
 
+  // Ordered longest-first to prevent substring false positives (e.g. "nicu" before "icu")
+  const _facilityIconOrder = [
+    'diagnostics','emergency','pathology','radiology','maternity','critical','modular',
+    'dialysis','surgery','labour','nicu','icu'
+  ];
+
   function _getFacilityIcon(f) {
     const name = (f.name || '').toLowerCase();
-    const cat = (f.category || '').toLowerCase();
-    for (var k in _facilityIcons) {
-      if (k !== '_default' && (name.indexOf(k) !== -1 || cat.indexOf(k) !== -1)) return _facilityIcons[k];
+    const cat  = (f.category || '').toLowerCase();
+    // Try exact name match first
+    if (_facilityIcons[name]) return _facilityIcons[name];
+    if (_facilityIcons[cat])  return _facilityIcons[cat];
+    // Then substring match, longest key first
+    for (var i = 0; i < _facilityIconOrder.length; i++) {
+      var k = _facilityIconOrder[i];
+      if (name.indexOf(k) !== -1 || cat.indexOf(k) !== -1) return _facilityIcons[k];
     }
     return _facilityIcons._default;
   }
@@ -443,12 +454,7 @@
     // Use the original index in _facilitiesData for modal lookup
     const dataIdx = f._origIdx != null ? f._origIdx : i;
     const svgPath = _getFacilityIcon(f);
-    const imgHtml = f.icon_url
-      ? `<img src="${resolveURL(f.icon_url)}" alt="${f.name}" class="facility-card-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
-         <div class="facility-card-placeholder" style="display:none;background:linear-gradient(135deg,${color}18,${color}40);">
-           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="${color}" stroke-width="1.5" width="48" height="48">${svgPath}</svg>
-         </div>`
-      : `<div class="facility-card-placeholder" style="background:linear-gradient(135deg,${color}18,${color}40);">
+    const imgHtml = `<div class="facility-card-placeholder" style="background:linear-gradient(135deg,${color}18,${color}40);">
            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="${color}" stroke-width="1.5" width="48" height="48">${svgPath}</svg>
          </div>`;
     return `
@@ -795,16 +801,10 @@
         <span class="partner-logo-name">${p.name}</span>
       </div>`;
 
-    if (providers.length < 4) {
-      track.style.animation = 'none';
-      track.style.justifyContent = 'center';
-      track.innerHTML = providers.map(makeCard).join('');
-    } else {
-      let items = [...providers];
-      while (items.length < 8) items = [...items, ...providers];
-      const html = items.map(makeCard).join('');
-      track.innerHTML = html + html;
-    }
+    let items = [...providers];
+    while (items.length < 8) items = [...items, ...providers];
+    const html = items.map(makeCard).join('');
+    track.innerHTML = html + html;
   }
 
   /* ── Render: Partners ──────────────────────────────────── */
@@ -831,17 +831,10 @@
         <span class="partner-logo-name">${p.name}</span>
       </div>`;
 
-    if (partners.length < 4) {
-      // Too few for marquee — show as centered static grid
-      track.style.animation = 'none';
-      track.style.justifyContent = 'center';
-      track.innerHTML = partners.map(makeCard).join('');
-    } else {
-      let items = [...partners];
-      while (items.length < 8) items = [...items, ...partners];
-      const html = items.map(makeCard).join('');
-      track.innerHTML = html + html;
-    }
+    let items = [...partners];
+    while (items.length < 8) items = [...items, ...partners];
+    const html = items.map(makeCard).join('');
+    track.innerHTML = html + html;
   }
 
   /* ── Render: Blogs ────────────────────────────────────── */
