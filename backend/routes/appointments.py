@@ -58,18 +58,25 @@ def create_appointment(body: AppointmentIn,
             doc.pop("_id", None)
             result = appointments_col.insert_one(doc)
 
+    inserted_id = str(result.inserted_id)
+    appt_id = inserted_id[:8].upper()
+    appointments_col.update_one(
+        {"_id": result.inserted_id},
+        {"$set": {"appointmentId": appt_id}},
+    )
+
     # Legacy WhatsApp notification (env-var-based)
     notify_legacy(body.name, body.mobile, body.department, body.date, body.doctor or "")
     # Admin-configured SMS notification
     send_appointment_sms(
-        appointment_id=str(result.inserted_id),
+        appointment_id=inserted_id,
         name=body.name,
         mobile=body.mobile,
         department=body.department or "",
         doctor=body.doctor or "",
         date=body.date,
     )
-    return {"success": True, "id": str(result.inserted_id)}
+    return {"success": True, "id": inserted_id}
 
 
 # NOTE: /stats must come before /{appt_id} to avoid route conflict

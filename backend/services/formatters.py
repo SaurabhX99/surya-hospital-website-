@@ -86,7 +86,7 @@ def fmt_appointment(doc: dict) -> dict:
     doc["appt_time"]      = doc.get("appointmentTime") or ""
     doc["doctor"]         = doc.get("doctorName") or ""
     doc["message"]        = doc.get("reason") or doc.get("message") or ""
-    doc["appt_id"]        = doc.get("appointmentId") or ""
+    doc["appt_id"]        = doc.get("appointmentId") or doc["id"][:8].upper()
     ca = doc.get("createdAt") or doc.get("created_at")
     if isinstance(ca, datetime):
         doc["created_at"] = ca.isoformat()

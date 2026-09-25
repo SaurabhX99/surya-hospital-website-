@@ -267,7 +267,7 @@
     .card-panel {
       background: #fff; border-radius: 14px;
       box-shadow: 0 1px 4px rgba(10,77,140,0.07);
-      border: 1.5px solid #F1F5F9; overflow: hidden;
+      border: 1.5px solid #F1F5F9;
     }
     .card-panel-header {
       padding: 16px 20px;
@@ -2700,7 +2700,7 @@
     }
     tbody.innerHTML = appts.map(a => `
       <tr data-id="${a.id}">
-        <td style="color:#9CA3AF;font-size:11px;">${esc(a.appt_id || a.id.slice(-6))}</td>
+        <td style="color:#9CA3AF;font-size:11px;">${esc(a.appt_id || a.id.slice(0,8).toUpperCase())}</td>
         <td>
           <strong>${esc(a.name)}</strong>
           <small style="display:block;color:#9CA3AF;">${(a.created_at||'').slice(0,16)}</small>
@@ -2906,25 +2906,29 @@
   function _renderPagination(containerId, { total, page, limit }, loadFn) {
     const el = document.getElementById(containerId);
     if (!el) return;
+    if (!total) { el.innerHTML = ''; return; }
     const totalPages = Math.ceil(total / limit);
-    if (totalPages <= 1) { el.innerHTML = ''; return; }
-    let html = `<span style="color:#6B7280;">Showing ${(page-1)*limit+1}–${Math.min(page*limit, total)} of ${total}</span>`;
-    html += '<div style="display:flex;gap:6px;align-items:center;">';
-    if (page > 1)
-      html += `<button style="padding:5px 14px;font-size:12px;background:#F1F5F9;color:#374151;border:1px solid #D1D5DB;border-radius:6px;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.2s;" onmouseover="this.style.background='#E2E8F0'" onmouseout="this.style.background='#F1F5F9'" onclick="${loadFn}(${page - 1})">← Prev</button>`;
-    const pages = [];
-    for (let i = 1; i <= totalPages; i++) {
-      if (i === 1 || i === totalPages || (i >= page - 1 && i <= page + 1)) pages.push(i);
-      else if (pages[pages.length - 1] !== '…') pages.push('…');
+    const start = (page - 1) * limit + 1;
+    const end = Math.min(page * limit, total);
+    let html = `<span style="color:#6B7280;">Showing ${start}–${end} of ${total}</span>`;
+    if (totalPages > 1) {
+      html += '<div style="display:flex;gap:6px;align-items:center;">';
+      if (page > 1)
+        html += `<button style="padding:5px 14px;font-size:12px;background:#F1F5F9;color:#374151;border:1px solid #D1D5DB;border-radius:6px;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.2s;" onmouseover="this.style.background='#E2E8F0'" onmouseout="this.style.background='#F1F5F9'" onclick="${loadFn}(${page - 1})">← Prev</button>`;
+      const pages = [];
+      for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= page - 1 && i <= page + 1)) pages.push(i);
+        else if (pages[pages.length - 1] !== '…') pages.push('…');
+      }
+      pages.forEach(p => {
+        if (p === '…') { html += '<span style="color:#9CA3AF;padding:0 2px;">…</span>'; }
+        else if (p === page) { html += `<button style="padding:5px 12px;font-size:12px;background:#0A4D8C;color:#fff;border:2px solid #0A4D8C;border-radius:6px;font-weight:700;cursor:default;box-shadow:0 2px 6px rgba(10,77,140,0.3);">${p}</button>`; }
+        else { html += `<button style="padding:5px 12px;font-size:12px;background:#F8FAFC;color:#374151;border:1px solid #D1D5DB;border-radius:6px;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.2s;" onmouseover="this.style.background='#E2E8F0'" onmouseout="this.style.background='#F8FAFC'" onclick="${loadFn}(${p})">${p}</button>`; }
+      });
+      if (page < totalPages)
+        html += `<button style="padding:5px 14px;font-size:12px;background:#0A4D8C;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;box-shadow:0 2px 6px rgba(10,77,140,0.25);transition:all 0.2s;" onmouseover="this.style.background='#073A6B'" onmouseout="this.style.background='#0A4D8C'" onclick="${loadFn}(${page + 1})">Next →</button>`;
+      html += '</div>';
     }
-    pages.forEach(p => {
-      if (p === '…') { html += '<span style="color:#9CA3AF;padding:0 2px;">…</span>'; }
-      else if (p === page) { html += `<button style="padding:5px 12px;font-size:12px;background:#0A4D8C;color:#fff;border:2px solid #0A4D8C;border-radius:6px;font-weight:700;cursor:default;box-shadow:0 2px 6px rgba(10,77,140,0.3);">${p}</button>`; }
-      else { html += `<button style="padding:5px 12px;font-size:12px;background:#F8FAFC;color:#374151;border:1px solid #D1D5DB;border-radius:6px;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.2s;" onmouseover="this.style.background='#E2E8F0'" onmouseout="this.style.background='#F8FAFC'" onclick="${loadFn}(${p})">${p}</button>`; }
-    });
-    if (page < totalPages)
-      html += `<button style="padding:5px 14px;font-size:12px;background:#0A4D8C;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;box-shadow:0 2px 6px rgba(10,77,140,0.25);transition:all 0.2s;" onmouseover="this.style.background='#073A6B'" onmouseout="this.style.background='#0A4D8C'" onclick="${loadFn}(${page + 1})">Next →</button>`;
-    html += '</div>';
     el.innerHTML = html;
   }
 
