@@ -2610,6 +2610,7 @@ body.nav-open { overflow: hidden; }
 }
 
 @media (max-width: 768px) {
+  #hero                  { min-height: auto; }
   .site-logo-img { height: 58px; }
   .container             { padding: 0 var(--space-4); }
   .section-title         { font-size: var(--text-3xl); }

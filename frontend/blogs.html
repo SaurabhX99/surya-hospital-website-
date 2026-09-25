@@ -135,15 +135,6 @@
       <p style="font-size:var(--text-sm);margin-top:8px;">Try a different search or category.</p>
     </div>
 
-    <!-- Newsletter -->
-    <div class="newsletter-card" data-animate="scale">
-      <h3>Stay Informed About Your Health</h3>
-      <p>Get the latest health tips and articles delivered to your inbox.</p>
-      <div class="newsletter-form">
-        <input type="email" class="newsletter-input" placeholder="Enter your email address…" />
-        <button class="newsletter-btn">Subscribe</button>
-      </div>
-    </div>
   </div>
 </section>
 </main>
@@ -318,18 +309,6 @@ _bFetch('/api/blogs')
   })
   .catch(() => { hideSkeleton(); renderBlogs([]); });
 
-document.querySelector('.newsletter-btn').addEventListener('click', function () {
-  const inp = document.querySelector('.newsletter-input');
-  if (inp.value && inp.value.includes('@')) {
-    this.textContent = '✓ Subscribed!';
-    this.style.background = '#00C853';
-    inp.value = '';
-    setTimeout(() => { this.textContent = 'Subscribe'; this.style.background = '#fff'; }, 3000);
-  } else {
-    inp.style.borderColor = '#E53935';
-    setTimeout(() => inp.style.borderColor = '', 2000);
-  }
-});
 </script>
 <script src="js/shared.js"></script>
 </body>
