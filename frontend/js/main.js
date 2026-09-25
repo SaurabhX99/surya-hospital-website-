@@ -222,6 +222,15 @@
 
     section.style.display = '';
 
+    // If user navigated here with #appointment hash (e.g. from doctors page),
+    // re-scroll after gallery shifts layout
+    if (window.location.hash === '#appointment') {
+      requestAnimationFrame(() => {
+        const appt = document.getElementById('appointment');
+        if (appt) appt.scrollIntoView({ behavior: 'instant' });
+      });
+    }
+
     const interval   = cfg.interval   || 5000;
     const autoplay   = cfg.autoplay   !== false;
     const transition = cfg.transition || 'fade';
@@ -940,7 +949,7 @@
     const doctorParam = _qs.get('doctor');
     const deptParam   = _qs.get('dept');
     if (doctorParam || deptParam) {
-      // Scroll to appointment section immediately to avoid gallery flash
+      // Scroll to appointment section immediately
       const apptSection = $('#appointment');
       if (apptSection) apptSection.scrollIntoView({ behavior: 'instant' });
       // Wait for populateDeptSelect to finish, then prefill values
@@ -955,6 +964,8 @@
         if (doctorParam && $('#appt-doctor')) {
           $('#appt-doctor').value = doctorParam;
         }
+        // Re-scroll after prefill in case gallery loaded and shifted layout
+        if (apptSection) apptSection.scrollIntoView({ behavior: 'instant' });
       }, 600);
     }
 

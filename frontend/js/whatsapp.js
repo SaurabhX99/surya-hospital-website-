@@ -509,6 +509,20 @@
       } else {
         setTimeout(() => renderStep(current.next), 400);
       }
+    } else {
+      // Not in an input-collecting step — politely decline and show menu
+      typewriterAppend(
+        'I\'m sorry, I can only assist through the options provided. Please select one of the options below to continue. 😊',
+        'bot',
+        () => {
+          const step = FLOW[state.step];
+          if (step && step.options) {
+            appendOptions(step.options);
+          } else {
+            appendOptions(FLOW.start.options);
+          }
+        }
+      );
     }
   }
 
