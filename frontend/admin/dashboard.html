@@ -2901,7 +2901,12 @@
     let t; return function() { clearTimeout(t); t = setTimeout(fn, ms); };
   }
 
-  var PAGE_SIZE = 20;
+  var PAGE_SIZE = 10;
+
+  function _changePageSize(newSize, loadFn) {
+    PAGE_SIZE = parseInt(newSize, 10);
+    window[loadFn](1);
+  }
 
   function _renderPagination(containerId, { total, page, limit }, loadFn) {
     const el = document.getElementById(containerId);
@@ -2910,7 +2915,19 @@
     const totalPages = Math.ceil(total / limit);
     const start = (page - 1) * limit + 1;
     const end = Math.min(page * limit, total);
-    let html = `<span style="color:#6B7280;">Showing ${start}–${end} of ${total}</span>`;
+
+    let html = '<div style="display:flex;align-items:center;gap:12px;">';
+    html += `<span style="color:#6B7280;">Showing ${start}–${end} of ${total}</span>`;
+    html += '<span style="color:#D1D5DB;">|</span>';
+    html += '<label style="display:flex;align-items:center;gap:6px;color:#6B7280;">';
+    html += 'Rows';
+    html += `<select onchange="_changePageSize(this.value,'${loadFn}')" style="padding:3px 8px;font-size:12px;border:1px solid #D1D5DB;border-radius:6px;background:#F8FAFC;color:#374151;font-family:'Inter',sans-serif;cursor:pointer;">`;
+    [10, 20, 50, 100].forEach(s => {
+      html += `<option value="${s}"${s === PAGE_SIZE ? ' selected' : ''}>${s}</option>`;
+    });
+    html += '</select></label>';
+    html += '</div>';
+
     if (totalPages > 1) {
       html += '<div style="display:flex;gap:6px;align-items:center;">';
       if (page > 1)
